@@ -11,7 +11,7 @@
       <p class="callback-eyebrow">Access confirmed</p>
       <h1 id="callback-title">Welcome{{ userName() ? ', ' + userName() : '' }}.</h1>
       <p class="callback-copy">Your workspace session is ready. Continue when you are set.</p>
-      <a class="callback-button" href="/" routerLink="/">Continue to workspace</a>
+      <a Button class="callback-button" variant="default" size="lg" href="/" routerLink="/">Continue to workspace</a>
     </section>
   } @else {
     <section class="callback-card" aria-labelledby="callback-title" aria-live="assertive">
@@ -20,7 +20,7 @@
       <p class="callback-copy">
         The sign in link may have expired or already been used. Request a fresh link to continue.
       </p>
-      <a class="callback-button" href="/auth/login" routerLink="/auth/login">Return to sign in</a>
+      <a Button class="callback-button" variant="default" size="lg" href="/auth/login" routerLink="/auth/login">Return to sign in</a>
     </section>
   }
 </app-auth-shell>

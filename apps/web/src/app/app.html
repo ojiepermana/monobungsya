@@ -1,80 +1,149 @@
 @if (authSurface()) {
   <router-outlet />
+} @else if (sessionState() === 'checking') {
+  <main class="session-gate" aria-live="polite" aria-labelledby="session-title">
+    <div class="session-gate__mark" aria-hidden="true">M</div>
+    <p class="eyebrow">Secure workspace</p>
+    <h1 id="session-title">Checking your access.</h1>
+    <p>We are preparing your operations console.</p>
+    <span class="session-gate__loader" aria-hidden="true"></span>
+  </main>
+} @else if (sessionState() === 'unauthenticated') {
+  <main class="session-gate" aria-live="polite" aria-labelledby="redirect-title">
+    <div class="session-gate__mark" aria-hidden="true">M</div>
+    <p class="eyebrow">Secure workspace</p>
+    <h1 id="redirect-title">Returning you to sign in.</h1>
+    <p>Your workspace session is not active.</p>
+    <span class="session-gate__loader" aria-hidden="true"></span>
+  </main>
+} @else if (sessionState() === 'error') {
+  <main class="session-gate session-gate--error" aria-labelledby="session-error-title" role="alert">
+    <div class="session-gate__mark" aria-hidden="true">!</div>
+    <p class="eyebrow">Workspace unavailable</p>
+    <h1 id="session-error-title">We could not check your access.</h1>
+    <p>Try again when the gateway is available. Your session was not changed.</p>
+    <button Button type="button" variant="default" size="lg" (click)="retrySession()">
+      Try again
+    </button>
+  </main>
 } @else {
-<main class="workspace-shell">
-  <header class="topbar">
-    <a class="wordmark" href="/" aria-label="Monobungsia home">
-      <span class="wordmark-mark" aria-hidden="true">M</span>
-      <span>monobungsia</span>
-    </a>
-    <span class="environment-label">enterprise workspace</span>
-  </header>
-
-  <section class="hero" aria-labelledby="page-title">
-    <div>
-      <p class="eyebrow">Operations console</p>
-      <h1 id="page-title">A calm starting point for complex work.</h1>
-      <p class="hero-copy">
-        One public gateway, clear service boundaries, and contracts that stay visible as the platform grows.
-      </p>
-    </div>
-    <div class="hero-index" aria-hidden="true">
-      <span>01</span>
-      <span>platform</span>
-    </div>
-  </section>
-
-  <section class="status-panel" aria-labelledby="status-title">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">System pulse</p>
-        <h2 id="status-title">Gateway connection</h2>
-      </div>
-      <span
-        class="status-chip"
-        [class.status-chip--online]="gatewayState() === 'online'"
-        [class.status-chip--offline]="gatewayState() === 'offline'"
-      >
-        <span class="status-dot" aria-hidden="true"></span>
-        @switch (gatewayState()) {
-          @case ('online') { Online }
-          @case ('offline') { Offline }
-          @default { Checking }
+  <div class="workspace-app">
+    <header class="workspace-topbar">
+      <a class="wordmark" href="/" aria-label="Monobungsia home">
+        <span class="wordmark-mark" aria-hidden="true">M</span>
+        <span>monobungsia</span>
+      </a>
+      <div class="workspace-topbar__actions">
+        <span class="environment-label">enterprise workspace</span>
+        @defer (on idle) {
+          <ThemeSettings
+            [(open)]="themeSettingsOpen"
+            triggerLabel="Theme settings"
+            [trigger-icon-only]="true"
+            side="right"
+          />
+        } @placeholder {
+          <span class="theme-settings-placeholder" aria-hidden="true"></span>
         }
-      </span>
+      </div>
+    </header>
+
+    <div class="workspace-layout">
+      <div class="workspace-navigation workspace-navigation--desktop">
+        <Navigation id="main" class="workspace-navigation__component" [data]="navigationItems" ariaLabel="Workspace navigation">
+          <NavigationSidebar class="workspace-navigation__sidebar" position="left" [collapsed]="false">
+            <NavigationHeader>
+              <span class="navigation-heading">Workspace</span>
+            </NavigationHeader>
+            <NavigationContent />
+            <NavigationFooter>
+              <span class="navigation-footer">{{ sessionUserRole() || 'member' }}</span>
+            </NavigationFooter>
+          </NavigationSidebar>
+        </Navigation>
+      </div>
+
+      <div class="workspace-navigation workspace-navigation--mobile">
+        <Navigation id="main-mobile" class="workspace-navigation__component" data-id="main" [data]="navigationItems" ariaLabel="Workspace navigation">
+          <NavigationFlyout label="Open navigation" icon="menu" triggerVariant="plain" />
+        </Navigation>
+      </div>
+
+      <main class="workspace-shell" aria-labelledby="page-title">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Operations console</p>
+            <h1 id="page-title">A calm starting point for complex work.</h1>
+            <p class="hero-copy">
+              One public gateway, clear service boundaries, and contracts that stay visible as the platform grows.
+            </p>
+          </div>
+          <div class="hero-index" aria-hidden="true">
+            <span>01</span>
+            <span>platform</span>
+          </div>
+        </section>
+
+        <section class="status-panel" aria-labelledby="status-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">System pulse</p>
+              <h2 id="status-title">Gateway connection</h2>
+            </div>
+            <Badge
+              class="status-chip"
+              [class.status-chip--online]="gatewayState() === 'online'"
+              [class.status-chip--offline]="gatewayState() === 'offline'"
+              [class.status-chip--checking]="gatewayState() === 'checking'"
+              variant="outline"
+            >
+              <span class="status-dot" aria-hidden="true"></span>
+              @switch (gatewayState()) {
+                @case ('online') { Online }
+                @case ('offline') { Offline }
+                @default { Checking }
+              }
+            </Badge>
+          </div>
+
+          <Separator />
+
+          <div class="status-grid">
+            <div>
+              <span class="field-label">Service</span>
+              <strong>{{ gatewayService() }}</strong>
+            </div>
+            <div>
+              <span class="field-label">Contract</span>
+              <strong>OpenAPI 3</strong>
+            </div>
+            <div>
+              <span class="field-label">Runtime</span>
+              <strong>Bun + Elysia</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="service-grid" aria-label="Service boundaries">
+          @for (service of ['Auth', 'Users', 'Employees', 'Payroll', 'Reports']; track service) {
+            <Card class="service-card" radius="xs" density="compact">
+              <header class="service-card__header">
+                <span class="service-number">{{ $index + 1 | number: '2.0' }}</span>
+                <h2 class="service-card__title">{{ service }}</h2>
+              </header>
+              <div class="service-card__content">
+                <p>Boundary ready</p>
+                <Icon name="arrow_forward" class="service-arrow" aria-hidden="true" />
+              </div>
+            </Card>
+          }
+        </section>
+
+        <footer class="footer-note">
+          <span>Public traffic enters through the API Gateway.</span>
+          <span>{{ sessionUserName() || 'v0.1 scaffold' }}</span>
+        </footer>
+      </main>
     </div>
-
-    <div class="status-grid">
-      <div>
-        <span class="field-label">Service</span>
-        <strong>{{ gatewayService() }}</strong>
-      </div>
-      <div>
-        <span class="field-label">Contract</span>
-        <strong>OpenAPI 3</strong>
-      </div>
-      <div>
-        <span class="field-label">Runtime</span>
-        <strong>Bun + Elysia</strong>
-      </div>
-    </div>
-  </section>
-
-  <section class="service-grid" aria-label="Service boundaries">
-    @for (service of ['Auth', 'Users', 'Employees', 'Payroll', 'Reports']; track service) {
-      <article class="service-card">
-        <span class="service-number">{{ $index + 1 | number: '2.0' }}</span>
-        <h2>{{ service }}</h2>
-        <p>Boundary ready</p>
-        <span class="service-arrow" aria-hidden="true">-&gt;</span>
-      </article>
-    }
-  </section>
-
-  <footer class="footer-note">
-    <span>Public traffic enters through the API Gateway.</span>
-    <span>v0.1 scaffold</span>
-  </footer>
-
-</main>
+  </div>
 }

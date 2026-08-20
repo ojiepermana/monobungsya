@@ -10,7 +10,7 @@
       <p class="auth-status auth-status--success" role="status">
         Check <strong>{{ email() }}</strong> for the sign in link.
       </p>
-      <button class="auth-button auth-button--quiet" type="button" (click)="reset()">
+      <button Button class="auth-button auth-button--quiet" variant="ghost" size="lg" type="button" (click)="reset()">
         Use another email
       </button>
     } @else {
@@ -21,8 +21,9 @@
       </p>
 
       <form class="auth-form" (submit)="submit($event)" novalidate>
-        <label class="auth-label" for="email">Work email</label>
+        <label Label class="auth-label" for="email">Work email</label>
         <input
+          Input
           id="email"
           class="auth-input"
           [class.auth-input--invalid]="state() === 'error'"
@@ -49,7 +50,7 @@
           </p>
         }
 
-        <button class="auth-button" type="submit" [disabled]="state() === 'submitting'">
+        <button Button class="auth-button" variant="default" size="lg" type="submit" [disabled]="state() === 'submitting'">
           @if (state() === 'submitting') { Sending link... } @else { Send sign in link }
         </button>
       </form>

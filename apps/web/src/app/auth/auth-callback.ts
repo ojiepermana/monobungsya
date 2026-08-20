@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { client, getApiV1AuthSession } from '#project/angular-sdk';
 import { AuthShell } from './auth-shell';
 
 type CallbackState = 'loading' | 'complete' | 'error';
 
 @Component({
-  imports: [AuthShell, RouterLink],
+  imports: [AuthShell, ButtonComponent, RouterLink],
   selector: 'app-auth-callback',
-  styleUrl: './auth-callback.scss',
+  styleUrl: './auth-callback.css',
   templateUrl: './auth-callback.html',
 })
 export class AuthCallback {

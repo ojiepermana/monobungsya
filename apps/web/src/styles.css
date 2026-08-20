@@ -1,0 +1,40 @@
+@import "@ojiepermana/angular-theme/theme-full.css";
+@import "tailwindcss";
+@import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
+@import "@fontsource/material-symbols-rounded/400.css";
+@import "./app/app-layout.css";
+
+:root {
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid hsl(var(--brand));
+  outline-offset: 3px;
+}

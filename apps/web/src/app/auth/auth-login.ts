@@ -1,13 +1,16 @@
 import { Component, signal } from '@angular/core';
+import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { InputComponent } from '@ojiepermana/angular/component/input';
+import { LabelComponent } from '@ojiepermana/angular/component/label';
 import { client, postApiV1AuthMagicLink } from '#project/angular-sdk';
 import { AuthShell } from './auth-shell';
 
 type LoginState = 'idle' | 'submitting' | 'sent' | 'rate-limited' | 'error';
 
 @Component({
-  imports: [AuthShell],
+  imports: [AuthShell, ButtonComponent, InputComponent, LabelComponent],
   selector: 'app-auth-login',
-  styleUrl: './auth-login.scss',
+  styleUrl: './auth-login.css',
   templateUrl: './auth-login.html',
 })
 export class AuthLogin {

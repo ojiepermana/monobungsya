@@ -1,21 +1,83 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { client, getHealth } from '#project/angular-sdk';
+import { BadgeComponent } from '@ojiepermana/angular/component/badge';
+import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { CardComponent } from '@ojiepermana/angular/component/card';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
+import { SeparatorComponent } from '@ojiepermana/angular/component/separator';
+import {
+  NavigationContainerComponent,
+  NavigationContentComponent,
+  NavigationFlyoutComponent,
+  NavigationFooterComponent,
+  NavigationHeaderComponent,
+  NavigationSidebarComponent,
+} from '@ojiepermana/angular/navigation';
+import type { NavigationItem } from '@ojiepermana/angular/navigation/types';
+import { ThemeSettingsComponent } from '@ojiepermana/angular/theme/component/settings';
+import { client, getApiV1AuthSession, getHealth } from '#project/angular-sdk';
 import { WEB_API_URL } from './runtime-config';
 
 type GatewayState = 'checking' | 'online' | 'offline';
+type SessionState = 'checking' | 'authenticated' | 'unauthenticated' | 'error';
+
+interface SessionResponse {
+  authenticated: boolean;
+  user?: {
+    name?: string;
+    role?: string;
+  };
+}
+
+function isSessionResponse(value: unknown): value is SessionResponse {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'authenticated' in value &&
+    typeof value.authenticated === 'boolean'
+  );
+}
 
 @Component({
-  imports: [DecimalPipe, RouterOutlet],
+  imports: [
+    BadgeComponent,
+    ButtonComponent,
+    CardComponent,
+    DecimalPipe,
+    IconComponent,
+    NavigationContainerComponent,
+    NavigationContentComponent,
+    NavigationFooterComponent,
+    NavigationFlyoutComponent,
+    NavigationHeaderComponent,
+    NavigationSidebarComponent,
+    RouterOutlet,
+    SeparatorComponent,
+    ThemeSettingsComponent,
+  ],
   selector: 'app-root',
-  styleUrl: './app.scss',
+  styleUrl: './app.css',
   templateUrl: './app.html',
 })
 export class App {
   protected readonly gatewayState = signal<GatewayState>('checking');
   protected readonly gatewayService = signal('api-gateway');
   protected readonly authSurface = signal(false);
+  protected readonly sessionState = signal<SessionState>('checking');
+  protected readonly sessionUserName = signal('');
+  protected readonly sessionUserRole = signal('');
+  protected readonly themeSettingsOpen = signal(false);
+  protected readonly navigationItems: readonly NavigationItem[] = [
+    {
+      id: 'overview',
+      title: 'Workspace overview',
+      subtitle: 'Gateway and service boundaries',
+      icon: 'dashboard',
+      link: '/',
+      exactMatch: true,
+    },
+  ];
 
   private readonly router = inject(Router);
 
@@ -27,10 +89,53 @@ export class App {
     this.authSurface.set(this.router.url.startsWith('/auth/'));
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.authSurface.set(event.urlAfterRedirects.startsWith('/auth/'));
+        const isAuthRoute = event.urlAfterRedirects.startsWith('/auth/');
+        this.authSurface.set(isAuthRoute);
+
+        if (!isAuthRoute) {
+          void this.loadSession();
+        }
       }
     });
-    void this.loadGatewayHealth();
+
+    if (!this.authSurface()) {
+      void this.loadSession();
+    }
+  }
+
+  protected retrySession(): void {
+    void this.loadSession();
+  }
+
+  private async loadSession(): Promise<void> {
+    this.sessionState.set('checking');
+
+    try {
+      const result = await getApiV1AuthSession({ client });
+
+      if ((result.response?.status ?? 200) >= 500) {
+        this.sessionState.set('error');
+        return;
+      }
+
+      if (!isSessionResponse(result.data)) {
+        this.sessionState.set('error');
+        return;
+      }
+
+      if (!result.data.authenticated) {
+        this.sessionState.set('unauthenticated');
+        void this.router.navigateByUrl('/auth/login').catch(() => undefined);
+        return;
+      }
+
+      this.sessionUserName.set(result.data.user?.name ?? '');
+      this.sessionUserRole.set(result.data.user?.role ?? '');
+      this.sessionState.set('authenticated');
+      void this.loadGatewayHealth();
+    } catch {
+      this.sessionState.set('error');
+    }
   }
 
   private async loadGatewayHealth(): Promise<void> {
