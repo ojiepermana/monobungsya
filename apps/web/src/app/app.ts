@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { client, getHealth } from '#project/angular-sdk';
+import { WEB_API_URL } from './runtime-config';
 
 type GatewayState = 'checking' | 'online' | 'offline';
 
@@ -20,7 +21,7 @@ export class App {
 
   constructor() {
     client.setConfig({
-      baseUrl: 'http://localhost:3000',
+      baseUrl: WEB_API_URL,
       credentials: 'include',
     });
     this.authSurface.set(this.router.url.startsWith('/auth/'));
