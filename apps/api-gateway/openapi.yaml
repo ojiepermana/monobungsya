@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: Project Public API
+  description: Public HTTP contract exposed by the API Gateway.
+  version: 0.1.0
+tags:
+  - name: Health
+    description: Gateway health checks
+  - name: Auth
+    description: Public auth boundary
+  - name: Users
+    description: Public users boundary
+  - name: Employees
+    description: Public employees boundary
+  - name: Payroll
+    description: Public payroll boundary
+  - name: Reports
+    description: Public reports boundary
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check gateway health
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    const: ok
+                    type: string
+                  service:
+                    type: string
+      operationId: getHealth
+  /api/v1/auth/status:
+    get:
+      tags:
+        - Auth
+      summary: Forward auth status request
+      operationId: getApiV1AuthStatus
+  /api/v1/users/status:
+    get:
+      tags:
+        - Users
+      summary: Forward users status request
+      operationId: getApiV1UsersStatus
+  /api/v1/employees/status:
+    get:
+      tags:
+        - Employees
+      summary: Forward employees status request
+      operationId: getApiV1EmployeesStatus
+  /api/v1/payroll/status:
+    get:
+      tags:
+        - Payroll
+      summary: Forward payroll status request
+      operationId: getApiV1PayrollStatus
+  /api/v1/reports/status:
+    get:
+      tags:
+        - Reports
+      summary: Forward reports status request
+      operationId: getApiV1ReportsStatus
+components:
+  schemas: {}

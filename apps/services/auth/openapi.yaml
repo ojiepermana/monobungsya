@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  description: Internal HTTP contract for the auth service.
+  version: 0.1.0
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Auth
+    description: Auth module
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check service health
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    const: ok
+                    type: string
+                  service:
+                    type: string
+      operationId: getHealth
+  /internal/auth/status:
+    get:
+      tags:
+        - Auth
+      summary: Return auth module status
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - service
+                  - status
+                  - module
+                properties:
+                  service:
+                    type: string
+                  status:
+                    const: ok
+                    type: string
+                  module:
+                    const: auth
+                    type: string
+      operationId: getInternalAuthStatus
+components:
+  schemas: {}

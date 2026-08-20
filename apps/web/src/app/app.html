@@ -1,0 +1,77 @@
+<main class="workspace-shell">
+  <header class="topbar">
+    <a class="wordmark" href="/" aria-label="Monobungsia home">
+      <span class="wordmark-mark" aria-hidden="true">M</span>
+      <span>monobungsia</span>
+    </a>
+    <span class="environment-label">enterprise workspace</span>
+  </header>
+
+  <section class="hero" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">Operations console</p>
+      <h1 id="page-title">A calm starting point for complex work.</h1>
+      <p class="hero-copy">
+        One public gateway, clear service boundaries, and contracts that stay visible as the platform grows.
+      </p>
+    </div>
+    <div class="hero-index" aria-hidden="true">
+      <span>01</span>
+      <span>platform</span>
+    </div>
+  </section>
+
+  <section class="status-panel" aria-labelledby="status-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">System pulse</p>
+        <h2 id="status-title">Gateway connection</h2>
+      </div>
+      <span
+        class="status-chip"
+        [class.status-chip--online]="gatewayState() === 'online'"
+        [class.status-chip--offline]="gatewayState() === 'offline'"
+      >
+        <span class="status-dot" aria-hidden="true"></span>
+        @switch (gatewayState()) {
+          @case ('online') { Online }
+          @case ('offline') { Offline }
+          @default { Checking }
+        }
+      </span>
+    </div>
+
+    <div class="status-grid">
+      <div>
+        <span class="field-label">Service</span>
+        <strong>{{ gatewayService() }}</strong>
+      </div>
+      <div>
+        <span class="field-label">Contract</span>
+        <strong>OpenAPI 3</strong>
+      </div>
+      <div>
+        <span class="field-label">Runtime</span>
+        <strong>Bun + Elysia</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="service-grid" aria-label="Service boundaries">
+    @for (service of ['Auth', 'Users', 'Employees', 'Payroll', 'Reports']; track service) {
+      <article class="service-card">
+        <span class="service-number">{{ $index + 1 | number: '2.0' }}</span>
+        <h2>{{ service }}</h2>
+        <p>Boundary ready</p>
+        <span class="service-arrow" aria-hidden="true">-&gt;</span>
+      </article>
+    }
+  </section>
+
+  <footer class="footer-note">
+    <span>Public traffic enters through the API Gateway.</span>
+    <span>v0.1 scaffold</span>
+  </footer>
+
+  <router-outlet />
+</main>
