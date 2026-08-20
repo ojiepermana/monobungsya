@@ -81,6 +81,8 @@ bun run dev:web
 
 `bun run dev` menjalankan seluruh app secara paralel. Untuk development lokal tanpa PostgreSQL dan NATS, biarkan `ENABLE_INFRASTRUCTURE=false`. Koneksi Bun SQL dan NATS dibuat oleh `main.ts` hanya ketika flag tersebut diaktifkan.
 
+Untuk menerima magic link di Laravel Herd Pro Mail, aktifkan Herd Mail lalu gunakan nilai SMTP pada `.env.example`: `127.0.0.1:2525`, username `monobungsia`, dan password kosong. Set `ENABLE_INFRASTRUCTURE=true` setelah PostgreSQL dan NATS lokal tersedia; email akan muncul di inbox `monobungsia` pada Herd.
+
 Script utama:
 
 ```bash
