@@ -131,11 +131,11 @@ Premise pentingnya adalah bahwa scaffold ini belum membuktikan kebutuhan scale u
 
 ## Follow-up
 
-* [ ] Putuskan authentication dan authorization sebelum endpoint bisnis public ditambahkan.
+* [x] Putuskan authentication dan authorization sebelum endpoint bisnis public ditambahkan, melalui spec 0003.
 * [ ] Putuskan tenant isolation, audit log, dan retention untuk data enterprise sebelum migration domain pertama.
-* [ ] Tambahkan CI yang menjalankan install frozen, typecheck, test, lint, OpenAPI validation, SDK generation, dan build per app.
-* [ ] Tambahkan contract test untuk gateway forwarding dan service availability.
-* [ ] Tambahkan migration runner yang dipilih untuk kebutuhan domain saat database schema pertama dibuat.
+* [x] Tambahkan CI yang menjalankan install frozen, typecheck, test, lint, OpenAPI validation, SDK generation, dan build per app.
+* [x] Tambahkan contract test untuk gateway forwarding dan service availability.
+* [x] Tambahkan migration runner yang dipilih untuk kebutuhan domain saat database schema pertama dibuat.
 * [ ] Evaluasi apakah service split benar benar diperlukan berdasarkan ownership dan bottleneck yang terukur.
 
 ## References

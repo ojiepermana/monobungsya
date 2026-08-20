@@ -1,6 +1,6 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { client, getHealth } from '#project/angular-sdk';
 
 type GatewayState = 'checking' | 'online' | 'offline';
@@ -14,9 +14,21 @@ type GatewayState = 'checking' | 'online' | 'offline';
 export class App {
   protected readonly gatewayState = signal<GatewayState>('checking');
   protected readonly gatewayService = signal('api-gateway');
+  protected readonly authSurface = signal(false);
+
+  private readonly router = inject(Router);
 
   constructor() {
-    client.setConfig({ baseUrl: 'http://localhost:3000' });
+    client.setConfig({
+      baseUrl: 'http://localhost:3000',
+      credentials: 'include',
+    });
+    this.authSurface.set(this.router.url.startsWith('/auth/'));
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.authSurface.set(event.urlAfterRedirects.startsWith('/auth/'));
+      }
+    });
     void this.loadGatewayHealth();
   }
 

@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: project
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d project"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/project
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DATABASE_MIGRATION_URL: postgres://project_migrator:ci-migrator@localhost:5432/project
+      DATABASE_RESET_ALLOWED: true
+      DATABASE_TIMEZONE: Asia/Jakarta
+      NODE_ENV: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Provision ephemeral database roles
+        run: |
+          psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_migrator') THEN
+              CREATE ROLE project_migrator LOGIN PASSWORD 'ci-migrator';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_auth_runtime') THEN
+              CREATE ROLE project_auth_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_user_runtime') THEN
+              CREATE ROLE project_user_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_employee_runtime') THEN
+              CREATE ROLE project_employee_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_payroll_runtime') THEN
+              CREATE ROLE project_payroll_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_reporting_runtime') THEN
+              CREATE ROLE project_reporting_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_logs_writer') THEN
+              CREATE ROLE project_logs_writer NOLOGIN;
+            END IF;
+          END
+          $$;
+          GRANT CONNECT, CREATE ON DATABASE project TO project_migrator;
+          \connect project
+          GRANT USAGE, CREATE ON SCHEMA public TO project_migrator;
+          SQL
+
+      - name: Run database reset and seed
+        run: bun run db:reset --confirm --seed
+
+      - name: Run database idempotence check
+        run: |
+          bun run db:migrate
+          bun run db:seed
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Run typecheck
+        run: bun run typecheck
+
+      - name: Run lint
+        run: bun run lint
+
+      - name: Validate dependency boundaries
+        run: bun run check:dependencies
+
+      - name: Generate OpenAPI and SDK
+        run: bun run openapi:generate
+
+      - name: Validate OpenAPI
+        run: bun run openapi:validate
+
+      - name: Check generated artifacts
+        run: git diff --exit-code -- apps/*/openapi.yaml packages/contracts/openapi packages/angular-sdk/src/generated
+
+      - name: Build applications
+        run: bun run build

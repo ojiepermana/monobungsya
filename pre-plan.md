@@ -1035,27 +1035,27 @@ Gunakan dependency seminimal mungkin.
 
 Sebelum selesai, periksa:
 
-[ ] Bun workspace berjalan
-[ ] Angular application berjalan
-[ ] API Gateway berjalan
-[ ] Semua service dapat dijalankan secara independen
-[ ] Semua service memiliki /health
-[ ] OpenAPI dapat dihasilkan
-[ ] OpenAPI valid
-[ ] Angular SDK pipeline tersedia
-[ ] NATS abstraction tersedia
-[ ] Database abstraction tersedia
-[ ] Error handling tersedia
-[ ] Logger tersedia
-[ ] Graceful shutdown tersedia
-[ ] Bun Test berjalan
-[ ] Tidak ada cross-service source import
-[ ] Tidak ada generic repository
-[ ] Tidak ada business logic di route
-[ ] Tidak ada business logic di repository
-[ ] Dockerfile setiap deployable application tersedia
-[ ] README menjelaskan architecture
-[ ] Struktur siap dipisahkan menjadi repository terpisah di masa depan
+[x] Bun workspace berjalan
+[x] Angular application berjalan
+[x] API Gateway berjalan
+[x] Semua service dapat dijalankan secara independen
+[x] Semua service memiliki /health
+[x] OpenAPI dapat dihasilkan
+[x] OpenAPI valid
+[x] Angular SDK pipeline tersedia
+[x] NATS abstraction tersedia
+[x] Database abstraction tersedia
+[x] Error handling tersedia
+[x] Logger tersedia
+[x] Graceful shutdown tersedia
+[x] Bun Test berjalan
+[x] Tidak ada cross-service source import
+[x] Tidak ada generic repository
+[x] Tidak ada business logic di route
+[x] Tidak ada business logic di repository
+[x] Dockerfile setiap deployable application tersedia
+[x] README menjelaskan architecture
+[x] Struktur siap dipisahkan menjadi repository terpisah di masa depan
 
 Jangan menambahkan fitur bisnis yang belum diminta.
 Fokus pada scaffold, architecture boundary, developer experience, dan

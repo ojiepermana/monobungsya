@@ -1,3 +1,6 @@
+@if (authSurface()) {
+  <router-outlet />
+} @else {
 <main class="workspace-shell">
   <header class="topbar">
     <a class="wordmark" href="/" aria-label="Monobungsia home">
@@ -73,5 +76,5 @@
     <span>v0.1 scaffold</span>
   </footer>
 
-  <router-outlet />
 </main>
+}

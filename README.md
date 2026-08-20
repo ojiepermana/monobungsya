@@ -104,6 +104,9 @@ bun run build
 bun run openapi:generate
 bun run openapi:validate
 bun run check:dependencies
+bun run db:migrate
+bun run db:seed
+bun run db:reset --confirm --seed
 ```
 
 ## OpenAPI dan Angular SDK
@@ -124,7 +127,32 @@ Event contract ada di `packages/contracts/src/events`. Event handler implementat
 
 ## Database
 
-Setiap service memiliki database client dan folder migrations serta seeds sendiri. `packages/database` menyediakan native Bun SQL client untuk PostgreSQL, transaction helper, dan close helper tanpa mengetahui domain bisnis.
+`packages/database` menyediakan native Bun SQL client untuk PostgreSQL, transaction helper, close helper, dan runner database internal. Migration serta seed canonical berada di `packages/database/migrations` dan `packages/database/seeds`, bukan di dalam service deployable.
+
+PostgreSQL 18 menjadi prasyarat. Semua primary key application table memakai `uuid` dengan default native `uuidv7()`. Database memakai multischema dengan ownership berikut:
+
+| Scope | Schema |
+| --- | --- |
+| auth | `auth` |
+| user | `user` |
+| employee | `employee` |
+| payroll | `payroll` |
+| reporting | `reporting` |
+| logs | `logs` |
+
+Gunakan `DATABASE_MIGRATION_URL` untuk role migration. `DATABASE_RESET_ALLOWED=true` hanya boleh dipakai pada development atau test.
+
+Role PostgreSQL dibuat oleh DBA atau infrastructure automation, bukan oleh migration runner. Nama role canonical adalah `project_migrator`, `project_auth_runtime`, `project_user_runtime`, `project_employee_runtime`, `project_payroll_runtime`, `project_reporting_runtime`, dan `project_logs_writer`. Password serta atribut login harus disimpan di secret manager. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
+
+```bash
+bun run db:migrate
+bun run db:seed
+bun run db:reset --confirm --seed
+bun run db:migrate:down --steps 1
+bun run db:seed:reset --service auth
+```
+
+`db:migrate` dan `db:seed` menerima `--service <name>` serta `--dry-run` yang sesuai. Reset hanya menghapus schema allowlist dan tracking table, tidak menghapus database.
 
 Semua query baru harus menggunakan parameter binding. Filtering dan sorting harus memakai field whitelist di repository domain. Jangan membuat dynamic SQL framework generik.
 
