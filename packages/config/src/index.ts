@@ -16,6 +16,8 @@ const environmentSchema = z.object({
     .optional()
     .transform((value) => value === 'true'),
   CORS_ORIGIN: z.string().default('http://localhost:4200'),
+  INTERNAL_AUTH_SIGNING_SECRET: z.string().default(''),
+  AUTH_CLOCK_SKEW_SECONDS: z.coerce.number().int().positive().default(30),
 });
 
 export type AppEnvironment = z.infer<typeof environmentSchema> & {
@@ -29,6 +31,16 @@ export function loadEnv(
   source: EnvironmentSource = Bun.env,
 ): AppEnvironment {
   const parsed = environmentSchema.parse(source);
+
+  if (
+    (parsed.NODE_ENV === 'production' ||
+      parsed.ENABLE_INFRASTRUCTURE === true) &&
+    parsed.INTERNAL_AUTH_SIGNING_SECRET === ''
+  ) {
+    throw new Error(
+      'INTERNAL_AUTH_SIGNING_SECRET is required when infrastructure is enabled or NODE_ENV is production',
+    );
+  }
 
   return {
     ...parsed,

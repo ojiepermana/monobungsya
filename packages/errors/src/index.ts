@@ -4,6 +4,7 @@ export type AppErrorCode =
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'CONFLICT'
+  | 'RATE_LIMITED'
   | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_SERVER_ERROR';
 
@@ -54,6 +55,12 @@ export class ForbiddenError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = 'The request conflicts with current state') {
     super('CONFLICT', 409, message);
+  }
+}
+
+export class RateLimitError extends AppError {
+  constructor(message = 'Too many requests') {
+    super('RATE_LIMITED', 429, message);
   }
 }
 

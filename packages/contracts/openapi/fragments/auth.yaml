@@ -57,5 +57,127 @@ paths:
                     const: auth
                     type: string
       operationId: getInternalAuthStatus
+  /internal/auth/magic-link:
+    post:
+      tags:
+        - Auth
+      summary: Request a passwordless sign in link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accepted
+                properties:
+                  accepted:
+                    const: true
+                    type: boolean
+      operationId: postInternalAuthMagic-link
+  /internal/auth/verify:
+    get:
+      tags:
+        - Auth
+      summary: Consume a passwordless sign in link
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            minLength: 20
+            maxLength: 512
+            type: string
+      operationId: getInternalAuthVerify
+  /internal/auth/session:
+    get:
+      tags:
+        - Auth
+      summary: Return the current browser session
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                properties:
+                  authenticated:
+                    type: boolean
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - email
+                      - name
+                      - role
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      name:
+                        type: string
+                      role:
+                        type: string
+                  session:
+                    type: object
+                    required:
+                      - id
+                      - idleExpiresAt
+                      - absoluteExpiresAt
+                    properties:
+                      id:
+                        type: string
+                      idleExpiresAt:
+                        type: string
+                      absoluteExpiresAt:
+                        type: string
+      operationId: getInternalAuthSession
+  /internal/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Revoke the current browser session
+      operationId: postInternalAuthLogout
 components:
   schemas: {}

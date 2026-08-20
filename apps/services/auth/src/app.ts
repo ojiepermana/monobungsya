@@ -1,15 +1,21 @@
 import { Elysia, t } from 'elysia';
 import type { AppEnvironment } from '#project/config';
-import { loadEnv } from '#project/config';
 import { toErrorResponse, ValidationError } from '#project/errors';
 import { Logger } from '#project/logger';
-import { createAuthRoute } from './modules/auth/auth.route';
+import { loadAuthEnv } from './config/env';
+import {
+  type AuthRouteOptions,
+  createAuthRoute,
+} from './modules/auth/auth.route';
 import { createErrorHandler } from './shared/errors/error-handler';
 import { createLoggerPlugin } from './shared/plugins/logger.plugin';
 import { openapiPlugin } from './shared/plugins/openapi.plugin';
 import { requestIdPlugin } from './shared/plugins/request-id.plugin';
 
-export function createApp(environment: AppEnvironment = loadEnv('auth')) {
+export function createApp(
+  environment: AppEnvironment = loadAuthEnv(),
+  authOptions: AuthRouteOptions = {},
+) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
 
   return new Elysia({ name: environment.serviceName })
@@ -26,7 +32,7 @@ export function createApp(environment: AppEnvironment = loadEnv('auth')) {
         detail: { tags: ['Health'], summary: 'Check service health' },
       },
     )
-    .use(createAuthRoute(environment.serviceName))
+    .use(createAuthRoute(environment.serviceName, authOptions))
     .use(createErrorHandler())
     .onError(({ code, error, request, set }) => {
       const mapped = toErrorResponse(

@@ -30,6 +30,38 @@ export type GetApiV1AuthStatusData = {
     url: '/api/v1/auth/status';
 };
 
+export type PostApiV1AuthMagicLinkData = {
+    body: {
+        email: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/magic-link';
+};
+
+export type GetApiV1AuthVerifyData = {
+    body?: never;
+    path?: never;
+    query: {
+        token: string;
+    };
+    url: '/api/v1/auth/verify';
+};
+
+export type GetApiV1AuthSessionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/session';
+};
+
+export type PostApiV1AuthLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/logout';
+};
+
 export type GetApiV1UsersStatusData = {
     body?: never;
     path?: never;

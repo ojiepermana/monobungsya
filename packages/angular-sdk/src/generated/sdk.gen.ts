@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetApiV1AuthStatusData, GetApiV1EmployeesStatusData, GetApiV1PayrollStatusData, GetApiV1ReportsStatusData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses } from './types.gen';
+import type { GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1EmployeesStatusData, GetApiV1PayrollStatusData, GetApiV1ReportsStatusData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -27,6 +27,33 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
  * Forward auth status request
  */
 export const getApiV1AuthStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/status', ...options });
+
+/**
+ * Request an auth magic link
+ */
+export const postApiV1AuthMagicLink = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthMagicLinkData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/magic-link',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Consume an auth magic link
+ */
+export const getApiV1AuthVerify = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AuthVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/verify', ...options });
+
+/**
+ * Read the current auth session
+ */
+export const getApiV1AuthSession = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthSessionData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/session', ...options });
+
+/**
+ * Logout the current auth session
+ */
+export const postApiV1AuthLogout = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthLogoutData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
 
 /**
  * Forward users status request

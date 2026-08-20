@@ -5,6 +5,7 @@ import { toErrorResponse, ValidationError } from '#project/errors';
 import { Logger } from '#project/logger';
 import { createEmployeesRoute } from './modules/employees/employees.route';
 import { createErrorHandler } from './shared/errors/error-handler';
+import { createAuthIdentityPlugin } from './shared/plugins/auth-identity.plugin';
 import { createLoggerPlugin } from './shared/plugins/logger.plugin';
 import { openapiPlugin } from './shared/plugins/openapi.plugin';
 import { requestIdPlugin } from './shared/plugins/request-id.plugin';
@@ -25,6 +26,12 @@ export function createApp(environment: AppEnvironment = loadEnv('employee')) {
         },
         detail: { tags: ['Health'], summary: 'Check service health' },
       },
+    )
+    .use(
+      createAuthIdentityPlugin(
+        environment.INTERNAL_AUTH_SIGNING_SECRET,
+        environment.AUTH_CLOCK_SKEW_SECONDS,
+      ),
     )
     .use(createEmployeesRoute(environment.serviceName))
     .use(createErrorHandler())

@@ -3,4 +3,5 @@ export type HealthResponse = {
   service: string;
 };
 
+export * from './auth-identity';
 export * from './events/index';

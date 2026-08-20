@@ -2,6 +2,24 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export type LogContext = Record<string, unknown>;
 
+const SENSITIVE_QUERY_KEYS = new Set(['token', 'session', 'code', 'secret']);
+
+export function redactRequestUrl(value: string): string {
+  try {
+    const url = new URL(value);
+
+    for (const key of SENSITIVE_QUERY_KEYS) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.set(key, '[REDACTED]');
+      }
+    }
+
+    return url.toString();
+  } catch {
+    return '[REDACTED_URL]';
+  }
+}
+
 const levelRank: Record<LogLevel, number> = {
   debug: 10,
   info: 20,
