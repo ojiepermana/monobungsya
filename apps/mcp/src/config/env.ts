@@ -18,8 +18,8 @@ export function loadMcpEnv(
   source: Record<string, string | undefined> = process.env,
 ): McpEnvironment {
   return {
-    ERP_URL: required(source, "ERP_URL"),
-    ERP_TOKEN: required(source, "ERP_TOKEN"),
+    ERP_URL: required(source, 'ERP_URL'),
+    ERP_TOKEN: required(source, 'ERP_TOKEN'),
   };
 }
 

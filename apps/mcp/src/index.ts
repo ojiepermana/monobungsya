@@ -1,18 +1,18 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
   type Tool,
-} from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
-import { tools } from "./tools/index";
-import { errorToolResponse } from "./utils/toolResponse";
+} from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
+import { tools } from './tools/index';
+import { errorToolResponse } from './utils/toolResponse';
 
 const server = new Server(
-  { name: "monobungsia-mcp", version: "1.0.0" },
+  { name: 'monobungsia-mcp', version: '1.0.0' },
   { capabilities: { tools: {} } },
 );
 
@@ -20,7 +20,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((tool) => ({
     name: tool.name,
     description: tool.description,
-    inputSchema: z.toJSONSchema(tool.inputSchema) as Tool["inputSchema"],
+    inputSchema: z.toJSONSchema(tool.inputSchema) as Tool['inputSchema'],
   })),
 }));
 
@@ -35,8 +35,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const parsed = tool.inputSchema.safeParse(args ?? {});
   if (!parsed.success) {
     const issues = parsed.error.issues
-      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-      .join("; ");
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
     throw new McpError(
       ErrorCode.InvalidParams,
       `Invalid arguments for ${name}: ${issues}`,
@@ -60,6 +60,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  console.error("monobungsia-mcp failed to start:", error);
+  console.error('monobungsia-mcp failed to start:', error);
   process.exit(1);
 });
