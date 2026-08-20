@@ -21,3 +21,21 @@ export async function closeDatabaseClient(
 ): Promise<void> {
   await database.close({ timeout: 5 });
 }
+
+export { loadDatabaseToolConfig } from './config';
+export { parseCsv } from './csv';
+export {
+  assertChecksumMatches,
+  DatabaseRunner,
+  discoverMigrations,
+  discoverSeeds,
+} from './runner';
+export {
+  DATABASE_SCHEMAS,
+  DATABASE_SCOPES,
+  isDatabaseScope,
+  parseMigrationName,
+  quoteIdentifier,
+  schemaForScope,
+  sha256Hex,
+} from './tooling';
