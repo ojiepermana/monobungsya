@@ -19,10 +19,10 @@ Use CSS as the only style language for `apps/web`. Rename every active SCSS file
 Use this global import order:
 
 ```css
-@import '@ojiepermana/angular-theme/theme-full.css';
-@import 'tailwindcss';
-@import '@ojiepermana/angular-theme/styles/css/base/tailwind.css';
-@import '@fontsource/material-symbols-rounded/400.css';
+@import "@ojiepermana/angular-theme/theme-full.css";
+@import "tailwindcss";
+@import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
+@import "@fontsource/material-symbols-rounded/400.css";
 ```
 
 The full theme CSS is required because the application supports runtime mode and theme axes. Tailwind token mapping follows the theme CSS. Local CSS may add layout composition and domain values, but package tokens remain the source for surface, text, accent, radius, and spacing values wherever a token exists.

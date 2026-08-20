@@ -16,27 +16,27 @@
 
 Gunakan dependency berikut pada root project:
 
-| Package | Version | Peran |
-| --- | --- | --- |
-| `@ojiepermana/angular` | `^22.1.4` | Umbrella package dan production subpath API |
-| `@ojiepermana/angular-theme` | `^22.1.4` | CSS theme asset yang diimpor langsung oleh aplikasi |
-| `tailwindcss` | `^4.3.0` | Utility generation dan token mapping |
-| `@fontsource/material-symbols-rounded` | `5.3.3` | Material Symbols font yang dilayani lokal |
+| Package                                | Version   | Peran                                               |
+| -------------------------------------- | --------- | --------------------------------------------------- |
+| `@ojiepermana/angular`                 | `^22.1.4` | Umbrella package dan production subpath API         |
+| `@ojiepermana/angular-theme`           | `^22.1.4` | CSS theme asset yang diimpor langsung oleh aplikasi |
+| `tailwindcss`                          | `^4.3.0`  | Utility generation dan token mapping                |
+| `@fontsource/material-symbols-rounded` | `5.3.3`   | Material Symbols font yang dilayani lokal           |
 
 Gunakan provider berikut sebagai konfigurasi canonical:
 
 ```ts
-import { provideUiTheme } from '@ojiepermana/angular/theme/styles';
+import { provideUiTheme } from "@ojiepermana/angular/theme/styles";
 
 provideUiTheme({
-  mode: 'system',
-  color: 'brand',
-  neutral: 'base',
-  radius: 'xs',
-  space: 'compact',
+  mode: "system",
+  color: "brand",
+  neutral: "base",
+  radius: "xs",
+  space: "compact",
   brand: {
-    color: '177 72% 28%',
-    foreground: '0 0% 100%',
+    color: "177 72% 28%",
+    foreground: "0 0% 100%",
   },
 });
 ```
@@ -68,16 +68,16 @@ Navigation package mengelola state untuk navigation instance `main`. State navig
 
 Tidak ada endpoint baru dan tidak ada perubahan pada generated SDK.
 
-| Action | Value produced or displayed | Source |
-| --- | --- | --- |
-| Theme startup | Active mode | Persisted package value, then `system` default |
-| Theme switching | `light`, `dark`, or `system` | User selection in package settings surface |
-| Theme color | Brand teal token | Provider brand value `177 72% 28%` |
-| Theme neutral | Base neutral token | Provider `neutral: 'base'` |
-| Theme radius | Extra small radius | Provider `radius: 'xs'` |
-| Theme spacing | Compact spacing | Provider `space: 'compact'` |
-| Navigation items | Item title, icon, link, active state | Local readonly `NavigationItem[]` owned by the web app |
-| Component state | Loading, error, selected, and disabled state | Existing Angular signals and generated SDK responses |
+| Action           | Value produced or displayed                  | Source                                                 |
+| ---------------- | -------------------------------------------- | ------------------------------------------------------ |
+| Theme startup    | Active mode                                  | Persisted package value, then `system` default         |
+| Theme switching  | `light`, `dark`, or `system`                 | User selection in package settings surface             |
+| Theme color      | Brand teal token                             | Provider brand value `177 72% 28%`                     |
+| Theme neutral    | Base neutral token                           | Provider `neutral: 'base'`                             |
+| Theme radius     | Extra small radius                           | Provider `radius: 'xs'`                                |
+| Theme spacing    | Compact spacing                              | Provider `space: 'compact'`                            |
+| Navigation items | Item title, icon, link, active state         | Local readonly `NavigationItem[]` owned by the web app |
+| Component state  | Loading, error, selected, and disabled state | Existing Angular signals and generated SDK responses   |
 
 ## Invariants and security
 

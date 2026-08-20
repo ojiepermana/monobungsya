@@ -40,41 +40,29 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'A calm starting point',
-    );
+    expect(compiled.querySelector('h1')?.textContent).toContain('A calm starting point');
   });
 
   it('should keep workspace content hidden for an unauthenticated session', async () => {
-    globalThis.fetch = (async () =>
-      Response.json({ authenticated: false })) as typeof fetch;
+    globalThis.fetch = (async () => Response.json({ authenticated: false })) as typeof fetch;
 
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Returning you to sign in',
-    );
+    expect(compiled.querySelector('h1')?.textContent).toContain('Returning you to sign in');
     expect(compiled.querySelector('.workspace-shell')).toBeNull();
   });
 
   it('should show a retryable state when session service fails', async () => {
     globalThis.fetch = (async () =>
-      Response.json(
-        { message: 'unavailable' },
-        { status: 503 },
-      )) as typeof fetch;
+      Response.json({ message: 'unavailable' }, { status: 503 })) as typeof fetch;
 
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'We could not check your access',
-    );
-    expect(
-      compiled.querySelector('button[type="button"]')?.textContent,
-    ).toContain('Try again');
+    expect(compiled.querySelector('h1')?.textContent).toContain('We could not check your access');
+    expect(compiled.querySelector('button[type="button"]')?.textContent).toContain('Try again');
   });
 });

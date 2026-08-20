@@ -7,11 +7,11 @@ Monobungsia adalah monorepo enterprise untuk web client, gateway, dan service do
 
 ## At a glance
 
-| # | Feature | Phase | Status |
-| --- | --- | --- | --- |
-| 1 | Auth magic link and session | Foundation | in-progress |
-| 2 | Auth login and callback UI | Foundation | in-progress |
-| 3 | Angular UI package and CSS standard | Foundation | in-progress |
+| #   | Feature                             | Phase      | Status      |
+| --- | ----------------------------------- | ---------- | ----------- |
+| 1   | Auth magic link and session         | Foundation | in-progress |
+| 2   | Auth login and callback UI          | Foundation | in-progress |
+| 3   | Angular UI package and CSS standard | Foundation | in-progress |
 
 ## Foundations
 

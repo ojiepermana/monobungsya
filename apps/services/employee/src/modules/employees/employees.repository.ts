@@ -1,10 +1,10 @@
 export type EmployeesModuleStatus = {
-  status: 'ok';
-  module: 'employees';
+  status: "ok";
+  module: "employees";
 };
 
 export class EmployeesRepository {
   getModuleStatus(): EmployeesModuleStatus {
-    return { status: 'ok', module: 'employees' };
+    return { status: "ok", module: "employees" };
   }
 }

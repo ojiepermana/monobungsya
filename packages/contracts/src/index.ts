@@ -1,7 +1,7 @@
 export type HealthResponse = {
-  status: 'ok';
+  status: "ok";
   service: string;
 };
 
-export * from './auth-identity';
-export * from './events/index';
+export * from "./auth-identity";
+export * from "./events/index";

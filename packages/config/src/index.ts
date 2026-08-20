@@ -1,22 +1,22 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const environmentSchema = z.object({
   NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
+    .enum(["development", "test", "production"])
+    .default("development"),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
   DATABASE_URL: z
     .string()
     .url()
-    .default('postgres://postgres:postgres@localhost:5432/project'),
-  NATS_URL: z.string().url().default('nats://localhost:4222'),
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    .default("postgres://postgres:postgres@localhost:5432/project"),
+  NATS_URL: z.string().url().default("nats://localhost:4222"),
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   ENABLE_INFRASTRUCTURE: z
     .string()
     .optional()
-    .transform((value) => value === 'true'),
-  CORS_ORIGIN: z.string().default('http://localhost:4200'),
-  INTERNAL_AUTH_SIGNING_SECRET: z.string().default(''),
+    .transform((value) => value === "true"),
+  CORS_ORIGIN: z.string().default("http://localhost:4200"),
+  INTERNAL_AUTH_SIGNING_SECRET: z.string().default(""),
   AUTH_CLOCK_SKEW_SECONDS: z.coerce.number().int().positive().default(30),
 });
 
@@ -33,12 +33,12 @@ export function loadEnv(
   const parsed = environmentSchema.parse(source);
 
   if (
-    (parsed.NODE_ENV === 'production' ||
+    (parsed.NODE_ENV === "production" ||
       parsed.ENABLE_INFRASTRUCTURE === true) &&
-    parsed.INTERNAL_AUTH_SIGNING_SECRET === ''
+    parsed.INTERNAL_AUTH_SIGNING_SECRET === ""
   ) {
     throw new Error(
-      'INTERNAL_AUTH_SIGNING_SECRET is required when infrastructure is enabled or NODE_ENV is production',
+      "INTERNAL_AUTH_SIGNING_SECRET is required when infrastructure is enabled or NODE_ENV is production",
     );
   }
 

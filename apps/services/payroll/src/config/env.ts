@@ -1,4 +1,4 @@
-import { loadEnv } from '#project/config';
+import { loadEnv } from "#project/config";
 
-export const env = loadEnv('payroll');
+export const env = loadEnv("payroll");
 export { loadEnv };

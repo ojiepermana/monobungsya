@@ -1,1 +1,1 @@
-export { createServiceDatabase } from '../database/client';
+export { createServiceDatabase } from "../database/client";

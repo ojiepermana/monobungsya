@@ -1,5 +1,5 @@
-import { createApp } from './app';
-import { env } from './config/env';
+import { createApp } from "./app";
+import { env } from "./config/env";
 
 const app = createApp(env);
 const server = app.listen(env.PORT);
@@ -17,8 +17,8 @@ async function shutdown(signal: string): Promise<void> {
   await server.stop();
 }
 
-process.on('SIGINT', () => void shutdown('SIGINT').then(() => process.exit(0)));
+process.on("SIGINT", () => void shutdown("SIGINT").then(() => process.exit(0)));
 process.on(
-  'SIGTERM',
-  () => void shutdown('SIGTERM').then(() => process.exit(0)),
+  "SIGTERM",
+  () => void shutdown("SIGTERM").then(() => process.exit(0)),
 );

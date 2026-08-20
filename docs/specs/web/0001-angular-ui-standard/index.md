@@ -51,19 +51,19 @@ The canonical theme is system mode with light and dark support, brand teal, base
 **Canonical pattern**:
 
 ```ts
-import { provideUiTheme } from '@ojiepermana/angular/theme/styles';
+import { provideUiTheme } from "@ojiepermana/angular/theme/styles";
 
 export const appConfig = {
   providers: [
     provideUiTheme({
-      mode: 'system',
-      color: 'brand',
-      neutral: 'base',
-      radius: 'xs',
-      space: 'compact',
+      mode: "system",
+      color: "brand",
+      neutral: "base",
+      radius: "xs",
+      space: "compact",
       brand: {
-        color: '177 72% 28%',
-        foreground: '0 0% 100%',
+        color: "177 72% 28%",
+        foreground: "0 0% 100%",
       },
     }),
   ],
@@ -71,10 +71,10 @@ export const appConfig = {
 ```
 
 ```css
-@import '@ojiepermana/angular-theme/theme-full.css';
-@import 'tailwindcss';
-@import '@ojiepermana/angular-theme/styles/css/base/tailwind.css';
-@import '@fontsource/material-symbols-rounded/400.css';
+@import "@ojiepermana/angular-theme/theme-full.css";
+@import "tailwindcss";
+@import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
+@import "@fontsource/material-symbols-rounded/400.css";
 ```
 
 1. Production components import from subpaths such as `@ojiepermana/angular/component/button`, `@ojiepermana/angular/component/card`, `@ojiepermana/angular/navigation`, and `@ojiepermana/angular/theme/component/settings`.

@@ -4,13 +4,20 @@
       <p class="auth-eyebrow">Check your inbox</p>
       <h1 id="login-title">Your way in is on its way.</h1>
       <p class="auth-copy">
-        If that address is registered, a secure sign in link will arrive shortly.
-        The link works once and expires after fifteen minutes.
+        If that address is registered, a secure sign in link will arrive shortly. The link works
+        once and expires after fifteen minutes.
       </p>
       <p class="auth-status auth-status--success" role="status">
         Check <strong>{{ email() }}</strong> for the sign in link.
       </p>
-      <button Button class="auth-button auth-button--quiet" variant="ghost" size="lg" type="button" (click)="reset()">
+      <button
+        Button
+        class="auth-button auth-button--quiet"
+        variant="ghost"
+        size="lg"
+        type="button"
+        (click)="reset()"
+      >
         Use another email
       </button>
     } @else {
@@ -50,8 +57,19 @@
           </p>
         }
 
-        <button Button class="auth-button" variant="default" size="lg" type="submit" [disabled]="state() === 'submitting'">
-          @if (state() === 'submitting') { Sending link... } @else { Send sign in link }
+        <button
+          Button
+          class="auth-button"
+          variant="default"
+          size="lg"
+          type="submit"
+          [disabled]="state() === 'submitting'"
+        >
+          @if (state() === 'submitting') {
+            Sending link...
+          } @else {
+            Send sign in link
+          }
         </button>
       </form>
 

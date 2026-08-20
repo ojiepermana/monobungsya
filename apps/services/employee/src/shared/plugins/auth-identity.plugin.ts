@@ -1,22 +1,22 @@
-import { Elysia } from 'elysia';
+import { Elysia } from "elysia";
 import {
   type AuthCapability,
   canAccessAuthCapability,
   readAndVerifyAuthIdentity,
-} from '#project/contracts';
+} from "#project/contracts";
 import {
   ForbiddenError,
   toErrorResponse,
   UnauthorizedError,
-} from '#project/errors';
+} from "#project/errors";
 
 export function createAuthIdentityPlugin(
   secret: string,
   clockSkewSeconds: number,
-  capability: AuthCapability = 'read',
+  capability: AuthCapability = "read",
 ) {
-  return new Elysia({ name: 'employee-auth-identity' }).onBeforeHandle(
-    { as: 'scoped' },
+  return new Elysia({ name: "employee-auth-identity" }).onBeforeHandle(
+    { as: "scoped" },
     ({ request, set }) => {
       if (!secret) {
         return;
@@ -33,8 +33,8 @@ export function createAuthIdentityPlugin(
 
       if (!identity) {
         const mapped = toErrorResponse(
-          new UnauthorizedError('A valid signed identity is required'),
-          request.headers.get('x-request-id') ?? undefined,
+          new UnauthorizedError("A valid signed identity is required"),
+          request.headers.get("x-request-id") ?? undefined,
         );
         set.status = mapped.status;
         return mapped.body;
@@ -42,8 +42,8 @@ export function createAuthIdentityPlugin(
 
       if (!canAccessAuthCapability(identity.role, capability)) {
         const mapped = toErrorResponse(
-          new ForbiddenError('The current role cannot access this resource'),
-          request.headers.get('x-request-id') ?? undefined,
+          new ForbiddenError("The current role cannot access this resource"),
+          request.headers.get("x-request-id") ?? undefined,
         );
         set.status = mapped.status;
         return mapped.body;

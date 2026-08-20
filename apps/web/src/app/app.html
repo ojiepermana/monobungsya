@@ -50,8 +50,17 @@
 
     <div class="workspace-layout">
       <div class="workspace-navigation workspace-navigation--desktop">
-        <Navigation id="main" class="workspace-navigation__component" [data]="navigationItems" ariaLabel="Workspace navigation">
-          <NavigationSidebar class="workspace-navigation__sidebar" position="left" [collapsed]="false">
+        <Navigation
+          id="main"
+          class="workspace-navigation__component"
+          [data]="navigationItems"
+          ariaLabel="Workspace navigation"
+        >
+          <NavigationSidebar
+            class="workspace-navigation__sidebar"
+            position="left"
+            [collapsed]="false"
+          >
             <NavigationHeader>
               <span class="navigation-heading">Workspace</span>
             </NavigationHeader>
@@ -64,7 +73,13 @@
       </div>
 
       <div class="workspace-navigation workspace-navigation--mobile">
-        <Navigation id="main-mobile" class="workspace-navigation__component" data-id="main" [data]="navigationItems" ariaLabel="Workspace navigation">
+        <Navigation
+          id="main-mobile"
+          class="workspace-navigation__component"
+          data-id="main"
+          [data]="navigationItems"
+          ariaLabel="Workspace navigation"
+        >
           <NavigationFlyout label="Open navigation" icon="menu" triggerVariant="plain" />
         </Navigation>
       </div>
@@ -75,7 +90,8 @@
             <p class="eyebrow">Operations console</p>
             <h1 id="page-title">A calm starting point for complex work.</h1>
             <p class="hero-copy">
-              One public gateway, clear service boundaries, and contracts that stay visible as the platform grows.
+              One public gateway, clear service boundaries, and contracts that stay visible as the
+              platform grows.
             </p>
           </div>
           <div class="hero-index" aria-hidden="true">
@@ -99,9 +115,15 @@
             >
               <span class="status-dot" aria-hidden="true"></span>
               @switch (gatewayState()) {
-                @case ('online') { Online }
-                @case ('offline') { Offline }
-                @default { Checking }
+                @case ('online') {
+                  Online
+                }
+                @case ('offline') {
+                  Offline
+                }
+                @default {
+                  Checking
+                }
               }
             </Badge>
           </div>

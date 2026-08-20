@@ -1,11 +1,11 @@
-import { IDENTIFIER_PATTERN } from './tooling';
+import { IDENTIFIER_PATTERN } from "./tooling";
 
 export type CsvRow = Record<string, string>;
 
 export function parseCsv(input: string): CsvRow[] {
   const records: string[][] = [];
   let row: string[] = [];
-  let field = '';
+  let field = "";
   let inQuotes = false;
 
   for (let index = 0; index < input.length; index += 1) {
@@ -27,25 +27,25 @@ export function parseCsv(input: string): CsvRow[] {
     }
 
     if (character === '"') {
-      if (field !== '') {
-        throw new Error('CSV quote must begin at the start of a field');
+      if (field !== "") {
+        throw new Error("CSV quote must begin at the start of a field");
       }
 
       inQuotes = true;
-    } else if (character === ',') {
+    } else if (character === ",") {
       row.push(field);
-      field = '';
-    } else if (character === '\n') {
+      field = "";
+    } else if (character === "\n") {
       row.push(field);
       records.push(row);
       row = [];
-      field = '';
-    } else if (character === '\r') {
-      if (input[index + 1] !== '\n') {
+      field = "";
+    } else if (character === "\r") {
+      if (input[index + 1] !== "\n") {
         row.push(field);
         records.push(row);
         row = [];
-        field = '';
+        field = "";
       }
     } else {
       field += character;
@@ -53,10 +53,10 @@ export function parseCsv(input: string): CsvRow[] {
   }
 
   if (inQuotes) {
-    throw new Error('CSV contains an unterminated quoted field');
+    throw new Error("CSV contains an unterminated quoted field");
   }
 
-  if (field !== '' || row.length > 0) {
+  if (field !== "" || row.length > 0) {
     row.push(field);
     records.push(row);
   }
@@ -70,13 +70,13 @@ export function parseCsv(input: string): CsvRow[] {
   if (
     !header ||
     header.length === 0 ||
-    header.some((column) => column === '')
+    header.some((column) => column === "")
   ) {
-    throw new Error('CSV must contain a nonempty header row');
+    throw new Error("CSV must contain a nonempty header row");
   }
 
   if (new Set(header).size !== header.length) {
-    throw new Error('CSV header contains duplicate columns');
+    throw new Error("CSV header contains duplicate columns");
   }
 
   for (const column of header) {
@@ -86,7 +86,7 @@ export function parseCsv(input: string): CsvRow[] {
   }
 
   return data
-    .filter((values) => values.length > 1 || values[0] !== '')
+    .filter((values) => values.length > 1 || values[0] !== "")
     .map((values, rowIndex) => {
       if (values.length !== header.length) {
         throw new Error(
@@ -97,7 +97,7 @@ export function parseCsv(input: string): CsvRow[] {
       return Object.fromEntries(
         header.map((column, columnIndex) => [
           column,
-          values[columnIndex] ?? '',
+          values[columnIndex] ?? "",
         ]),
       );
     });

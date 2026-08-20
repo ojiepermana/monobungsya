@@ -1,7 +1,7 @@
-import { t } from 'elysia';
+import { t } from "elysia";
 
 export const employeesStatusResponse = t.Object({
   service: t.String(),
-  status: t.Literal('ok'),
-  module: t.Literal('employees'),
+  status: t.Literal("ok"),
+  module: t.Literal("employees"),
 });

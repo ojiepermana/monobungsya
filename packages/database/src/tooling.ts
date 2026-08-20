@@ -1,12 +1,12 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 export const DATABASE_SCOPES = {
-  auth: 'auth',
-  user: 'user',
-  employee: 'employee',
-  payroll: 'payroll',
-  reporting: 'reporting',
-  logs: 'logs',
+  auth: "auth",
+  user: "user",
+  employee: "employee",
+  payroll: "payroll",
+  reporting: "reporting",
+  logs: "logs",
 } as const;
 
 export type DatabaseScope = keyof typeof DATABASE_SCOPES;
@@ -53,7 +53,7 @@ export function quoteIdentifier(value: string): string {
 }
 
 export function sha256Hex(contents: string): string {
-  return createHash('sha256').update(contents, 'utf8').digest('hex');
+  return createHash("sha256").update(contents, "utf8").digest("hex");
 }
 
 export function assertPositiveInteger(value: number, label: string): void {

@@ -32,8 +32,7 @@ export class AuthCallback {
     try {
       const result = await getApiV1AuthSession({ client });
       const session = result.data as
-        | { authenticated?: boolean; user?: { name?: string } }
-        | undefined;
+        { authenticated?: boolean; user?: { name?: string } } | undefined;
 
       if (session?.authenticated && session.user?.name) {
         this.userName.set(session.user.name);

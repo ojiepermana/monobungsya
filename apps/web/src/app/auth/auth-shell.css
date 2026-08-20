@@ -81,7 +81,7 @@
 
 .auth-aside-index {
   color: var(--auth-brand);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 5rem;
   line-height: 0.8;
 }
@@ -89,7 +89,7 @@
 .auth-aside p {
   max-width: 15rem;
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 2rem;
   line-height: 1.05;
 }

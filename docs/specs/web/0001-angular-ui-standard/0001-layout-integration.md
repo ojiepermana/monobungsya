@@ -76,28 +76,28 @@ Callback: loading -> complete | error
 
 No new API surface is introduced.
 
-| Endpoint | Method | Use | Auth | Key errors |
-| --- | --- | --- | --- | --- |
-| `/api/v1/auth/session` | GET | Session gate and callback success state | Optional browser cookie | `200` unauthenticated, `503` service failure |
-| `/api/v1/auth/magic-link` | POST | Existing login form state machine | Public | `422`, `429`, `503` |
-| `/api/v1/auth/verify` | GET | Existing email link redirect | Public | Generic redirect to callback error |
-| `/api/v1/auth/logout` | POST | Existing logout action if surfaced by shell | Browser cookie | Idempotent success or `503` |
-| `/api/v1/health` | GET | Existing gateway status panel | Public | Network failure or non ok response |
+| Endpoint                  | Method | Use                                         | Auth                    | Key errors                                   |
+| ------------------------- | ------ | ------------------------------------------- | ----------------------- | -------------------------------------------- |
+| `/api/v1/auth/session`    | GET    | Session gate and callback success state     | Optional browser cookie | `200` unauthenticated, `503` service failure |
+| `/api/v1/auth/magic-link` | POST   | Existing login form state machine           | Public                  | `422`, `429`, `503`                          |
+| `/api/v1/auth/verify`     | GET    | Existing email link redirect                | Public                  | Generic redirect to callback error           |
+| `/api/v1/auth/logout`     | POST   | Existing logout action if surfaced by shell | Browser cookie          | Idempotent success or `503`                  |
+| `/api/v1/health`          | GET    | Existing gateway status panel               | Public                  | Network failure or non ok response           |
 
 ## Value sourcing
 
-| Action | Value produced or displayed | Source |
-| --- | --- | --- |
-| Session loading | Stable loading label and region | Fixed accessible UI copy |
-| Session success | Authenticated state and optional user identity | Existing session endpoint response and browser cookie managed by the API |
-| Session redirect | `/auth/login` route | Fixed router target |
-| Session service error | Generic error and retry action | Fixed UI copy and SDK request failure category |
-| Main navigation | Titles, icons, routes, active state | Local readonly `NavigationItem[]` and Angular Router |
-| Theme settings | `light`, `dark`, `system` choice | Package settings component and theme service |
-| Gateway status | Checking, online, offline, service name | Existing health response and `App` signals |
-| Service cards | Auth, Users, Employees, Payroll, Reports and status copy | Existing local static content |
-| Login state | Email validation and request state | Existing auth form signals and generated SDK response |
-| Callback state | Complete or error result | Existing route and session response |
+| Action                | Value produced or displayed                              | Source                                                                   |
+| --------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Session loading       | Stable loading label and region                          | Fixed accessible UI copy                                                 |
+| Session success       | Authenticated state and optional user identity           | Existing session endpoint response and browser cookie managed by the API |
+| Session redirect      | `/auth/login` route                                      | Fixed router target                                                      |
+| Session service error | Generic error and retry action                           | Fixed UI copy and SDK request failure category                           |
+| Main navigation       | Titles, icons, routes, active state                      | Local readonly `NavigationItem[]` and Angular Router                     |
+| Theme settings        | `light`, `dark`, `system` choice                         | Package settings component and theme service                             |
+| Gateway status        | Checking, online, offline, service name                  | Existing health response and `App` signals                               |
+| Service cards         | Auth, Users, Employees, Payroll, Reports and status copy | Existing local static content                                            |
+| Login state           | Email validation and request state                       | Existing auth form signals and generated SDK response                    |
+| Callback state        | Complete or error result                                 | Existing route and session response                                      |
 
 ## Invariants and security
 

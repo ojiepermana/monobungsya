@@ -1,4 +1,4 @@
-import { PayrollRepository } from './payroll.repository';
+import { PayrollRepository } from "./payroll.repository";
 
 export class PayrollService {
   private readonly repository = new PayrollRepository();

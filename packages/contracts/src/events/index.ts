@@ -1,33 +1,33 @@
 export type UserCreatedEvent = {
-  type: 'user.created';
+  type: "user.created";
   version: 1;
   occurredAt: string;
   userId: string;
 };
 
 export type UserUpdatedEvent = {
-  type: 'user.updated';
+  type: "user.updated";
   version: 1;
   occurredAt: string;
   userId: string;
 };
 
 export type UserDeletedEvent = {
-  type: 'user.deleted';
+  type: "user.deleted";
   version: 1;
   occurredAt: string;
   userId: string;
 };
 
 export type EmployeeCreatedEvent = {
-  type: 'employee.created';
+  type: "employee.created";
   version: 1;
   occurredAt: string;
   employeeId: string;
 };
 
 export type PayrollRunCompletedEvent = {
-  type: 'payroll.run.completed';
+  type: "payroll.run.completed";
   version: 1;
   occurredAt: string;
   payrollRunId: string;

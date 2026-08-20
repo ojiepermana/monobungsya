@@ -1,10 +1,10 @@
 export type PayrollModuleStatus = {
-  status: 'ok';
-  module: 'payroll';
+  status: "ok";
+  module: "payroll";
 };
 
 export class PayrollRepository {
   getModuleStatus(): PayrollModuleStatus {
-    return { status: 'ok', module: 'payroll' };
+    return { status: "ok", module: "payroll" };
   }
 }

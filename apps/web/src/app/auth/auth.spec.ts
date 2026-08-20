@@ -19,13 +19,11 @@ describe('auth UI', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.querySelector('label[for="email"]')?.textContent).toContain(
-      'Work email',
-    );
+    expect(element.querySelector('label[for="email"]')?.textContent).toContain('Work email');
     expect(element.querySelector('input[type="email"]')).toBeTruthy();
-    expect(
-      element.querySelector('button[type="submit"]')?.textContent,
-    ).toContain('Send sign in link');
+    expect(element.querySelector('button[type="submit"]')?.textContent).toContain(
+      'Send sign in link',
+    );
   });
 
   it('renders a generic callback error state without token details', async () => {
@@ -43,9 +41,7 @@ describe('auth UI', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.querySelector('h1')?.textContent).toContain(
-      'That link cannot be used',
-    );
+    expect(element.querySelector('h1')?.textContent).toContain('That link cannot be used');
     expect(element.textContent).not.toContain('token=');
     expect(element.querySelector('a[routerLink="/auth/login"]')).toBeTruthy();
   });

@@ -1,12 +1,12 @@
-import { join } from 'node:path';
+import { join } from "node:path";
 
-const DATABASE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
+const DATABASE_ENVIRONMENTS = ["development", "test", "production"] as const;
 type DatabaseEnvironment = (typeof DATABASE_ENVIRONMENTS)[number];
 
 export interface DatabaseToolConfig {
   migrationUrl: string;
   nodeEnvironment: DatabaseEnvironment;
-  databaseTimezone: 'Asia/Jakarta';
+  databaseTimezone: "Asia/Jakarta";
   resetAllowed: boolean;
   lockTimeoutMs: number;
   lockPollMs: number;
@@ -29,41 +29,41 @@ export function loadDatabaseToolConfig(
 
   if (!migrationUrl) {
     throw new Error(
-      'DATABASE_MIGRATION_URL is required for database commands; use the migration role connection',
+      "DATABASE_MIGRATION_URL is required for database commands; use the migration role connection",
     );
   }
 
-  const nodeEnvironment = source.NODE_ENV ?? 'development';
+  const nodeEnvironment = source.NODE_ENV ?? "development";
 
   if (!DATABASE_ENVIRONMENTS.includes(nodeEnvironment as DatabaseEnvironment)) {
     throw new Error(`invalid NODE_ENV "${nodeEnvironment}"`);
   }
 
-  const databaseTimezone = source.DATABASE_TIMEZONE ?? 'Asia/Jakarta';
+  const databaseTimezone = source.DATABASE_TIMEZONE ?? "Asia/Jakarta";
 
-  if (databaseTimezone !== 'Asia/Jakarta') {
-    throw new Error('DATABASE_TIMEZONE must be Asia/Jakarta');
+  if (databaseTimezone !== "Asia/Jakarta") {
+    throw new Error("DATABASE_TIMEZONE must be Asia/Jakarta");
   }
 
   return {
     migrationUrl,
     nodeEnvironment: nodeEnvironment as DatabaseEnvironment,
     databaseTimezone,
-    resetAllowed: source.DATABASE_RESET_ALLOWED === 'true',
+    resetAllowed: source.DATABASE_RESET_ALLOWED === "true",
     lockTimeoutMs:
       overrides.lockTimeoutMs ??
-      parsePositiveEnvironment(source, 'DATABASE_LOCK_TIMEOUT_MS', 30_000),
+      parsePositiveEnvironment(source, "DATABASE_LOCK_TIMEOUT_MS", 30_000),
     lockPollMs:
       overrides.lockPollMs ??
-      parsePositiveEnvironment(source, 'DATABASE_LOCK_POLL_MS', 100),
+      parsePositiveEnvironment(source, "DATABASE_LOCK_POLL_MS", 100),
     migrationsDir:
       overrides.migrationsDir ??
       source.DATABASE_MIGRATIONS_DIR ??
-      join(import.meta.dir, '..', 'migrations'),
+      join(import.meta.dir, "..", "migrations"),
     seedsDir:
       overrides.seedsDir ??
       source.DATABASE_SEEDS_DIR ??
-      join(import.meta.dir, '..', 'seeds'),
+      join(import.meta.dir, "..", "seeds"),
   };
 }
 

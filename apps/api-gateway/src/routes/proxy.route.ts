@@ -1,11 +1,11 @@
-import { Elysia, t } from 'elysia';
-import { type AuthIdentity, signAuthIdentity } from '#project/contracts';
+import { Elysia, t } from "elysia";
+import { type AuthIdentity, signAuthIdentity } from "#project/contracts";
 import {
   ServiceUnavailableError,
   toErrorResponse,
   UnauthorizedError,
-} from '#project/errors';
-import type { GatewayEnvironment } from '../config/env';
+} from "#project/errors";
+import type { GatewayEnvironment } from "../config/env";
 
 async function forwardRequest(
   request: Request,
@@ -23,14 +23,14 @@ async function forwardRequest(
   );
   const headers = new Headers(request.headers);
   headers.set(
-    'x-request-id',
-    request.headers.get('x-request-id') ?? crypto.randomUUID(),
+    "x-request-id",
+    request.headers.get("x-request-id") ?? crypto.randomUUID(),
   );
   headers.set(
-    'x-correlation-id',
-    request.headers.get('x-correlation-id') ??
-      headers.get('x-request-id') ??
-      '',
+    "x-correlation-id",
+    request.headers.get("x-correlation-id") ??
+      headers.get("x-request-id") ??
+      "",
   );
 
   if (requiresIdentity) {
@@ -51,21 +51,21 @@ async function forwardRequest(
       method: request.method,
       headers,
       body:
-        request.method === 'GET' || request.method === 'HEAD'
+        request.method === "GET" || request.method === "HEAD"
           ? undefined
           : await request.arrayBuffer(),
     });
   } catch {
     const mapped = toErrorResponse(
       new ServiceUnavailableError(
-        'The requested internal service is unavailable',
+        "The requested internal service is unavailable",
       ),
-      headers.get('x-request-id') ?? undefined,
+      headers.get("x-request-id") ?? undefined,
     );
 
     return Response.json(mapped.body, {
       status: mapped.status,
-      headers: { 'x-request-id': headers.get('x-request-id') ?? '' },
+      headers: { "x-request-id": headers.get("x-request-id") ?? "" },
     });
   }
 }
@@ -80,36 +80,36 @@ async function addIdentityHeaders(
     return undefined;
   }
 
-  const requestId = headers.get('x-request-id') ?? '';
+  const requestId = headers.get("x-request-id") ?? "";
   let response: Response;
 
   try {
     response = await fetch(
-      new URL('/internal/auth/session', environment.serviceUrls.auth),
+      new URL("/internal/auth/session", environment.serviceUrls.auth),
       {
         headers: {
-          cookie: request.headers.get('cookie') ?? '',
-          'x-request-id': requestId,
+          cookie: request.headers.get("cookie") ?? "",
+          "x-request-id": requestId,
         },
       },
     );
   } catch {
     return mappedGatewayError(
-      new ServiceUnavailableError('Authentication service is unavailable'),
+      new ServiceUnavailableError("Authentication service is unavailable"),
       requestId,
     );
   }
 
   if (!response.ok) {
     return mappedGatewayError(
-      new ServiceUnavailableError('Authentication service is unavailable'),
+      new ServiceUnavailableError("Authentication service is unavailable"),
       requestId,
     );
   }
 
   const session = (await response.json()) as {
     authenticated?: boolean;
-    user?: { id?: string; email?: string; role?: AuthIdentity['role'] };
+    user?: { id?: string; email?: string; role?: AuthIdentity["role"] };
     session?: { absoluteExpiresAt?: string };
   };
 
@@ -121,7 +121,7 @@ async function addIdentityHeaders(
     !session.session?.absoluteExpiresAt
   ) {
     return mappedGatewayError(
-      new UnauthorizedError('Authentication is required'),
+      new UnauthorizedError("Authentication is required"),
       requestId,
     );
   }
@@ -134,7 +134,7 @@ async function addIdentityHeaders(
     expiry <= Date.now() - environment.AUTH_CLOCK_SKEW_SECONDS * 1000
   ) {
     return mappedGatewayError(
-      new UnauthorizedError('Authentication session has expired'),
+      new UnauthorizedError("Authentication session has expired"),
       requestId,
     );
   }
@@ -152,173 +152,173 @@ async function addIdentityHeaders(
     environment.INTERNAL_AUTH_SIGNING_SECRET,
   );
 
-  headers.set('x-auth-user-id', identity.userId);
-  headers.set('x-auth-email', identity.email);
-  headers.set('x-auth-role', identity.role);
-  headers.set('x-auth-expires-at', identity.expiresAt);
-  headers.set('x-auth-signature', signature);
+  headers.set("x-auth-user-id", identity.userId);
+  headers.set("x-auth-email", identity.email);
+  headers.set("x-auth-role", identity.role);
+  headers.set("x-auth-expires-at", identity.expiresAt);
+  headers.set("x-auth-signature", signature);
 }
 
 function mappedGatewayError(error: unknown, requestId: string): Response {
   const mapped = toErrorResponse(error, requestId);
   return Response.json(mapped.body, {
     status: mapped.status,
-    headers: { 'x-request-id': requestId },
+    headers: { "x-request-id": requestId },
   });
 }
 
 export function createProxyRoute(environment: GatewayEnvironment) {
-  return new Elysia({ name: 'gateway-proxy-routes' })
-    .all('/api/v1/auth/identity', () => new Response(null, { status: 404 }), {
+  return new Elysia({ name: "gateway-proxy-routes" })
+    .all("/api/v1/auth/identity", () => new Response(null, { status: 404 }), {
       detail: { hide: true },
     })
     .get(
-      '/api/v1/auth/status',
+      "/api/v1/auth/status",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
-      { detail: { tags: ['Auth'], summary: 'Forward auth status request' } },
+      { detail: { tags: ["Auth"], summary: "Forward auth status request" } },
     )
     .post(
-      '/api/v1/auth/magic-link',
+      "/api/v1/auth/magic-link",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
       {
         body: t.Object({
-          email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
+          email: t.String({ format: "email", minLength: 3, maxLength: 255 }),
         }),
-        detail: { tags: ['Auth'], summary: 'Request an auth magic link' },
+        detail: { tags: ["Auth"], summary: "Request an auth magic link" },
       },
     )
     .get(
-      '/api/v1/auth/verify',
+      "/api/v1/auth/verify",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
       {
         query: t.Object({ token: t.String({ minLength: 20, maxLength: 512 }) }),
-        detail: { tags: ['Auth'], summary: 'Consume an auth magic link' },
+        detail: { tags: ["Auth"], summary: "Consume an auth magic link" },
       },
     )
     .get(
-      '/api/v1/auth/session',
+      "/api/v1/auth/session",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
       {
-        detail: { tags: ['Auth'], summary: 'Read the current auth session' },
+        detail: { tags: ["Auth"], summary: "Read the current auth session" },
       },
     )
     .post(
-      '/api/v1/auth/logout',
+      "/api/v1/auth/logout",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
       {
-        detail: { tags: ['Auth'], summary: 'Logout the current auth session' },
+        detail: { tags: ["Auth"], summary: "Logout the current auth session" },
       },
     )
     .get(
-      '/api/v1/users/status',
+      "/api/v1/users/status",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.user,
-          '/api/v1/users',
-          '/internal/users',
+          "/api/v1/users",
+          "/internal/users",
           environment,
           true,
         ),
-      { detail: { tags: ['Users'], summary: 'Forward users status request' } },
+      { detail: { tags: ["Users"], summary: "Forward users status request" } },
     )
     .get(
-      '/api/v1/employees/status',
+      "/api/v1/employees/status",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.employee,
-          '/api/v1/employees',
-          '/internal/employees',
+          "/api/v1/employees",
+          "/internal/employees",
           environment,
           true,
         ),
       {
         detail: {
-          tags: ['Employees'],
-          summary: 'Forward employees status request',
+          tags: ["Employees"],
+          summary: "Forward employees status request",
         },
       },
     )
     .get(
-      '/api/v1/payroll/status',
+      "/api/v1/payroll/status",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.payroll,
-          '/api/v1/payroll',
-          '/internal/payroll',
+          "/api/v1/payroll",
+          "/internal/payroll",
           environment,
           true,
         ),
       {
         detail: {
-          tags: ['Payroll'],
-          summary: 'Forward payroll status request',
+          tags: ["Payroll"],
+          summary: "Forward payroll status request",
         },
       },
     )
     .get(
-      '/api/v1/reports/status',
+      "/api/v1/reports/status",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.reporting,
-          '/api/v1/reports',
-          '/internal/reports',
+          "/api/v1/reports",
+          "/internal/reports",
           environment,
           true,
         ),
       {
         detail: {
-          tags: ['Reports'],
-          summary: 'Forward reports status request',
+          tags: ["Reports"],
+          summary: "Forward reports status request",
         },
       },
     )
     .all(
-      '/api/v1/auth/*',
+      "/api/v1/auth/*",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
+          "/api/v1/auth",
+          "/internal/auth",
           environment,
         ),
       {
@@ -326,13 +326,13 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       },
     )
     .all(
-      '/api/v1/users/*',
+      "/api/v1/users/*",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.user,
-          '/api/v1/users',
-          '/internal/users',
+          "/api/v1/users",
+          "/internal/users",
           environment,
           true,
         ),
@@ -341,26 +341,26 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       },
     )
     .all(
-      '/api/v1/employees/*',
+      "/api/v1/employees/*",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.employee,
-          '/api/v1/employees',
-          '/internal/employees',
+          "/api/v1/employees",
+          "/internal/employees",
           environment,
           true,
         ),
       { detail: { hide: true } },
     )
     .all(
-      '/api/v1/payroll/*',
+      "/api/v1/payroll/*",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.payroll,
-          '/api/v1/payroll',
-          '/internal/payroll',
+          "/api/v1/payroll",
+          "/internal/payroll",
           environment,
           true,
         ),
@@ -369,13 +369,13 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       },
     )
     .all(
-      '/api/v1/reports/*',
+      "/api/v1/reports/*",
       ({ request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.reporting,
-          '/api/v1/reports',
-          '/internal/reports',
+          "/api/v1/reports",
+          "/internal/reports",
           environment,
           true,
         ),

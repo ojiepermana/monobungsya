@@ -46,18 +46,14 @@ export class AuthLogin {
 
       if (status !== undefined && status >= 400) {
         this.state.set('error');
-        this.errorMessage.set(
-          'The sign in service is unavailable. Try again shortly.',
-        );
+        this.errorMessage.set('The sign in service is unavailable. Try again shortly.');
         return;
       }
 
       this.state.set('sent');
     } catch {
       this.state.set('error');
-      this.errorMessage.set(
-        'The sign in service is unavailable. Try again shortly.',
-      );
+      this.errorMessage.set('The sign in service is unavailable. Try again shortly.');
     }
   }
 

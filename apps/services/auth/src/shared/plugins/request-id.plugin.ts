@@ -1,12 +1,12 @@
-import { Elysia } from 'elysia';
+import { Elysia } from "elysia";
 
-export const requestIdPlugin = new Elysia({ name: 'auth-request-id' }).derive(
+export const requestIdPlugin = new Elysia({ name: "auth-request-id" }).derive(
   ({ request, set }) => {
     const requestId =
-      request.headers.get('x-request-id') ?? crypto.randomUUID();
-    const correlationId = request.headers.get('x-correlation-id') ?? requestId;
+      request.headers.get("x-request-id") ?? crypto.randomUUID();
+    const correlationId = request.headers.get("x-correlation-id") ?? requestId;
 
-    set.headers['x-request-id'] = requestId;
+    set.headers["x-request-id"] = requestId;
 
     return { requestId, correlationId };
   },

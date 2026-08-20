@@ -23,14 +23,14 @@ Satu package menyediakan client dan runner generic. Source migration dan seed be
 
 **Pros**:
 
-* Satu aturan untuk semua service dan satu histori database.
-* SQL tetap mudah direview dan tidak membuat service deployable membawa tooling operasional.
-* Cocok dengan client Bun SQL yang sudah dipakai oleh service.
+- Satu aturan untuk semua service dan satu histori database.
+- SQL tetap mudah direview dan tidak membuat service deployable membawa tooling operasional.
+- Cocok dengan client Bun SQL yang sudah dipakai oleh service.
 
 **Cons**:
 
-* Perubahan schema domain harus melewati package pusat.
-* Runner perlu mapping scope dan schema agar file service tidak dapat terselip.
+- Perubahan schema domain harus melewati package pusat.
+- Runner perlu mapping scope dan schema agar file service tidak dapat terselip.
 
 ### Option 2: Runner dan migration dimiliki setiap service
 
@@ -38,14 +38,14 @@ Setiap service memiliki client, command, tracking, migration, dan seed sendiri. 
 
 **Pros**:
 
-* Ownership file dekat dengan pemilik business domain.
-* Service lebih mudah dipindahkan ke repository terpisah.
+- Ownership file dekat dengan pemilik business domain.
+- Service lebih mudah dipindahkan ke repository terpisah.
 
 **Cons**:
 
-* Urutan migration lintas schema dan dependency antar domain menjadi sulit dijamin.
-* Tracking, locking, reset, dan aturan UUID akan terduplikasi.
-* Satu invocation root harus mengoordinasikan banyak process dan failure state.
+- Urutan migration lintas schema dan dependency antar domain menjadi sulit dijamin.
+- Tracking, locking, reset, dan aturan UUID akan terduplikasi.
+- Satu invocation root harus mengoordinasikan banyak process dan failure state.
 
 ### Option 3: ORM atau migration framework penuh
 
@@ -53,14 +53,14 @@ Project menggunakan ORM atau framework migration yang memiliki model, generator,
 
 **Pros**:
 
-* Beberapa metadata, diff schema, dan helper dapat tersedia dari library.
-* Tim dapat mengikuti convention tool yang sudah dikenal.
+- Beberapa metadata, diff schema, dan helper dapat tersedia dari library.
+- Tim dapat mengikuti convention tool yang sudah dikenal.
 
 **Cons**:
 
-* Tidak ada kebutuhan ORM pada stack Bun SQL saat ini.
-* SQL PostgreSQL khusus seperti partition dan grant dapat menjadi escape hatch yang sulit dilacak.
-* Menambah dependency dan abstraction yang bertentangan dengan prinsip shared package minimal.
+- Tidak ada kebutuhan ORM pada stack Bun SQL saat ini.
+- SQL PostgreSQL khusus seperti partition dan grant dapat menjadi escape hatch yang sulit dilacak.
+- Menambah dependency dan abstraction yang bertentangan dengan prinsip shared package minimal.
 
 ## Decision
 
@@ -108,14 +108,14 @@ CREATE TABLE "user"."users" (
 
 ### Schema ownership
 
-| Scope | PostgreSQL schema | Owner | Notes |
-| --- | --- | --- | --- |
-| `auth` | `auth` | Auth service | Auth is the identity infrastructure scope. The schema name avoids confusion with the `user` service. |
-| `user` | `user` | User service | All user domain tables use this schema. |
-| `employee` | `employee` | Employee service | All employee domain tables use this schema. |
-| `payroll` | `payroll` | Payroll service | All payroll domain tables use this schema. |
-| `reporting` | `reporting` | Reporting service | Reporting tables use this schema. |
-| `logs` | `logs` | Infrastructure scope | Logging and audit partitions stay in this schema. |
+| Scope       | PostgreSQL schema | Owner                | Notes                                                                                                |
+| ----------- | ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `auth`      | `auth`            | Auth service         | Auth is the identity infrastructure scope. The schema name avoids confusion with the `user` service. |
+| `user`      | `user`            | User service         | All user domain tables use this schema.                                                              |
+| `employee`  | `employee`        | Employee service     | All employee domain tables use this schema.                                                          |
+| `payroll`   | `payroll`         | Payroll service      | All payroll domain tables use this schema.                                                           |
+| `reporting` | `reporting`       | Reporting service    | Reporting tables use this schema.                                                                    |
+| `logs`      | `logs`            | Infrastructure scope | Logging and audit partitions stay in this schema.                                                    |
 
 The runner has an explicit allowlist for these six scopes. It scans every directory under the configured migration and seed roots and rejects an unknown directory. An unknown scope or schema fails closed. Migration SQL must qualify every application object with its schema and table name. The runner must not rely on `search_path`. The old `users`, `log`, and separate `partition` schemas are not canonical. Partitioned tables and their partitions belong under `logs`.
 
@@ -129,10 +129,10 @@ Each up migration runs in its own transaction. The entire file is sent to Postgr
 
 The runner owns these metadata tables in `public`:
 
-| Table | Required columns | Constraints |
-| --- | --- | --- |
+| Table                      | Required columns                                                                                     | Constraints                                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `public.schema_migrations` | `id uuid`, `name text`, `scope text`, `checksum char(64)`, `batch integer`, `applied_at timestamptz` | `id` is UUIDv7 primary key, `name` is globally unique, `batch` is positive, checksum is valid SHA 256 text. |
-| `public.seed_migrations` | `id uuid`, `name text`, `scope text`, `checksum char(64)`, `batch integer`, `applied_at timestamptz` | Same UUIDv7, uniqueness, batch, and checksum rules as schema tracking. |
+| `public.seed_migrations`   | `id uuid`, `name text`, `scope text`, `checksum char(64)`, `batch integer`, `applied_at timestamptz` | Same UUIDv7, uniqueness, batch, and checksum rules as schema tracking.                                      |
 
 Every application table, including these metadata tables, must have an `id uuid` primary key with `DEFAULT uuidv7()` and a database check that the UUID version nibble is 7. Natural keys such as email, token, or migration name remain separate unique constraints and are not primary keys. Session identifiers must be migrated away from a string primary key when the auth schema is brought under this standard. The `logs` tables remain ordinary nonpartitioned tables until a measured volume or retention requirement justifies a separate partition decision.
 
@@ -148,13 +148,13 @@ Schema rollback does not guess which seed rows were removed. `db:migrate:down` l
 
 ### Command contract
 
-| Command | Contract |
-| --- | --- |
-| `bun run db:migrate` | Uses `DATABASE_MIGRATION_URL`. Apply all unapplied migrations. `--service <name>` limits scope. `--dry-run` prints status, scope, name, and checksum without changing the database. |
-| `bun run db:seed` | Uses `DATABASE_MIGRATION_URL`. Apply reference seeds after migration. `--service <name>` limits scope, `--set reference\|fixtures` selects a set, and `--dry-run` prints status, scope, name, and checksum. |
-| `bun run db:reset --confirm` | Uses `DATABASE_MIGRATION_URL`. Development and test only. Drop every allowlisted application schema and both public tracking tables, then run all migrations. `--seed` also applies reference seeds. A service filter is invalid. |
-| `bun run db:migrate:down` | Uses `DATABASE_MIGRATION_URL`. Nonproduction recovery command. Roll back the latest migration files in reverse order, with optional `--steps <positive integer>` and optional `--service <name>`. It is not the normal production deployment path. |
-| `bun run db:seed:reset --service <name>` | Uses `DATABASE_MIGRATION_URL`. Clear seed tracking for one scope so its idempotent seed files can be replayed. It does not delete business rows. |
+| Command                                  | Contract                                                                                                                                                                                                                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run db:migrate`                     | Uses `DATABASE_MIGRATION_URL`. Apply all unapplied migrations. `--service <name>` limits scope. `--dry-run` prints status, scope, name, and checksum without changing the database.                                                                |
+| `bun run db:seed`                        | Uses `DATABASE_MIGRATION_URL`. Apply reference seeds after migration. `--service <name>` limits scope, `--set reference\|fixtures` selects a set, and `--dry-run` prints status, scope, name, and checksum.                                        |
+| `bun run db:reset --confirm`             | Uses `DATABASE_MIGRATION_URL`. Development and test only. Drop every allowlisted application schema and both public tracking tables, then run all migrations. `--seed` also applies reference seeds. A service filter is invalid.                  |
+| `bun run db:migrate:down`                | Uses `DATABASE_MIGRATION_URL`. Nonproduction recovery command. Roll back the latest migration files in reverse order, with optional `--steps <positive integer>` and optional `--service <name>`. It is not the normal production deployment path. |
+| `bun run db:seed:reset --service <name>` | Uses `DATABASE_MIGRATION_URL`. Clear seed tracking for one scope so its idempotent seed files can be replayed. It does not delete business rows.                                                                                                   |
 
 The `--service` value is an ownership name, not a PostgreSQL schema name. The mapping is one to one for `auth`, `user`, `employee`, `payroll`, `reporting`, and `logs`. A filtered command applies only matching files and never runs files from another scope automatically. Since migration order is globally serial, before applying a filtered file the runner verifies that every lower numbered migration in every scope is already tracked. Those earlier files are the implicit dependency model. If any is missing, the command fails and reports the missing names.
 
@@ -164,9 +164,9 @@ The runner checks PostgreSQL `server_version_num` before a command that connects
 
 The reset command requires all of the following:
 
-* `NODE_ENV` is `development` or `test`.
-* `DATABASE_RESET_ALLOWED=true` is present in the environment.
-* `--confirm` is present.
+- `NODE_ENV` is `development` or `test`.
+- `DATABASE_RESET_ALLOWED=true` is present in the environment.
+- `--confirm` is present.
 
 Reset is never available in production and does not accept `--service`. It drops only the fixed schema names from the allowlist and the fixed public tracking table names. Schema and table identifiers come only from trusted runner constants and are safely quoted. It never drops or recreates the database and never acts on an identifier supplied directly by the command line.
 
@@ -188,75 +188,75 @@ Tests must cover a fresh reset, a second idempotent migrate, a failed migration 
 
 **Configuration**:
 
-* `DATABASE_URL`: runtime connection with service specific privileges.
-* `DATABASE_MIGRATION_URL`: migration role connection used by all database commands.
-* `DATABASE_RESET_ALLOWED`: explicit nonproduction gate for destructive schema reset.
-* `NODE_ENV`: must be `development` or `test` for reset.
-* `DATABASE_TIMEZONE`: fixed to `Asia/Jakarta` for display and reporting conventions. Storage uses `timestamptz`.
+- `DATABASE_URL`: runtime connection with service specific privileges.
+- `DATABASE_MIGRATION_URL`: migration role connection used by all database commands.
+- `DATABASE_RESET_ALLOWED`: explicit nonproduction gate for destructive schema reset.
+- `NODE_ENV`: must be `development` or `test` for reset.
+- `DATABASE_TIMEZONE`: fixed to `Asia/Jakarta` for display and reporting conventions. Storage uses `timestamptz`.
 
 **Rollout**:
 
-* New migration and seed source uses this standard immediately.
-* Move the working runner from `contekan/database` into `packages/database` without changing domain data in the same change.
-* Add bootstrap migrations that create `auth`, `user`, `employee`, `payroll`, `reporting`, and `logs`.
-* Rename the old `users` schema to `auth`, and replace old `log` and `partition` references with `logs` qualified names.
-* Migrate existing natural or non UUIDv7 primary keys through explicit mapping utilities before enforcing the catalog validation on those tables.
-* Add root scripts and CI checks, then remove duplicate operational logic from `contekan` after the package runner is verified.
+- New migration and seed source uses this standard immediately.
+- Move the working runner from `contekan/database` into `packages/database` without changing domain data in the same change.
+- Add bootstrap migrations that create `auth`, `user`, `employee`, `payroll`, `reporting`, and `logs`.
+- Rename the old `users` schema to `auth`, and replace old `log` and `partition` references with `logs` qualified names.
+- Migrate existing natural or non UUIDv7 primary keys through explicit mapping utilities before enforcing the catalog validation on those tables.
+- Add root scripts and CI checks, then remove duplicate operational logic from `contekan` after the package runner is verified.
 
 **Exceptions**:
 
-* No new application table may use a non UUIDv7 `id` primary key.
-* Legacy import rows may not preserve a non v7 primary key. The import utility must generate a new UUIDv7 and persist a mapping for external references.
-* PostgreSQL system schemas and system tables are outside the application catalog validation.
-* A session table may retain a separate token or session key as a unique column, but its primary key still follows the UUIDv7 rule.
+- No new application table may use a non UUIDv7 `id` primary key.
+- Legacy import rows may not preserve a non v7 primary key. The import utility must generate a new UUIDv7 and persist a mapping for external references.
+- PostgreSQL system schemas and system tables are outside the application catalog validation.
+- A session table may retain a separate token or session key as a unique column, but its primary key still follows the UUIDv7 rule.
 
 ## Consequences
 
 **Positive**:
 
-* Service boundaries become visible in PostgreSQL names and privileges.
-* Migration and seed behavior is deterministic, reviewable, and similar to Laravel without adopting Laravel or an ORM.
-* UUIDv7 ordering is enforced by the database rather than caller discipline.
-* A failed file can be retried without silently changing migration history.
+- Service boundaries become visible in PostgreSQL names and privileges.
+- Migration and seed behavior is deterministic, reviewable, and similar to Laravel without adopting Laravel or an ORM.
+- UUIDv7 ordering is enforced by the database rather than caller discipline.
+- A failed file can be retried without silently changing migration history.
 
 **Negative / tradeoffs**:
 
-* A central package must coordinate schema changes and global migration numbers.
-* `timestamptz` requires reporting and presentation code to convert instants to Asia Jakarta when local wall time is needed.
-* UUID remapping makes legacy imports more involved and requires downstream identifier mapping.
-* Reset removes all allowlisted application schemas and needs a migration role with destructive DDL privilege in nonproduction.
-* Catalog validation and explicit grants add implementation and CI work before the standard is fully enforced.
+- A central package must coordinate schema changes and global migration numbers.
+- `timestamptz` requires reporting and presentation code to convert instants to Asia Jakarta when local wall time is needed.
+- UUID remapping makes legacy imports more involved and requires downstream identifier mapping.
+- Reset removes all allowlisted application schemas and needs a migration role with destructive DDL privilege in nonproduction.
+- Catalog validation and explicit grants add implementation and CI work before the standard is fully enforced.
 
 **Neutral**:
 
-* Services continue to use the existing Bun SQL client API and do not import migration source as business code.
-* `logs` is an infrastructure scope rather than a new deployable service.
-* Production deployment may run migrate and safe reference seed, but never reset.
+- Services continue to use the existing Bun SQL client API and do not import migration source as business code.
+- `logs` is an infrastructure scope rather than a new deployable service.
+- Production deployment may run migrate and safe reference seed, but never reset.
 
 ## Follow-up
 
-* [x] Add root `db:migrate`, `db:seed`, `db:reset`, and `db:migrate:down` scripts that invoke `packages/database`.
-* [x] Move and adapt the `contekan/database` runner and migration files into the canonical package location.
-* [x] Add `DATABASE_MIGRATION_URL` and `DATABASE_RESET_ALLOWED` to environment documentation and deployment configuration.
-* [x] Apply the UUIDv7 primary key rule to the canonical auth session model and all current application tables.
-* [x] Add the catalog validator and command tests, including checksum drift coverage.
-* [x] Keep `logs.logging`, `logs.audit_trails`, and `logs.access_logs` nonpartitioned until measured volume or retention requirements justify a separate architecture decision.
-* [x] Define fixed PostgreSQL role names and apply explicit runtime grants through migration `0007_database_grants`; role creation and credentials remain outside the repository.
+- [x] Add root `db:migrate`, `db:seed`, `db:reset`, and `db:migrate:down` scripts that invoke `packages/database`.
+- [x] Move and adapt the `contekan/database` runner and migration files into the canonical package location.
+- [x] Add `DATABASE_MIGRATION_URL` and `DATABASE_RESET_ALLOWED` to environment documentation and deployment configuration.
+- [x] Apply the UUIDv7 primary key rule to the canonical auth session model and all current application tables.
+- [x] Add the catalog validator and command tests, including checksum drift coverage.
+- [x] Keep `logs.logging`, `logs.audit_trails`, and `logs.access_logs` nonpartitioned until measured volume or retention requirements justify a separate architecture decision.
+- [x] Define fixed PostgreSQL role names and apply explicit runtime grants through migration `0007_database_grants`; role creation and credentials remain outside the repository.
 
 ## References
 
 **Project sources**:
 
-* `docs/specs/0001-enterprise-monorepo-foundation.md`, shared database package and service boundary decisions.
-* `packages/database/src/index.ts`, existing Bun SQL client and transaction helper.
-* `contekan/database/README.md`, pointer preserved after the working runner moved to the canonical package.
-* `packages/database/migrations/auth` and `packages/database/migrations/logs`, canonical UUIDv7 and schema implementation.
-* `pre-plan.md`, monorepo boundary and minimal shared package constraints.
+- `docs/specs/0001-enterprise-monorepo-foundation.md`, shared database package and service boundary decisions.
+- `packages/database/src/index.ts`, existing Bun SQL client and transaction helper.
+- `contekan/database/README.md`, pointer preserved after the working runner moved to the canonical package.
+- `packages/database/migrations/auth` and `packages/database/migrations/logs`, canonical UUIDv7 and schema implementation.
+- `pre-plan.md`, monorepo boundary and minimal shared package constraints.
 
 **Practices & standards**:
 
-* Database migrations as immutable, ordered, reviewable source files.
-* One transaction per migration file and idempotent seed data.
-* PostgreSQL advisory locks for cross process migration serialization.
-* Least privilege for runtime database roles.
-* Explicit identifier mapping during legacy primary key migration.
+- Database migrations as immutable, ordered, reviewable source files.
+- One transaction per migration file and idempotent seed data.
+- PostgreSQL advisory locks for cross process migration serialization.
+- Least privilege for runtime database roles.
+- Explicit identifier mapping during legacy primary key migration.

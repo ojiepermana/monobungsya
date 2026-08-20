@@ -1,4 +1,4 @@
-import { ReportingRepository } from './reporting.repository';
+import { ReportingRepository } from "./reporting.repository";
 
 export class ReportingService {
   private readonly repository = new ReportingRepository();

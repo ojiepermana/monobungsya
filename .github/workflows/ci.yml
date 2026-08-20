@@ -138,22 +138,22 @@ jobs:
             build_args: WEB_API_URL=https://gateway.example.com
           - name: gateway
             file: infra/docker/gateway/Dockerfile
-            build_args: ''
+            build_args: ""
           - name: auth
             file: infra/docker/services/auth/Dockerfile
-            build_args: ''
+            build_args: ""
           - name: user
             file: infra/docker/services/user/Dockerfile
-            build_args: ''
+            build_args: ""
           - name: employee
             file: infra/docker/services/employee/Dockerfile
-            build_args: ''
+            build_args: ""
           - name: payroll
             file: infra/docker/services/payroll/Dockerfile
-            build_args: ''
+            build_args: ""
           - name: reporting
             file: infra/docker/services/reporting/Dockerfile
-            build_args: ''
+            build_args: ""
 
     steps:
       - name: Check out repository

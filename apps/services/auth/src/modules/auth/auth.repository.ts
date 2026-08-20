@@ -1,14 +1,14 @@
-import { type DatabaseClient, withTransaction } from '#project/database';
+import { type DatabaseClient, withTransaction } from "#project/database";
 import type {
   AuthRepositoryDependencies,
   AuthRole,
   AuthUser,
   SessionIdentity,
-} from './auth.types';
+} from "./auth.types";
 
 export type AuthModuleStatus = {
-  status: 'ok';
-  module: 'auth';
+  status: "ok";
+  module: "auth";
 };
 
 export interface MagicLinkIssueResult {
@@ -37,7 +37,7 @@ export class AuthRepository {
   }
 
   getModuleStatus(): AuthModuleStatus {
-    return { status: 'ok', module: 'auth' };
+    return { status: "ok", module: "auth" };
   }
 
   async issueMagicLink(
@@ -52,10 +52,10 @@ export class AuthRepository {
     return withTransaction(database, async (transaction) => {
       const emailLimit = await incrementRateLimit(
         transaction,
-        'email',
+        "email",
         emailHash,
       );
-      const ipLimit = await incrementRateLimit(transaction, 'ip', ipHash);
+      const ipLimit = await incrementRateLimit(transaction, "ip", ipHash);
 
       if (!emailLimit || !ipLimit) {
         return { user: null, rateLimited: true };
@@ -228,7 +228,7 @@ export class AuthRepository {
 
   private requireDatabase(): DatabaseClient {
     if (!this.database) {
-      throw new Error('auth database is not configured');
+      throw new Error("auth database is not configured");
     }
 
     return this.database;
@@ -237,7 +237,7 @@ export class AuthRepository {
 
 async function incrementRateLimit(
   database: DatabaseClient,
-  keyType: 'email' | 'ip',
+  keyType: "email" | "ip",
   keyHash: string,
 ): Promise<boolean> {
   const [row] = await database`

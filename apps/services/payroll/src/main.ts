@@ -1,8 +1,8 @@
-import { closeDatabaseClient } from '#project/database';
-import { connectMessaging } from '#project/messaging';
-import { createApp } from './app';
-import { env } from './config/env';
-import { createServiceDatabase } from './database/client';
+import { closeDatabaseClient } from "#project/database";
+import { connectMessaging } from "#project/messaging";
+import { createApp } from "./app";
+import { env } from "./config/env";
+import { createServiceDatabase } from "./database/client";
 
 const database = env.ENABLE_INFRASTRUCTURE
   ? createServiceDatabase(env)
@@ -28,8 +28,8 @@ async function shutdown(signal: string): Promise<void> {
   if (database) await closeDatabaseClient(database);
 }
 
-process.on('SIGINT', () => void shutdown('SIGINT').then(() => process.exit(0)));
+process.on("SIGINT", () => void shutdown("SIGINT").then(() => process.exit(0)));
 process.on(
-  'SIGTERM',
-  () => void shutdown('SIGTERM').then(() => process.exit(0)),
+  "SIGTERM",
+  () => void shutdown("SIGTERM").then(() => process.exit(0)),
 );

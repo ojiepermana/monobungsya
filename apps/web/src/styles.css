@@ -1,11 +1,11 @@
-@import "@ojiepermana/angular-theme/theme-full.css";
-@import "tailwindcss";
-@import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
-@import "@fontsource/material-symbols-rounded/400.css";
-@import "./app/app-layout.css";
+@import '@ojiepermana/angular-theme/theme-full.css';
+@import 'tailwindcss';
+@import '@ojiepermana/angular-theme/styles/css/base/tailwind.css';
+@import '@fontsource/material-symbols-rounded/400.css';
+@import './app/app-layout.css';
 
 :root {
-  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  font-family: 'Avenir Next', 'Trebuchet MS', sans-serif;
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   font-synthesis: none;

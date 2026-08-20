@@ -1,7 +1,4 @@
-import {
-  type ApplicationConfig,
-  provideBrowserGlobalErrorListeners,
-} from '@angular/core';
+import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideUiTheme } from '@ojiepermana/angular/theme/styles';
 import { routes } from './app.routes';

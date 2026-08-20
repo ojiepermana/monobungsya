@@ -66,15 +66,15 @@ Route tidak memanggil repository langsung. Repository tidak mengetahui HTTP. Tra
 
 ## Service ports
 
-| App | Port | Public path |
-| --- | ---: | --- |
-| web | 4200 | Angular development server |
-| api gateway | 3000 | `/api/v1/*` |
-| auth | 3101 | internal only |
-| user | 3102 | internal only |
-| employee | 3103 | internal only |
-| payroll | 3104 | internal only |
-| reporting | 3105 | internal only |
+| App         | Port | Public path                |
+| ----------- | ---: | -------------------------- |
+| web         | 4200 | Angular development server |
+| api gateway | 3000 | `/api/v1/*`                |
+| auth        | 3101 | internal only              |
+| user        | 3102 | internal only              |
+| employee    | 3103 | internal only              |
+| payroll     | 3104 | internal only              |
+| reporting   | 3105 | internal only              |
 
 Setiap app memiliki `GET /health`. Service module smoke endpoint berada pada `/internal/<module>/status` dan hanya menjadi contoh boundary awal.
 
@@ -131,14 +131,14 @@ Event contract ada di `packages/contracts/src/events`. Event handler implementat
 
 PostgreSQL 18 menjadi prasyarat. Semua primary key application table memakai `uuid` dengan default native `uuidv7()`. Database memakai multischema dengan ownership berikut:
 
-| Scope | Schema |
-| --- | --- |
-| auth | `auth` |
-| user | `user` |
-| employee | `employee` |
-| payroll | `payroll` |
+| Scope     | Schema      |
+| --------- | ----------- |
+| auth      | `auth`      |
+| user      | `user`      |
+| employee  | `employee`  |
+| payroll   | `payroll`   |
 | reporting | `reporting` |
-| logs | `logs` |
+| logs      | `logs`      |
 
 Gunakan `DATABASE_MIGRATION_URL` untuk role migration. `DATABASE_RESET_ALLOWED=true` hanya boleh dipakai pada development atau test.
 

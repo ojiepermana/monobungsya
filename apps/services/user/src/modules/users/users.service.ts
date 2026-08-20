@@ -1,4 +1,4 @@
-import { UsersRepository } from './users.repository';
+import { UsersRepository } from "./users.repository";
 
 export class UsersService {
   private readonly repository = new UsersRepository();

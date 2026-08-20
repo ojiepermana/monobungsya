@@ -27,40 +27,41 @@ Tujuan utama:
 12. Jangan membuat abstraction yang belum dibutuhkan.
 
 ============================================================
+
 1. TARGET MONOREPO STRUCTURE
-============================================================
+   \============================================================
 
 Buat struktur awal:
 
 project/
 │
 ├── apps/
-│   ├── web/
-│   │   └── Angular application
-│   │
-│   ├── api-gateway/
-│   │   └── Bun + Elysia API Gateway
-│   │
-│   └── services/
-│       ├── auth/
-│       ├── user/
-│       ├── employee/
-│       ├── payroll/
-│       └── reporting/
+│ ├── web/
+│ │ └── Angular application
+│ │
+│ ├── api-gateway/
+│ │ └── Bun + Elysia API Gateway
+│ │
+│ └── services/
+│ ├── auth/
+│ ├── user/
+│ ├── employee/
+│ ├── payroll/
+│ └── reporting/
 │
 ├── packages/
-│   ├── contracts/
-│   │   ├── openapi/
-│   │   │   ├── fragments/
-│   │   │   └── generated/
-│   │   │
-│   │   └── events/
-│   │
-│   ├── database/
-│   ├── messaging/
-│   ├── config/
-│   ├── logger/
-│   └── errors/
+│ ├── contracts/
+│ │ ├── openapi/
+│ │ │ ├── fragments/
+│ │ │ └── generated/
+│ │ │
+│ │ └── events/
+│ │
+│ ├── database/
+│ ├── messaging/
+│ ├── config/
+│ ├── logger/
+│ └── errors/
 │
 ├── package.json
 ├── bun.lock
@@ -71,8 +72,7 @@ Jangan membuat repository terpisah untuk setiap service sekarang.
 
 Gunakan Bun workspace.
 
-============================================================
-2. BUN WORKSPACE
+============================================================ 2. BUN WORKSPACE
 ============================================================
 
 Root package.json harus menggunakan Bun workspaces.
@@ -106,8 +106,7 @@ Gunakan placeholder nama project yang mudah diganti.
 
 Jangan menggunakan npm/pnpm/yarn sebagai package manager.
 
-============================================================
-3. SERVICE STRUCTURE
+============================================================ 3. SERVICE STRUCTURE
 ============================================================
 
 Setiap service Bun harus mempunyai struktur dasar:
@@ -115,37 +114,37 @@ Setiap service Bun harus mempunyai struktur dasar:
 apps/services/<service>/
 │
 ├── src/
-│   ├── main.ts
-│   ├── app.ts
-│   │
-│   ├── config/
-│   │   ├── env.ts
-│   │   └── database.ts
-│   │
-│   ├── shared/
-│   │   ├── errors/
-│   │   │   ├── app-error.ts
-│   │   │   └── error-handler.ts
-│   │   │
-│   │   ├── utils/
-│   │   ├── types/
-│   │   └── plugins/
-│   │       ├── logger.plugin.ts
-│   │       ├── openapi.plugin.ts
-│   │       └── request-id.plugin.ts
-│   │
-│   ├── modules/
-│   │
-│   ├── database/
-│   │   ├── client.ts
-│   │   ├── migrations/
-│   │   └── seeds/
-│   │
-│   ├── jobs/
-│   │   ├── workers/
-│   │   └── schedules/
-│   │
-│   └── tests/
+│ ├── main.ts
+│ ├── app.ts
+│ │
+│ ├── config/
+│ │ ├── env.ts
+│ │ └── database.ts
+│ │
+│ ├── shared/
+│ │ ├── errors/
+│ │ │ ├── app-error.ts
+│ │ │ └── error-handler.ts
+│ │ │
+│ │ ├── utils/
+│ │ ├── types/
+│ │ └── plugins/
+│ │ ├── logger.plugin.ts
+│ │ ├── openapi.plugin.ts
+│ │ └── request-id.plugin.ts
+│ │
+│ ├── modules/
+│ │
+│ ├── database/
+│ │ ├── client.ts
+│ │ ├── migrations/
+│ │ └── seeds/
+│ │
+│ ├── jobs/
+│ │ ├── workers/
+│ │ └── schedules/
+│ │
+│ └── tests/
 │
 ├── openapi.yaml
 ├── package.json
@@ -154,8 +153,7 @@ apps/services/<service>/
 API Gateway menggunakan struktur yang sama, tetapi tidak membutuhkan
 repository/database domain seperti business services kecuali memang diperlukan.
 
-============================================================
-4. MODULE ARCHITECTURE
+============================================================ 4. MODULE ARCHITECTURE
 ============================================================
 
 Business feature harus berada di:
@@ -182,57 +180,59 @@ Untuk module sederhana, jangan membuat semua subfolder jika belum diperlukan.
 Contoh module sederhana cukup:
 
 users/
-    users.route.ts
-    users.schema.ts
-    users.service.ts
-    users.repository.ts
+users.route.ts
+users.schema.ts
+users.service.ts
+users.repository.ts
 
 Ketika module menjadi kompleks, struktur dapat diperluas.
 
-============================================================
-5. DEPENDENCY FLOW
+============================================================ 5. DEPENDENCY FLOW
 ============================================================
 
 Terapkan dependency flow:
 
 HTTP Request
-    ↓
+↓
 Route
-    ↓
+↓
 Schema Validation
-    ↓
+↓
 Service
-    ↓
+↓
 Repository
-    ↓
+↓
 Database
 
 Response:
 
 Database
-    ↓
+↓
 Repository
-    ↓
+↓
 Service
-    ↓
+↓
 Route
-    ↓
+↓
 HTTP Response
 
 Rules:
 
 Route:
+
 - boleh memanggil Service
 - tidak boleh memanggil Repository
 - tidak boleh mengakses Database
 - tidak boleh berisi business logic
 
 Schema:
+
 - hanya validation dan API schema
 - tidak boleh memanggil Service
 - tidak boleh memanggil Repository
 
 Service:
+
 - seluruh business logic
 - workflow
 - business validation
@@ -241,6 +241,7 @@ Service:
 - messaging integration
 
 Repository:
+
 - hanya data access
 - SQL
 - database operation
@@ -252,8 +253,7 @@ Repository:
 
 Repository tidak boleh mengetahui HTTP.
 
-============================================================
-6. NO GENERIC REPOSITORY
+============================================================ 6. NO GENERIC REPOSITORY
 ============================================================
 
 Jangan membuat:
@@ -268,8 +268,7 @@ Jangan membuat abstraction hanya untuk menghilangkan sedikit duplikasi.
 
 Repository harus domain-specific.
 
-============================================================
-7. DATABASE
+============================================================ 7. DATABASE
 ============================================================
 
 Buat:
@@ -301,8 +300,7 @@ Database package tidak boleh mengetahui business domain.
 Migration dan seed tetap menjadi tanggung jawab masing-masing service jika
 service memiliki database/schema sendiri.
 
-============================================================
-8. TRANSACTION
+============================================================ 8. TRANSACTION
 ============================================================
 
 Transaction boundary harus mengikuti business operation.
@@ -310,20 +308,19 @@ Transaction boundary harus mengikuti business operation.
 Contoh:
 
 Service
-    ↓
+↓
 BEGIN
-    ↓
+↓
 Repository A
-    ↓
+↓
 Repository B
-    ↓
+↓
 COMMIT
 
 Jangan membuat transaction tersembunyi di setiap repository method jika
 transaction boundary sebenarnya berada pada Service.
 
-============================================================
-9. ERROR HANDLING
+============================================================ 9. ERROR HANDLING
 ============================================================
 
 Buat shared error abstraction.
@@ -344,8 +341,7 @@ Jangan mengembalikan database error mentah ke client.
 
 HTTP error response harus konsisten.
 
-============================================================
-10. CONFIGURATION
+============================================================ 10. CONFIGURATION
 ============================================================
 
 Environment configuration harus typed dan tervalidasi.
@@ -366,8 +362,7 @@ Jangan membaca process.env secara acak di seluruh aplikasi.
 
 Gunakan centralized configuration.
 
-============================================================
-11. ELYSIA
+============================================================ 11. ELYSIA
 ============================================================
 
 Gunakan ElysiaJS.
@@ -381,15 +376,15 @@ sebagai tempat composition root.
 Urutan:
 
 Configuration
-    ↓
+↓
 Plugins
-    ↓
+↓
 Middleware
-    ↓
+↓
 OpenAPI
-    ↓
+↓
 Routes
-    ↓
+↓
 Error Handler
 
 main.ts hanya bertugas:
@@ -406,8 +401,7 @@ main.ts tidak boleh memiliki:
 - routes
 - validation logic
 
-============================================================
-12. OPENAPI
+============================================================ 12. OPENAPI
 ============================================================
 
 OpenAPI harus menjadi HTTP contract.
@@ -434,20 +428,19 @@ oleh external client.
 
 Internal service API tidak otomatis menjadi public API.
 
-============================================================
-13. OPENAPI CONTRACT PIPELINE
+============================================================ 13. OPENAPI CONTRACT PIPELINE
 ============================================================
 
 Buat mekanisme:
 
 Service
-    ↓
+↓
 OpenAPI specification
-    ↓
+↓
 OpenAPI fragment / generated specification
-    ↓
+↓
 API Gateway public OpenAPI
-    ↓
+↓
 Angular SDK
 
 Sediakan script:
@@ -464,8 +457,7 @@ untuk validasi specification.
 
 Jangan membuat proses generation yang terlalu kompleks pada tahap scaffold.
 
-============================================================
-14. ANGULAR SDK
+============================================================ 14. ANGULAR SDK
 ============================================================
 
 Angular harus menggunakan generated SDK berdasarkan API Gateway OpenAPI.
@@ -490,24 +482,23 @@ tersedia melalui generated SDK.
 Angular:
 
 apps/web
-    ↓
+↓
 @project/angular-sdk
-    ↓
+↓
 API Gateway
 
 Jangan:
 
 Angular
-    ↓
+↓
 langsung ke user-service
 Angular
-    ↓
+↓
 langsung ke payroll-service
 
 External API access hanya melalui API Gateway.
 
-============================================================
-15. NATS / MESSAGING
+============================================================ 15. NATS / MESSAGING
 ============================================================
 
 Buat:
@@ -528,13 +519,12 @@ business logic.
 Contoh:
 
 Service
-    ↓
+↓
 Messaging abstraction
-    ↓
+↓
 NATS
 
-============================================================
-16. EVENT CONTRACT
+============================================================ 16. EVENT CONTRACT
 ============================================================
 
 Buat:
@@ -547,9 +537,9 @@ Contoh:
 
 events/
 ├── user/
-│   ├── user-created.ts
-│   ├── user-updated.ts
-│   └── user-deleted.ts
+│ ├── user-created.ts
+│ ├── user-updated.ts
+│ └── user-deleted.ts
 │
 ├── employee/
 └── payroll/
@@ -564,8 +554,7 @@ Implementation:
 
 apps/services/<service>/src/modules/<module>/events/
 
-============================================================
-17. SERVICE BOUNDARY
+============================================================ 17. SERVICE BOUNDARY
 ============================================================
 
 Service tidak boleh mengakses source code internal service lain.
@@ -582,8 +571,7 @@ Service-to-service communication harus melalui:
 
 Prefer NATS untuk asynchronous event-driven communication.
 
-============================================================
-18. API GATEWAY
+============================================================ 18. API GATEWAY
 ============================================================
 
 API Gateway adalah satu-satunya external entry point.
@@ -621,8 +609,7 @@ API Gateway bertanggung jawab terhadap:
 
 Jangan menaruh business logic domain di API Gateway.
 
-============================================================
-19. API VERSIONING
+============================================================ 19. API VERSIONING
 ============================================================
 
 Gunakan versioning:
@@ -637,8 +624,7 @@ Contoh:
 
 Versioning harus berada pada public API boundary.
 
-============================================================
-20. JOBS
+============================================================ 20. JOBS
 ============================================================
 
 Buat:
@@ -660,8 +646,7 @@ Route tidak boleh memanggil worker implementation secara langsung.
 
 Gunakan abstraction/service jika service perlu menjadwalkan pekerjaan.
 
-============================================================
-21. TESTING
+============================================================ 21. TESTING
 ============================================================
 
 Gunakan Bun Test.
@@ -687,30 +672,29 @@ Tidak perlu membuat semua test pada scaffold.
 
 Buat minimal smoke test untuk setiap service.
 
-============================================================
-22. SHARED PACKAGES
+============================================================ 22. SHARED PACKAGES
 ============================================================
 
 packages/ hanya boleh berisi sesuatu yang benar-benar reusable.
 
 contracts/
-    HTTP/OpenAPI contract
-    Event contract
+HTTP/OpenAPI contract
+Event contract
 
 database/
-    database infrastructure
+database infrastructure
 
 messaging/
-    NATS infrastructure
+NATS infrastructure
 
 config/
-    shared configuration utilities
+shared configuration utilities
 
 logger/
-    logging infrastructure
+logging infrastructure
 
 errors/
-    common error types
+common error types
 
 Jangan menaruh business logic domain ke packages.
 
@@ -722,8 +706,7 @@ packages/employees
 
 Business domain harus tetap berada di service masing-masing.
 
-============================================================
-23. SHARED VS LOCAL
+============================================================ 23. SHARED VS LOCAL
 ============================================================
 
 Setiap service boleh mempunyai:
@@ -738,8 +721,7 @@ packages/
 
 Jangan memindahkan kode ke packages hanya karena terlihat reusable.
 
-============================================================
-24. NAMING CONVENTION
+============================================================ 24. NAMING CONVENTION
 ============================================================
 
 Gunakan lowercase kebab-case untuk filename.
@@ -758,8 +740,7 @@ UsersService.ts
 UserRepository.ts
 myFile.ts
 
-============================================================
-25. SECURITY
+============================================================ 25. SECURITY
 ============================================================
 
 Semua SQL harus menggunakan parameter binding.
@@ -769,6 +750,7 @@ Dilarang:
 string concatenation SQL dari user input.
 
 Filtering:
+
 - whitelist field
 - whitelist sorting
 - parameterized query
@@ -779,8 +761,7 @@ CORS hanya di API Gateway untuk public API.
 
 Service internal tidak perlu menjadi public internet endpoint.
 
-============================================================
-26. GRACEFUL SHUTDOWN
+============================================================ 26. GRACEFUL SHUTDOWN
 ============================================================
 
 Setiap service harus menangani graceful shutdown.
@@ -794,8 +775,7 @@ Background workers
 
 Jangan meninggalkan connection aktif ketika process dihentikan.
 
-============================================================
-27. OBSERVABILITY
+============================================================ 27. OBSERVABILITY
 ============================================================
 
 Logger harus mempunyai:
@@ -811,8 +791,7 @@ Request ID harus dapat diteruskan antar-service.
 Jangan membuat distributed tracing implementation yang kompleks pada scaffold.
 Siapkan extension point saja.
 
-============================================================
-28. DOCKER
+============================================================ 28. DOCKER
 ============================================================
 
 Setiap deployable application harus dapat dibuat menjadi Docker image secara
@@ -837,8 +816,7 @@ docker build payroll-service
 
 dapat dilakukan secara independen.
 
-============================================================
-29. FUTURE REPOSITORY SPLIT
+============================================================ 29. FUTURE REPOSITORY SPLIT
 ============================================================
 
 Struktur harus memungkinkan:
@@ -860,8 +838,7 @@ tanpa harus mengubah business architecture.
 
 Jangan membuat source code antar-service saling bergantung.
 
-============================================================
-30. DEVELOPMENT EXPERIENCE
+============================================================ 30. DEVELOPMENT EXPERIENCE
 ============================================================
 
 Root harus mempunyai script yang mudah digunakan.
@@ -892,8 +869,7 @@ bun run openapi:validate
 Jika memungkinkan gunakan script orchestration sederhana dan jangan
 menambahkan tool orchestration berat hanya untuk development.
 
-============================================================
-31. INITIAL SERVICES
+============================================================ 31. INITIAL SERVICES
 ============================================================
 
 Buat service berikut sebagai scaffold:
@@ -926,12 +902,11 @@ GET /health
 Response:
 
 {
-  "status": "ok",
-  "service": "<service-name>"
+"status": "ok",
+"service": "<service-name>"
 }
 
-============================================================
-32. API GATEWAY ROUTING
+============================================================ 32. API GATEWAY ROUTING
 ============================================================
 
 API Gateway harus mempunyai route boundary:
@@ -946,8 +921,7 @@ Tetapi jangan mengimplementasikan business logic di gateway.
 
 Gateway hanya meneruskan request ke service yang sesuai.
 
-============================================================
-33. ARCHITECTURE DOCUMENTATION
+============================================================ 33. ARCHITECTURE DOCUMENTATION
 ============================================================
 
 Buat README.md yang menjelaskan:
@@ -971,8 +945,7 @@ Buat README.md yang menjelaskan:
 
 Tambahkan diagram architecture menggunakan Mermaid.
 
-============================================================
-34. IMPORTANT ARCHITECTURE RULES
+============================================================ 34. IMPORTANT ARCHITECTURE RULES
 ============================================================
 
 Jangan:
@@ -1004,8 +977,7 @@ Prioritaskan:
 - independently deployable
 - easy to split later
 
-============================================================
-35. DELIVERABLE
+============================================================ 35. DELIVERABLE
 ============================================================
 
 Implementasikan scaffold project tersebut.
@@ -1029,8 +1001,7 @@ Jika ada dependency atau library yang tidak diperlukan, jangan menambahkannya.
 
 Gunakan dependency seminimal mungkin.
 
-============================================================
-36. FINAL CHECK
+============================================================ 36. FINAL CHECK
 ============================================================
 
 Sebelum selesai, periksa:
