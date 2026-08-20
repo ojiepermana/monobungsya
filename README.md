@@ -1,37 +1,27 @@
 # Monobungsia
 
-Monobungsia adalah scaffold monorepo enterprise berbasis Bun. Satu repository berisi Angular sebagai web client, API Gateway berbasis Elysia, dan lima service domain yang dapat dikembangkan serta dibuat image Docker secara independen.
+Monobungsia adalah scaffold monorepo enterprise berbasis Bun. Satu repository berisi Angular sebagai web client, API Gateway berbasis Elysia, dan dua service domain yang dapat dikembangkan serta dibuat image Docker secara independen.
 
 ## Arsitektur
 
 ```mermaid
 flowchart LR
   web[Angular web]
+  desktop[Tauri desktop]
   gateway[API Gateway\nElysia + OpenAPI]
   auth[Auth service]
   user[User service]
-  employee[Employee service]
-  payroll[Payroll service]
-  reporting[Reporting service]
   postgres[(PostgreSQL)]
   nats[(NATS)]
 
   web -->|Generated SDK| gateway
+  desktop -->|Angular frontend| gateway
   gateway --> auth
   gateway --> user
-  gateway --> employee
-  gateway --> payroll
-  gateway --> reporting
   auth --> postgres
   user --> postgres
-  employee --> postgres
-  payroll --> postgres
-  reporting --> postgres
   auth --> nats
   user --> nats
-  employee --> nats
-  payroll --> nats
-  reporting --> nats
 ```
 
 API Gateway adalah public entry point. Angular tidak memanggil service domain secara langsung. Service tidak mengimpor source service lain.
@@ -40,9 +30,11 @@ API Gateway adalah public entry point. Angular tidak memanggil service domain se
 
 `apps/web` berisi Angular 22 dan hanya memakai client yang dihasilkan dari kontrak gateway.
 
+`apps/tauri` berisi shell desktop Tauri v2 yang memakai frontend Angular dari `apps/web`. Proyek Rust berada di `apps/tauri/src`; dependency CLI Tauri tetap dikelola oleh `package.json` root.
+
 `apps/api-gateway` berisi routing public, CORS, request ID, OpenAPI public, dan forwarding ke service internal. Gateway tidak memiliki business logic domain.
 
-`apps/services/*` berisi auth, user, employee, payroll, dan reporting. Setiap service memiliki composition root, config typed, plugin lokal, module domain, repository domain, database boundary, jobs, test, dan Dockerfile.
+`apps/services/*` berisi auth dan user. Setiap service memiliki composition root, config typed, plugin lokal, module domain, repository domain, database boundary, jobs, test, dan Dockerfile.
 
 `packages/contracts` berisi HTTP artifacts OpenAPI dan event contracts. `packages/database` hanya berisi Bun SQL native untuk PostgreSQL. `packages/messaging` hanya berisi abstraction NATS. `packages/config`, `packages/logger`, dan `packages/errors` berisi infrastructure lintas service yang benar benar reusable.
 
@@ -72,9 +64,6 @@ Route tidak memanggil repository langsung. Repository tidak mengetahui HTTP. Tra
 | api gateway | 3000 | `/api/v1/*`                |
 | auth        | 3101 | internal only              |
 | user        | 3102 | internal only              |
-| employee    | 3103 | internal only              |
-| payroll     | 3104 | internal only              |
-| reporting   | 3105 | internal only              |
 
 Setiap app memiliki `GET /health`. Service module smoke endpoint berada pada `/internal/<module>/status` dan hanya menjadi contoh boundary awal.
 
@@ -96,11 +85,14 @@ Script utama:
 
 ```bash
 bun run dev
+bun run dev:tauri
 bun run test
 bun run test:web
 bun run lint
 bun run typecheck
+bun run typecheck:tauri
 bun run build
+bun run build:tauri
 bun run openapi:generate
 bun run openapi:validate
 bun run check:dependencies
@@ -113,7 +105,7 @@ bun run db:reset --confirm --seed
 
 Schema Elysia adalah source of truth. `scripts/openapi-generate.ts` membuat spec dengan memanggil `/openapi/json` pada app composition root, tanpa perlu menyalakan server.
 
-Hasilnya ditulis ke `openapi.yaml` pada gateway dan setiap service. Public gateway spec juga disalin ke `packages/contracts/openapi/generated/public-api.openapi.yaml`.
+Hasilnya ditulis ke `openapi.yaml` pada gateway dan service yang tersisa. Public gateway spec juga disalin ke `packages/contracts/openapi/generated/public-api.openapi.yaml`.
 
 `bun run openapi:generate` lalu menjalankan `@hey-api/openapi-ts` dan menulis generated SDK ke `packages/angular-sdk/src/generated`. Folder generated tidak diedit manual. Angular mengimpor `#project/angular-sdk` dari root import map dan mengonfigurasi generated client pada composition root aplikasi.
 
@@ -191,12 +183,9 @@ docker build -f infra/docker/web/Dockerfile --build-arg WEB_API_URL=https://api.
 docker build -f infra/docker/gateway/Dockerfile .
 docker build -f infra/docker/services/auth/Dockerfile .
 docker build -f infra/docker/services/user/Dockerfile .
-docker build -f infra/docker/services/employee/Dockerfile .
-docker build -f infra/docker/services/payroll/Dockerfile .
-docker build -f infra/docker/services/reporting/Dockerfile .
 ```
 
-The web image listens on container port 8080 as a non root Nginx process. Map public port 80 to container port 8080 in the deployment. The gateway listens on 3000, while auth, user, employee, payroll, and reporting listen on 3101 through 3105. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
+The web image listens on container port 8080 as a non root Nginx process. Map public port 80 to container port 8080 in the deployment. The gateway listens on 3000, while auth and user listen on 3101 and 3102. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
 
 Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root repository:
 
@@ -204,7 +193,7 @@ Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root r
 docker compose -f infra/docker/docker-compose.yml up --build
 ```
 
-Buka web di `http://localhost:4200` dan Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, lima service domain, dan web. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
+Buka web di `http://localhost:4200` dan Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, dua service domain, dan web. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
 
 ## Aturan dependency antar service
 

@@ -87,9 +87,6 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
       AUTH_SERVICE_URL: http://auth:3101
       USER_SERVICE_URL: http://user:3102
-      EMPLOYEE_SERVICE_URL: http://employee:3103
-      PAYROLL_SERVICE_URL: http://payroll:3104
-      REPORTING_SERVICE_URL: http://reporting:3105
     ports:
       - "${GATEWAY_PORT:-3000}:3000"
     depends_on: *backend-depends-on
@@ -130,45 +127,6 @@ services:
       PORT: 3102
     ports:
       - "${USER_PORT:-3102}:3102"
-    depends_on: *backend-depends-on
-    networks:
-      - backend
-
-  employee:
-    build:
-      context: ../..
-      dockerfile: infra/docker/services/employee/Dockerfile
-    environment:
-      <<: *backend-environment
-      PORT: 3103
-    ports:
-      - "${EMPLOYEE_PORT:-3103}:3103"
-    depends_on: *backend-depends-on
-    networks:
-      - backend
-
-  payroll:
-    build:
-      context: ../..
-      dockerfile: infra/docker/services/payroll/Dockerfile
-    environment:
-      <<: *backend-environment
-      PORT: 3104
-    ports:
-      - "${PAYROLL_PORT:-3104}:3104"
-    depends_on: *backend-depends-on
-    networks:
-      - backend
-
-  reporting:
-    build:
-      context: ../..
-      dockerfile: infra/docker/services/reporting/Dockerfile
-    environment:
-      <<: *backend-environment
-      PORT: 3105
-    ports:
-      - "${REPORTING_PORT:-3105}:3105"
     depends_on: *backend-depends-on
     networks:
       - backend

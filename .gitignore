@@ -6,4 +6,5 @@ dist/
 coverage/
 .DS_Store
 apps/web/.angular/
+apps/tauri/src/target/
 graphify-out/

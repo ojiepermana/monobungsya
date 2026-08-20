@@ -147,7 +147,7 @@
         </section>
 
         <section class="service-grid" aria-label="Service boundaries">
-          @for (service of ['Auth', 'Users', 'Employees', 'Payroll', 'Reports']; track service) {
+          @for (service of ['Auth', 'Users']; track service) {
             <Card class="service-card" radius="xs" density="compact">
               <header class="service-card__header">
                 <span class="service-number">{{ $index + 1 | number: '2.0' }}</span>

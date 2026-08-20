@@ -257,60 +257,6 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         ),
       { detail: { tags: ["Users"], summary: "Forward users status request" } },
     )
-    .get(
-      "/api/v1/employees/status",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.employee,
-          "/api/v1/employees",
-          "/internal/employees",
-          environment,
-          true,
-        ),
-      {
-        detail: {
-          tags: ["Employees"],
-          summary: "Forward employees status request",
-        },
-      },
-    )
-    .get(
-      "/api/v1/payroll/status",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.payroll,
-          "/api/v1/payroll",
-          "/internal/payroll",
-          environment,
-          true,
-        ),
-      {
-        detail: {
-          tags: ["Payroll"],
-          summary: "Forward payroll status request",
-        },
-      },
-    )
-    .get(
-      "/api/v1/reports/status",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.reporting,
-          "/api/v1/reports",
-          "/internal/reports",
-          environment,
-          true,
-        ),
-      {
-        detail: {
-          tags: ["Reports"],
-          summary: "Forward reports status request",
-        },
-      },
-    )
     .all(
       "/api/v1/auth/*",
       ({ request }) =>
@@ -339,46 +285,5 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       {
         detail: { hide: true },
       },
-    )
-    .all(
-      "/api/v1/employees/*",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.employee,
-          "/api/v1/employees",
-          "/internal/employees",
-          environment,
-          true,
-        ),
-      { detail: { hide: true } },
-    )
-    .all(
-      "/api/v1/payroll/*",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.payroll,
-          "/api/v1/payroll",
-          "/internal/payroll",
-          environment,
-          true,
-        ),
-      {
-        detail: { hide: true },
-      },
-    )
-    .all(
-      "/api/v1/reports/*",
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.reporting,
-          "/api/v1/reports",
-          "/internal/reports",
-          environment,
-          true,
-        ),
-      { detail: { hide: true } },
     );
 }

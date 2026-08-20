@@ -11,7 +11,7 @@ bun install
 cp .env.example .env          # ENABLE_INFRASTRUCTURE=false runs services without PostgreSQL/NATS
 
 bun run dev                   # all apps in parallel (web + gateway + 5 services)
-bun run dev:gateway           # or one app: dev:web, dev:auth, dev:user, dev:employee, dev:payroll, dev:reporting
+bun run dev:gateway           # or one app: dev:web, dev:auth, dev:user
 
 bun run test                  # backend + package tests (bun test)
 bun test apps/services/auth/src/tests/auth.test.ts   # single test file
@@ -35,11 +35,11 @@ CI (`.github/workflows/ci.yml`) runs db reset/seed + idempotence check, tests, t
 
 ## Architecture
 
-Bun monorepo: Angular 22 web client → Elysia API Gateway → five domain services, with PostgreSQL and NATS behind them.
+Bun monorepo: Angular 22 web client → Elysia API Gateway → two domain services, with PostgreSQL and NATS behind them.
 
 - **apps/web** (port 4200) — talks only to the gateway via the generated SDK (`#project/angular-sdk`). Never calls domain services directly.
 - **apps/api-gateway** (port 3000, public `/api/v1/*`) — CORS, request ID, public OpenAPI, proxying to services. No domain business logic.
-- **apps/services/{auth,user,employee,payroll,reporting}** (ports 3101–3105, internal only) — each has the same shape: `main.ts` (composition root), `app.ts` (`createApp` factory), `config/env.ts`, `modules/<module>/`, `shared/plugins/`, `jobs/workers/`, `tests/`, Dockerfile.
+- **apps/services/{auth,user}** (ports 3101–3102, internal only) — each has the same shape: `main.ts` (composition root), `app.ts` (`createApp` factory), `config/env.ts`, `modules/<module>/`, `shared/plugins/`, `jobs/workers/`, `tests/`, Dockerfile.
 - **packages/** — shared infrastructure only: `contracts` (OpenAPI artifacts + event contracts), `database` (Bun native SQL for PostgreSQL), `messaging` (NATS abstraction), `config`, `logger`, `errors`, `angular-sdk` (generated). Imported everywhere via the root import map `#project/*`.
 
 ### Layering inside a module
@@ -60,7 +60,7 @@ Services may import shared packages and event contracts, never another service's
 
 ### OpenAPI / SDK flow
 
-Elysia schemas are the source of truth. `bun run openapi:generate` writes `openapi.yaml` into the gateway and each service, copies the public gateway spec to `packages/contracts/openapi/generated/`, then runs `@hey-api/openapi-ts` to regenerate `packages/angular-sdk/src/generated`. Never hand-edit generated folders (Biome ignores them).
+Elysia schemas are the source of truth. `bun run openapi:generate` writes `openapi.yaml` into the gateway and each remaining service, copies the public gateway spec to `packages/contracts/openapi/generated/`, then runs `@hey-api/openapi-ts` to regenerate `packages/angular-sdk/src/generated`. Never hand-edit generated folders (Biome ignores them).
 
 ### Database
 

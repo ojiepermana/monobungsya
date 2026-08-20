@@ -3,9 +3,6 @@ import { loadEnv } from "#project/config";
 import { createApp as createGatewayApp } from "../apps/api-gateway/src/app";
 import { loadGatewayEnv } from "../apps/api-gateway/src/config/env";
 import { createApp as createAuthApp } from "../apps/services/auth/src/app";
-import { createApp as createEmployeeApp } from "../apps/services/employee/src/app";
-import { createApp as createPayrollApp } from "../apps/services/payroll/src/app";
-import { createApp as createReportingApp } from "../apps/services/reporting/src/app";
 import { createApp as createUserApp } from "../apps/services/user/src/app";
 
 type SpecTarget = {
@@ -36,31 +33,6 @@ const targets: SpecTarget[] = [
     fragment: "packages/contracts/openapi/fragments/user.yaml",
     createApp: () =>
       createUserApp(loadEnv("user", { NODE_ENV: "test", PORT: "3102" })),
-  },
-  {
-    name: "employee",
-    output: "apps/services/employee/openapi.yaml",
-    fragment: "packages/contracts/openapi/fragments/employee.yaml",
-    createApp: () =>
-      createEmployeeApp(
-        loadEnv("employee", { NODE_ENV: "test", PORT: "3103" }),
-      ),
-  },
-  {
-    name: "payroll",
-    output: "apps/services/payroll/openapi.yaml",
-    fragment: "packages/contracts/openapi/fragments/payroll.yaml",
-    createApp: () =>
-      createPayrollApp(loadEnv("payroll", { NODE_ENV: "test", PORT: "3104" })),
-  },
-  {
-    name: "reporting",
-    output: "apps/services/reporting/openapi.yaml",
-    fragment: "packages/contracts/openapi/fragments/reporting.yaml",
-    createApp: () =>
-      createReportingApp(
-        loadEnv("reporting", { NODE_ENV: "test", PORT: "3105" }),
-      ),
   },
 ];
 

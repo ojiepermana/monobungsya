@@ -1,4 +1,4 @@
-const serviceNames = ["auth", "user", "employee", "payroll", "reporting"];
+const serviceNames = ["auth", "user"];
 const sourceFiles = new Bun.Glob("apps/services/**/*.ts");
 
 for await (const file of sourceFiles.scan(".")) {

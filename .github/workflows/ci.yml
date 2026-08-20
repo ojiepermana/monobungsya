@@ -96,6 +96,9 @@ jobs:
       - name: Run typecheck
         run: bun run typecheck
 
+      - name: Check formatting
+        run: bun run format:check
+
       - name: Run lint
         run: bun run lint
 
@@ -144,15 +147,6 @@ jobs:
             build_args: ""
           - name: user
             file: infra/docker/services/user/Dockerfile
-            build_args: ""
-          - name: employee
-            file: infra/docker/services/employee/Dockerfile
-            build_args: ""
-          - name: payroll
-            file: infra/docker/services/payroll/Dockerfile
-            build_args: ""
-          - name: reporting
-            file: infra/docker/services/reporting/Dockerfile
             build_args: ""
 
     steps:

@@ -10,12 +10,6 @@ tags:
     description: Public auth boundary
   - name: Users
     description: Public users boundary
-  - name: Employees
-    description: Public employees boundary
-  - name: Payroll
-    description: Public payroll boundary
-  - name: Reports
-    description: Public reports boundary
 paths:
   /health:
     get:
@@ -119,23 +113,5 @@ paths:
         - Users
       summary: Forward users status request
       operationId: getApiV1UsersStatus
-  /api/v1/employees/status:
-    get:
-      tags:
-        - Employees
-      summary: Forward employees status request
-      operationId: getApiV1EmployeesStatus
-  /api/v1/payroll/status:
-    get:
-      tags:
-        - Payroll
-      summary: Forward payroll status request
-      operationId: getApiV1PayrollStatus
-  /api/v1/reports/status:
-    get:
-      tags:
-        - Reports
-      summary: Forward reports status request
-      operationId: getApiV1ReportsStatus
 components:
   schemas: {}

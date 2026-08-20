@@ -11,9 +11,6 @@ export const openapiPlugin = openapi({
       { name: "Health", description: "Gateway health checks" },
       { name: "Auth", description: "Public auth boundary" },
       { name: "Users", description: "Public users boundary" },
-      { name: "Employees", description: "Public employees boundary" },
-      { name: "Payroll", description: "Public payroll boundary" },
-      { name: "Reports", description: "Public reports boundary" },
     ],
   },
 });

@@ -68,24 +68,3 @@ export type GetApiV1UsersStatusData = {
   query?: never;
   url: "/api/v1/users/status";
 };
-
-export type GetApiV1EmployeesStatusData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/employees/status";
-};
-
-export type GetApiV1PayrollStatusData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/payroll/status";
-};
-
-export type GetApiV1ReportsStatusData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/reports/status";
-};

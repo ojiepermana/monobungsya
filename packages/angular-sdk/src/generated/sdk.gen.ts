@@ -12,9 +12,6 @@ import type {
   GetApiV1AuthSessionData,
   GetApiV1AuthStatusData,
   GetApiV1AuthVerifyData,
-  GetApiV1EmployeesStatusData,
-  GetApiV1PayrollStatusData,
-  GetApiV1ReportsStatusData,
   GetApiV1UsersStatusData,
   GetHealthData,
   GetHealthResponses,
@@ -118,38 +115,5 @@ export const getApiV1UsersStatus = <ThrowOnError extends boolean = false>(
 ): RequestResult<unknown, unknown, ThrowOnError> =>
   (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
     url: "/api/v1/users/status",
-    ...options,
-  });
-
-/**
- * Forward employees status request
- */
-export const getApiV1EmployeesStatus = <ThrowOnError extends boolean = false>(
-  options?: Options<GetApiV1EmployeesStatusData, ThrowOnError>,
-): RequestResult<unknown, unknown, ThrowOnError> =>
-  (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
-    url: "/api/v1/employees/status",
-    ...options,
-  });
-
-/**
- * Forward payroll status request
- */
-export const getApiV1PayrollStatus = <ThrowOnError extends boolean = false>(
-  options?: Options<GetApiV1PayrollStatusData, ThrowOnError>,
-): RequestResult<unknown, unknown, ThrowOnError> =>
-  (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
-    url: "/api/v1/payroll/status",
-    ...options,
-  });
-
-/**
- * Forward reports status request
- */
-export const getApiV1ReportsStatus = <ThrowOnError extends boolean = false>(
-  options?: Options<GetApiV1ReportsStatusData, ThrowOnError>,
-): RequestResult<unknown, unknown, ThrowOnError> =>
-  (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
-    url: "/api/v1/reports/status",
     ...options,
   });
