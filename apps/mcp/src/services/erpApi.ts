@@ -1,4 +1,4 @@
-import { env } from "../config/env";
+import { env } from '../config/env';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -6,13 +6,13 @@ export async function erpRequest<T = unknown>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const headers = new Headers(options.headers);
+  headers.set('Authorization', `Bearer ${env.ERP_TOKEN}`);
+  headers.set('Content-Type', 'application/json');
+
   const response = await fetch(`${env.ERP_URL}${path}`, {
     ...options,
-    headers: {
-      Authorization: `Bearer ${env.ERP_TOKEN}`,
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     signal: options.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
