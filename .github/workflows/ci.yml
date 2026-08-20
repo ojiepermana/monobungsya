@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -111,3 +113,66 @@ jobs:
 
       - name: Build applications
         run: bun run build
+
+  container-secret-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Scan source and Docker build inputs for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  container-images:
+    name: Build ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            file: infra/docker/web/Dockerfile
+            build_args: WEB_API_URL=https://gateway.example.com
+          - name: gateway
+            file: infra/docker/gateway/Dockerfile
+            build_args: ''
+          - name: auth
+            file: infra/docker/services/auth/Dockerfile
+            build_args: ''
+          - name: user
+            file: infra/docker/services/user/Dockerfile
+            build_args: ''
+          - name: employee
+            file: infra/docker/services/employee/Dockerfile
+            build_args: ''
+          - name: payroll
+            file: infra/docker/services/payroll/Dockerfile
+            build_args: ''
+          - name: reporting
+            file: infra/docker/services/reporting/Dockerfile
+            build_args: ''
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image for supported platforms
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: |
+            monobungsia/${{ matrix.name }}:${{ github.sha }}
+            monobungsia/${{ matrix.name }}:${{ github.event.release.tag_name || github.sha }}
+          build-args: ${{ matrix.build_args }}
