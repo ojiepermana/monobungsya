@@ -182,14 +182,21 @@ Jangan memindahkan domain code ke `packages` hanya karena terlihat dapat dipakai
 
 ## Docker
 
-Setiap deployable app memiliki Dockerfile sendiri. Build dijalankan dari root agar workspace dependency dapat dipasang:
+Setiap deployable app memiliki satu Dockerfile canonical di `infra/docker`. Build dijalankan dari root agar workspace dependency dapat dipasang:
+
+Gateway dan service backend dibundle dengan `bun build --minify` pada tahap build. Image final hanya memuat `main.js` hasil build dan Bun slim, lalu menjalankan artifact tersebut sebagai user non root.
 
 ```bash
-docker build -f apps/services/user/Dockerfile .
-docker build -f apps/services/payroll/Dockerfile .
-docker build -f apps/api-gateway/Dockerfile .
-docker build -f apps/web/Dockerfile .
+docker build -f infra/docker/web/Dockerfile --build-arg WEB_API_URL=https://api.example.com .
+docker build -f infra/docker/gateway/Dockerfile .
+docker build -f infra/docker/services/auth/Dockerfile .
+docker build -f infra/docker/services/user/Dockerfile .
+docker build -f infra/docker/services/employee/Dockerfile .
+docker build -f infra/docker/services/payroll/Dockerfile .
+docker build -f infra/docker/services/reporting/Dockerfile .
 ```
+
+The web image listens on container port 8080 as a non root Nginx process. Map public port 80 to container port 8080 in the deployment. The gateway listens on 3000, while auth, user, employee, payroll, and reporting listen on 3101 through 3105. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
 
 ## Aturan dependency antar service
 

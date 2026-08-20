@@ -1,4 +1,9 @@
 node_modules
 dist
+coverage
 .git
 .env
+.env.*
+!.env.example
+apps/web/.angular
+graphify-out
