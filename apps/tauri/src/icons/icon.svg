@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>Monobungsia</title>
   <rect width="1024" height="1024" rx="192" fill="#17324d" />
   <path d="M256 256h176v512H256zM592 256h176v176H592zM592 592h176v176H592z" fill="#f4c95d" />
   <path d="M432 432h160v160H432z" fill="#e86a5b" />

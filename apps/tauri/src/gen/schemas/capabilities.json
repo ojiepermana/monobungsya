@@ -1,1 +1,9 @@
-{"default":{"identifier":"default","description":"Default desktop capability for Monobungsia","local":true,"windows":["main"],"permissions":["core:default"]}}
+{
+  "default": {
+    "identifier": "default",
+    "description": "Default desktop capability for Monobungsia",
+    "local": true,
+    "windows": ["main"],
+    "permissions": ["core:default"]
+  }
+}

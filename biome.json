@@ -2,7 +2,15 @@
   "$schema": "https://biomejs.dev/schemas/2.5.9/schema.json",
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/dist", "!**/generated", "!**/.angular", "!**/*.ico"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/generated",
+      "!**/.angular",
+      "!**/*.ico",
+      "!apps/tauri/src/gen",
+      "!graphify-out"
+    ]
   },
   "formatter": {
     "enabled": true,

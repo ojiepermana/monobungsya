@@ -15,6 +15,7 @@
         "@elysiajs/cors": "latest",
         "@elysiajs/openapi": "latest",
         "@fontsource/material-symbols-rounded": "5.3.3",
+        "@modelcontextprotocol/sdk": "latest",
         "@ojiepermana/angular": "^22.1.4",
         "@ojiepermana/angular-theme": "^22.1.4",
         "elysia": "latest",

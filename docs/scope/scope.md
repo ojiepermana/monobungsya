@@ -12,6 +12,7 @@ Monobungsia adalah monorepo enterprise untuk web client, gateway, dan service do
 | 1   | Auth magic link and session         | Foundation | in-progress |
 | 2   | Auth login and callback UI          | Foundation | in-progress |
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
+| 4   | MCP server for ERP tool access      | Foundation | in-progress |
 
 ## Foundations
 
@@ -61,3 +62,23 @@ Adopt `@ojiepermana/angular` for the web design system, migrate `apps/web` from 
 - [ ] Test it: `/test Angular UI package and CSS standard`
 
 Spec [0001](../specs/web/0001-angular-ui-standard/index.md) · code in `apps/web`, `package.json`, and `bun.lock`
+
+### 4. MCP server for ERP tool access · in-progress
+
+Scaffold an MCP server app at `apps/mcp` (Bun, TypeScript, STDIO transport) with a declarative tool registry and a starter `check_stock` tool calling the gateway.
+**Done when:** An MCP client can list and call `check_stock` over STDIO, invalid input and ERP failures return clean errors, and the app passes lint and typecheck with all dependencies and env vars at the repo root.
+
+- [x] Design it (spec): `/architect MCP server for ERP tool access`
+- [x] Build it: `/develop MCP server for ERP tool access`
+  - [x] Root wiring: SDK dependency, dev/typecheck/build scripts, ERP env section, app tsconfig (AC-6, AC-9)
+  - [x] ERP service layer, ToolDefinition registry, and check_stock tool (AC-2, AC-3, AC-4, AC-7, AC-8)
+  - [x] STDIO server wiring, README, and repo checks (AC-1, AC-5, AC-9)
+- [x] Verify it: `/check verify MCP server for ERP tool access`
+- [x] Test it: `/test MCP server for ERP tool access`
+
+Spec [0005](../specs/0005-mcp-server-scaffold.md) · code in `apps/mcp`, `package.json`, and `.env.example`
+
+## Deferred
+
+- Gateway inventory stock endpoint (`/api/v1/stock`) · from spec 0005
+- Gateway machine auth scheme for service tokens · from spec 0005
