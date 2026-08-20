@@ -198,6 +198,14 @@ docker build -f infra/docker/services/reporting/Dockerfile .
 
 The web image listens on container port 8080 as a non root Nginx process. Map public port 80 to container port 8080 in the deployment. The gateway listens on 3000, while auth, user, employee, payroll, and reporting listen on 3101 through 3105. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
 
+Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root repository:
+
+```bash
+docker compose -f infra/docker/docker-compose.yml up --build
+```
+
+Buka web di `http://localhost:4200` dan Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, lima service domain, dan web. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
+
 ## Aturan dependency antar service
 
 Service boleh mengimpor shared package dan kontrak event. Service tidak boleh mengimpor package atau source internal service lain. Komunikasi antar service memakai NATS untuk event dan asynchronous workflow, atau internal HTTP melalui gateway atau client yang disepakati saat kebutuhan nyata muncul.

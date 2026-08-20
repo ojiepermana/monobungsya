@@ -1,0 +1,196 @@
+name: monobungsia
+
+x-backend-environment: &backend-environment
+  NODE_ENV: production
+  ENABLE_INFRASTRUCTURE: "true"
+  DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/project
+  NATS_URL: nats://nats:4222
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  INTERNAL_AUTH_SIGNING_SECRET: ${INTERNAL_AUTH_SIGNING_SECRET:-local-development-secret-change-me}
+  AUTH_CLOCK_SKEW_SECONDS: ${AUTH_CLOCK_SKEW_SECONDS:-30}
+
+x-backend-depends-on: &backend-depends-on
+  postgres:
+    condition: service_healthy
+  nats:
+    condition: service_healthy
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: project
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d project"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-m", "8222"]
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+      - "${NATS_MONITOR_PORT:-8222}:8222"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://127.0.0.1:8222/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_PORT:-8025}:8025"
+    networks:
+      - backend
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infra/docker/database/Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_MIGRATION_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/project
+      DATABASE_TIMEZONE: Asia/Jakarta
+      DATABASE_RESET_ALLOWED: "false"
+      DATABASE_LOCK_TIMEOUT_MS: ${DATABASE_LOCK_TIMEOUT_MS:-30000}
+      DATABASE_LOCK_POLL_MS: ${DATABASE_LOCK_POLL_MS:-100}
+    command: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: infra/docker/gateway/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+      AUTH_SERVICE_URL: http://auth:3101
+      USER_SERVICE_URL: http://user:3102
+      EMPLOYEE_SERVICE_URL: http://employee:3103
+      PAYROLL_SERVICE_URL: http://payroll:3104
+      REPORTING_SERVICE_URL: http://reporting:3105
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on: *backend-depends-on
+    networks:
+      - backend
+
+  auth:
+    build:
+      context: ../..
+      dockerfile: infra/docker/services/auth/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3101
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USERNAME: ${SMTP_USERNAME:-local}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-local}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@localhost}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+      WEB_APP_URL: ${WEB_APP_URL:-http://localhost:4200}
+      AUTH_SESSION_COOKIE_NAME: ${AUTH_SESSION_COOKIE_NAME:-project_session}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+    ports:
+      - "${AUTH_PORT:-3101}:3101"
+    depends_on:
+      <<: *backend-depends-on
+      mailpit:
+        condition: service_started
+    networks:
+      - backend
+
+  user:
+    build:
+      context: ../..
+      dockerfile: infra/docker/services/user/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3102
+    ports:
+      - "${USER_PORT:-3102}:3102"
+    depends_on: *backend-depends-on
+    networks:
+      - backend
+
+  employee:
+    build:
+      context: ../..
+      dockerfile: infra/docker/services/employee/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3103
+    ports:
+      - "${EMPLOYEE_PORT:-3103}:3103"
+    depends_on: *backend-depends-on
+    networks:
+      - backend
+
+  payroll:
+    build:
+      context: ../..
+      dockerfile: infra/docker/services/payroll/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3104
+    ports:
+      - "${PAYROLL_PORT:-3104}:3104"
+    depends_on: *backend-depends-on
+    networks:
+      - backend
+
+  reporting:
+    build:
+      context: ../..
+      dockerfile: infra/docker/services/reporting/Dockerfile
+    environment:
+      <<: *backend-environment
+      PORT: 3105
+    ports:
+      - "${REPORTING_PORT:-3105}:3105"
+    depends_on: *backend-depends-on
+    networks:
+      - backend
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web/Dockerfile
+      args:
+        WEB_API_URL: ${WEB_API_URL:-http://localhost:3000}
+        WEB_API_ENV: local
+    ports:
+      - "${WEB_PORT:-4200}:8080"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  postgres-data:
+
+networks:
+  backend:
+    driver: bridge

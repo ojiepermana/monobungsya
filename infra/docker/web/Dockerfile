@@ -9,9 +9,10 @@ COPY apps/web ./apps/web
 RUN bun install --frozen-lockfile
 
 ARG WEB_API_URL
-ENV WEB_API_URL=${WEB_API_URL}
+ARG WEB_API_ENV=production
+ENV WEB_API_ENV=${WEB_API_ENV} WEB_API_URL=${WEB_API_URL}
 
-RUN test -n "$WEB_API_URL" && bun -e 'const value = Bun.env.WEB_API_URL; try { new URL(value); } catch { throw new Error("WEB_API_URL must be a valid absolute URL"); } if (value.includes("localhost")) throw new Error("WEB_API_URL must not point to localhost in a production image"); await Bun.write("apps/web/src/app/runtime-config.ts", `export const WEB_API_URL = ${JSON.stringify(value)};\n`);'
+RUN test -n "$WEB_API_URL" && bun -e 'const value = Bun.env.WEB_API_URL; const environment = Bun.env.WEB_API_ENV; try { new URL(value); } catch { throw new Error("WEB_API_URL must be a valid absolute URL"); } if (environment !== "local" && value.includes("localhost")) throw new Error("WEB_API_URL must not point to localhost in a production image"); await Bun.write("apps/web/src/app/runtime-config.ts", `export const WEB_API_URL = ${JSON.stringify(value)};\n`);'
 
 FROM node:24.15.0-bookworm-slim AS angular-build
 
