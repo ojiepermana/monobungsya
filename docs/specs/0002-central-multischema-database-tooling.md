@@ -251,7 +251,7 @@ Tests must cover a fresh reset, a second idempotent migrate, a failed migration 
 - `packages/database/src/index.ts`, existing Bun SQL client and transaction helper.
 - `contekan/database/README.md`, pointer preserved after the working runner moved to the canonical package.
 - `packages/database/migrations/auth` and `packages/database/migrations/logs`, canonical UUIDv7 and schema implementation.
-- `pre-plan.md`, monorepo boundary and minimal shared package constraints.
+- `docs/specs/0001-enterprise-monorepo-foundation.md`, monorepo boundary and minimal shared package constraints.
 
 **Practices & standards**:
 

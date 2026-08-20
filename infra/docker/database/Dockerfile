@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.14 AS build
+FROM oven/bun:1.4.0 AS build
 
 WORKDIR /workspace
 
@@ -9,7 +9,7 @@ RUN mkdir -p /artifact \
   && cp -R packages/database/migrations /artifact/migrations \
   && cp -R packages/database/seeds /artifact/seeds
 
-FROM oven/bun:1.3.14-slim
+FROM oven/bun:1.4.0-slim
 
 WORKDIR /app
 

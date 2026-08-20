@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.14 AS build
+FROM oven/bun:1.4.0 AS build
 
 WORKDIR /workspace
 
@@ -10,7 +10,7 @@ RUN bun install --frozen-lockfile --production
 
 RUN bun build apps/services/user/src/main.ts --outfile dist/user/main.js --target=bun --minify
 
-FROM oven/bun:1.3.14-slim
+FROM oven/bun:1.4.0-slim
 
 WORKDIR /app
 

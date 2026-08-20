@@ -140,7 +140,7 @@ Setiap deployable app memiliki satu Dockerfile di folder deployment terpusat. Bu
 
 - Image memiliki satu Dockerfile untuk setiap target berikut: `web`, `gateway`, `services/auth`, `services/user`, `services/employee`, `services/payroll`, dan `services/reporting`.
 - Build dijalankan dari root dengan bentuk `docker build -f infra/docker/<target>/Dockerfile .` dan memakai `bun.lock` melalui `bun install --frozen-lockfile`.
-- Base image backend memakai `oven/bun:1.3.14`. Backend memakai tahap dependency production dan menjalankan source dengan Bun. Image final tidak membawa dependency development.
+- Base image backend memakai `oven/bun:1.4.0`. Backend memakai tahap dependency production dan menjalankan source dengan Bun. Image final tidak membawa dependency development.
 - Image web membangun Angular dalam tahap Bun lalu menyajikan asset dengan image Nginx unprivileged. Nginx mendengar pada port 8080 sehingga proses runtime tetap non root. Deployment dapat memetakan port publik 80 ke port container 8080.
 - Angular menerima `WEB_API_URL` sebagai nilai konfigurasi build. Artifact production tidak boleh memakai URL gateway localhost sebagai nilai tetap.
 - Port backend tetap mengikuti kontrak aplikasi: gateway 3000, auth 3101, user 3102, employee 3103, payroll 3104, dan reporting 3105. Port publik ditentukan oleh deployment.
@@ -163,7 +163,7 @@ Premise pentingnya adalah bahwa scaffold ini belum membuktikan kebutuhan scale u
 
 | Layer         | Choice                                                         | Reason                                                                                                                                  |
 | ------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace     | Root Bun project dengan import map, Bun 1.3.14                 | Satu package manager dan satu dependency directory untuk install, script, test, dan runtime.                                            |
+| Workspace     | Root Bun project dengan import map, Bun 1.4.0                  | Satu package manager dan satu dependency directory untuk install, script, test, dan runtime.                                            |
 | Language      | TypeScript strict mode                                         | Menjaga contract dan boundary tetap terlihat saat code dipindahkan.                                                                     |
 | Web           | Angular 22.1 line                                              | Latest Angular scaffold yang tersedia saat dibuat, standalone component, signals, dan native control flow.                              |
 | Backend       | Elysia latest                                                  | Bun first HTTP framework dengan schema validation dan composition model yang ringkas.                                                   |
@@ -232,7 +232,7 @@ Premise pentingnya adalah bahwa scaffold ini belum membuktikan kebutuhan scale u
 
 **Project sources**:
 
-- `pre-plan.md`, target structure dan aturan dependency flow.
+- Repository structure, dependency flow, and service boundary decisions are defined in this spec.
 - `apps/web/AGENTS.md`, Angular 22 standalone, signals, accessibility, dan CLI conventions.
 - `/Users/ojiepermana/.agents/skills/angular-developer/`, Angular implementation guidance.
 - `/Users/ojiepermana/.agents/skills/angular-new-app/`, Angular CLI creation workflow.

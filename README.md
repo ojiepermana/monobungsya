@@ -69,7 +69,7 @@ Setiap app memiliki `GET /health`. Service module smoke endpoint berada pada `/i
 
 ## Menjalankan development
 
-Prasyarat: Bun 1.3 atau lebih baru dan Node.js untuk Angular CLI tooling. Dependency dikelola hanya dengan Bun.
+Prasyarat: Bun 1.4 atau lebih baru dan Node.js untuk Angular CLI tooling. Dependency dikelola hanya dengan Bun.
 
 ```bash
 bun install

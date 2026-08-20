@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Bun 1.3+ is the only package manager. There is a single root `package.json` and one `node_modules` — never add a `package.json` under `apps/` or `packages/`; add dependencies only at the root.
+Bun 1.4+ is the only package manager. There is a single root `package.json` and one `node_modules` — never add a `package.json` under `apps/` or `packages/`; add dependencies only at the root.
 
 ```bash
 bun install
