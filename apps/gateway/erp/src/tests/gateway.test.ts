@@ -9,19 +9,33 @@ describe("api gateway", () => {
   it("exposes health and forwards public boundaries", async () => {
     const app = createApp(loadGatewayEnv({ NODE_ENV: "test", PORT: "3000" }));
     const health = await app.handle(new Request("http://localhost/health"));
-    const unavailableService = await app.handle(
-      new Request("http://localhost/api/v1/users/status"),
+    const originalFetch = globalThis.fetch;
+    const unavailableFetch = Object.assign(
+      async () => {
+        throw new Error("user service unavailable");
+      },
+      { preconnect: originalFetch.preconnect },
     );
 
-    expect(health.status).toBe(200);
-    expect(await health.json()).toEqual({
-      status: "ok",
-      service: "api-gateway",
-    });
-    expect(unavailableService.status).toBe(503);
-    expect(await unavailableService.json()).toMatchObject({
-      error: { code: "SERVICE_UNAVAILABLE" },
-    });
+    globalThis.fetch = unavailableFetch;
+
+    try {
+      const unavailableService = await app.handle(
+        new Request("http://localhost/api/v1/users/status"),
+      );
+
+      expect(health.status).toBe(200);
+      expect(await health.json()).toEqual({
+        status: "ok",
+        service: "api-gateway",
+      });
+      expect(unavailableService.status).toBe(503);
+      expect(await unavailableService.json()).toMatchObject({
+        error: { code: "SERVICE_UNAVAILABLE" },
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("forwards the public request contract to the user service", async () => {
