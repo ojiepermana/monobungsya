@@ -12,12 +12,15 @@ export interface AuthEnvironment extends AppEnvironment {
   AUTH_SESSION_COOKIE_NAME: string;
   AUTH_COOKIE_SECURE: boolean;
   AUTH_CLOCK_SKEW_SECONDS: number;
+  WEBAUTHN_RP_ID: string;
+  WEBAUTHN_RP_NAME: string;
 }
 
 export function loadAuthEnv(
   source: Record<string, string | undefined> = Bun.env,
 ): AuthEnvironment {
   const environment = loadEnv("auth", source);
+  const webAppUrl = source.WEB_APP_URL ?? "http://localhost:4200";
   const result: AuthEnvironment = {
     ...environment,
     SMTP_HOST: source.SMTP_HOST ?? "127.0.0.1",
@@ -26,7 +29,7 @@ export function loadAuthEnv(
     SMTP_PASSWORD: source.SMTP_PASSWORD ?? "",
     SMTP_FROM: source.SMTP_FROM ?? "no-reply@localhost",
     PUBLIC_API_URL: source.PUBLIC_API_URL ?? "http://localhost:3000",
-    WEB_APP_URL: source.WEB_APP_URL ?? "http://localhost:4200",
+    WEB_APP_URL: webAppUrl,
     INTERNAL_AUTH_SIGNING_SECRET: source.INTERNAL_AUTH_SIGNING_SECRET ?? "",
     AUTH_SESSION_COOKIE_NAME:
       source.AUTH_SESSION_COOKIE_NAME ?? "project_session",
@@ -39,6 +42,9 @@ export function loadAuthEnv(
       30,
       "AUTH_CLOCK_SKEW_SECONDS",
     ),
+    WEBAUTHN_RP_ID:
+      optional(source.WEBAUTHN_RP_ID) ?? relyingPartyId(webAppUrl),
+    WEBAUTHN_RP_NAME: optional(source.WEBAUTHN_RP_NAME) ?? "Monobungsya",
   };
 
   if (
@@ -54,6 +60,25 @@ export function loadAuthEnv(
   }
 
   return result;
+}
+
+/** Treats a blank value as unset, so a commented style `KEY=` keeps the default. */
+function optional(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * The relying party id is the registrable domain a passkey binds to. It is the
+ * host of the web app, never anything the client sends.
+ */
+function relyingPartyId(webAppUrl: string): string {
+  try {
+    return new URL(webAppUrl).hostname;
+  } catch {
+    return "localhost";
+  }
 }
 
 function parseNumber(

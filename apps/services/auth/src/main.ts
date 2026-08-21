@@ -31,6 +31,9 @@ const app = createApp(env, {
   cookieSecure: env.AUTH_COOKIE_SECURE,
   signingSecret: env.INTERNAL_AUTH_SIGNING_SECRET,
   clockSkewSeconds: env.AUTH_CLOCK_SKEW_SECONDS,
+}, {
+  rpId: env.WEBAUTHN_RP_ID,
+  rpName: env.WEBAUTHN_RP_NAME,
 });
 const stopCleanupWorker = database
   ? startAuthCleanupWorker(
