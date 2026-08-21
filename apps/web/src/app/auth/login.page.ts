@@ -94,12 +94,6 @@ import { PasskeyService } from './passkey.service';
                 {{ loading() ? 'Membuat link...' : 'Kirim magic link' }}
               </button>
 
-              @if (localLoginEnabled()) {
-                <button Button size="xs" type="button" variant="outline" class="w-full gap-1.5" [disabled]="loading()" (click)="loginLocally()">
-                  <Icon name="login" [size]="14" />
-                  Login lokal
-                </button>
-              }
             </form>
 
             @if (message(); as messageText) {
@@ -147,20 +141,7 @@ export class LoginPage {
   protected readonly loading = signal(false);
   protected readonly message = signal<string | null>(null);
   protected readonly magicLink = signal<string | null>(null);
-  protected readonly localLoginEnabled = signal(false);
   protected readonly passkeyLoading = signal(false);
-
-  constructor() {
-    this.auth.localDevLoginStatus().subscribe({
-      next: (response) => {
-        this.localLoginEnabled.set(response.enabled);
-        if (response.email) {
-          this.email.set(response.email);
-        }
-      },
-      error: () => this.localLoginEnabled.set(false),
-    });
-  }
 
   updateEmail(event: Event): void {
     this.email.set((event.target as HTMLInputElement).value);
@@ -199,20 +180,6 @@ export class LoginPage {
         );
       })
       .finally(() => this.passkeyLoading.set(false));
-  }
-
-  loginLocally(): void {
-    this.loading.set(true);
-    this.message.set(null);
-    this.magicLink.set(null);
-
-    this.auth.localDevLogin().subscribe({
-      next: () => void this.router.navigateByUrl('/'),
-      error: (error: { error?: { error?: string } }) => {
-        this.message.set(error.error?.error ?? 'Login lokal tidak tersedia.');
-        this.loading.set(false);
-      },
-    });
   }
 
   tokenFrom(link: string): string {

@@ -28,15 +28,6 @@ export interface RequestMagicLinkOptions {
   desktop?: boolean;
 }
 
-export interface LocalDevLoginStatusResponse {
-  enabled: boolean;
-  email?: string;
-}
-
-export interface LocalDevLoginResponse {
-  user: AuthUser;
-}
-
 export interface VerifyMagicLinkResponse {
   status: 'sent' | 'success' | 'expired' | 'invalid' | 'missing';
   message: string;
@@ -64,20 +55,6 @@ export class AuthService {
       email,
       ...(options.desktop ? { desktop: true } : {}),
     });
-  }
-
-  localDevLoginStatus(): Observable<LocalDevLoginStatusResponse> {
-    return this.http.get<LocalDevLoginStatusResponse>(`${this.base}/api/v1/auth/local-dev`);
-  }
-
-  localDevLogin(): Observable<AuthUser> {
-    return this.http.post<LocalDevLoginResponse>(`${this.base}/api/v1/auth/local-dev`, {}).pipe(
-      map((response) => response.user),
-      tap((user) => {
-        this.user.set(user);
-        this.loaded.set(true);
-      }),
-    );
   }
 
   verifyMagicLink(token: string | null): Observable<VerifyMagicLinkResponse> {
