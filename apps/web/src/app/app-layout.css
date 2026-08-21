@@ -8,15 +8,12 @@
     --workspace-brand: hsl(var(--brand));
     --workspace-danger: hsl(var(--destructive));
     display: block;
-    min-height: 100dvh;
     background: hsl(var(--layout-canvas, var(--background)));
     color: var(--workspace-ink);
   }
 
-  .workspace-app {
-    min-height: 100dvh;
-  }
-
+  /* Domain content inside the package PageHeader slot. The slot owns height,
+     border, and background, so this only lays the header row out. */
   .workspace-topbar {
     display: flex;
     min-height: var(--layout-topbar-height);
@@ -24,8 +21,6 @@
     justify-content: space-between;
     gap: calc(var(--spacing-base) * 4);
     padding: calc(var(--spacing-base) * 3) calc(var(--spacing-base) * 6);
-    border-bottom: 1px solid var(--workspace-line);
-    background: hsl(var(--background) / 0.9);
   }
 
   .workspace-topbar__actions {
@@ -33,20 +28,6 @@
     min-width: 0;
     align-items: center;
     gap: calc(var(--spacing-base) * 4);
-  }
-
-  .workspace-layout {
-    display: grid;
-    grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
-    min-height: calc(100dvh - var(--layout-topbar-height));
-  }
-
-  .workspace-navigation {
-    min-width: 0;
-  }
-
-  .workspace-navigation--desktop {
-    border-right: 1px solid var(--workspace-line);
   }
 
   .workspace-navigation__component {
@@ -75,7 +56,9 @@
     color: var(--workspace-brand);
   }
 
-  .workspace-shell {
+  /* Domain content inside the package PageDashboard slot. The slot owns the
+     content scroll region, so this only sets reading width and rhythm. */
+  .workspace-content {
     width: min(100%, 76rem);
     margin: 0 auto;
     padding: calc(var(--spacing-base) * 8) calc(var(--spacing-base) * 8)
@@ -363,22 +346,16 @@
       display: none;
     }
 
-    .workspace-layout {
-      display: block;
-      min-height: 0;
-    }
-
     .workspace-navigation--desktop {
       display: none;
     }
 
     .workspace-navigation--mobile {
       display: flex;
-      justify-content: flex-end;
-      padding: calc(var(--spacing-base) * 3) calc(var(--spacing-base) * 4) 0;
+      align-items: center;
     }
 
-    .workspace-shell {
+    .workspace-content {
       width: min(100% - calc(var(--spacing-base) * 8), 36rem);
       padding: calc(var(--spacing-base) * 8) 0 calc(var(--spacing-base) * 10);
     }

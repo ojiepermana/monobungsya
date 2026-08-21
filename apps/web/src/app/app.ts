@@ -16,6 +16,19 @@ import {
 } from '@ojiepermana/angular/navigation';
 import type { NavigationItem } from '@ojiepermana/angular/navigation/types';
 import { ThemeSettingsComponent } from '@ojiepermana/angular/theme/component/settings';
+import {
+  LayoutComponent,
+  LayoutContentComponent,
+  LayoutNavigationComponent,
+  LayoutVerticalComponent,
+} from '@ojiepermana/angular/theme/layout';
+import { PageComponent } from '@ojiepermana/angular/theme/page/root';
+import {
+  PageDashboardComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page/slots';
+import { ShellComponent } from '@ojiepermana/angular/theme/shell';
 import { client, getApiV1AuthSession, getHealth } from '#project/angular-sdk';
 import { WEB_API_URL } from './runtime-config';
 
@@ -46,14 +59,23 @@ function isSessionResponse(value: unknown): value is SessionResponse {
     CardComponent,
     DecimalPipe,
     IconComponent,
+    LayoutComponent,
+    LayoutContentComponent,
+    LayoutNavigationComponent,
+    LayoutVerticalComponent,
     NavigationContainerComponent,
     NavigationContentComponent,
     NavigationFooterComponent,
     NavigationFlyoutComponent,
     NavigationHeaderComponent,
     NavigationSidebarComponent,
+    PageComponent,
+    PageDashboardComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
     RouterOutlet,
     SeparatorComponent,
+    ShellComponent,
     ThemeSettingsComponent,
   ],
   selector: 'app-root',

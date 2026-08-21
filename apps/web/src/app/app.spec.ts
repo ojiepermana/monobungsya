@@ -51,7 +51,44 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('h1')?.textContent).toContain('Returning you to sign in');
-    expect(compiled.querySelector('.workspace-shell')).toBeNull();
+    expect(compiled.querySelector('[data-layout-content]')).toBeNull();
+  });
+
+  it('should compose the authenticated app from package shell, layout, and page', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('Shell')).not.toBeNull();
+    expect(compiled.querySelector('Layout')).not.toBeNull();
+    expect(compiled.querySelector('LayoutVertical')).not.toBeNull();
+    expect(compiled.querySelector('[data-layout-navigation]')).not.toBeNull();
+    expect(compiled.querySelector('[data-page-slot="header"]')).not.toBeNull();
+    expect(compiled.querySelector('[data-page-slot="dashboard"]')).not.toBeNull();
+    expect(compiled.querySelector('[data-page-slot="footer"]')).not.toBeNull();
+  });
+
+  it('should expose one main landmark owned by the package layout content', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const mainRegions = compiled.querySelectorAll('main, [role="main"]');
+    expect(mainRegions.length).toBe(1);
+
+    const content = compiled.querySelector('[data-layout-content]');
+    expect(content?.getAttribute('role')).toBe('main');
+    expect(content?.getAttribute('id')).toBe('main-content');
+    expect(compiled.querySelector('.workspace-content')).not.toBeNull();
+  });
+
+  it('should leave the navigation landmark to the package navigation container', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('[data-layout-navigation]')?.getAttribute('role')).toBeNull();
+    expect(compiled.querySelector('[data-layout-navigation] [role="navigation"]')).not.toBeNull();
   });
 
   it('should show a retryable state when session service fails', async () => {
