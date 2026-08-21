@@ -4,6 +4,7 @@ export type AppErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
   | "CONFLICT"
+  | "GONE"
   | "RATE_LIMITED"
   | "SERVICE_UNAVAILABLE"
   | "INTERNAL_SERVER_ERROR";
@@ -55,6 +56,12 @@ export class ForbiddenError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = "The request conflicts with current state") {
     super("CONFLICT", 409, message);
+  }
+}
+
+export class GoneError extends AppError {
+  constructor(message = "The resource is no longer available") {
+    super("GONE", 410, message);
   }
 }
 
