@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { client, getApiV1AuthSession } from '#project/angular-sdk';
 import { AuthShell } from './auth-shell';
@@ -16,8 +16,17 @@ export class AuthCallback {
   protected readonly state = signal<CallbackState>('loading');
   protected readonly userName = signal('');
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private redirectTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.redirectTimer !== undefined) {
+        clearTimeout(this.redirectTimer);
+      }
+    });
+
     const routeData = this.route.snapshot.data as { mode?: string };
 
     if (routeData.mode === 'error') {
@@ -37,6 +46,9 @@ export class AuthCallback {
       if (session?.authenticated && session.user?.name) {
         this.userName.set(session.user.name);
         this.state.set('complete');
+        this.redirectTimer = setTimeout(() => {
+          void this.router.navigateByUrl('/');
+        }, 5000);
         return;
       }
     } catch {
