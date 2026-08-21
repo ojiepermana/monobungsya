@@ -55,7 +55,7 @@ Adopt `@ojiepermana/angular` for the web design system, migrate `apps/web` from 
 
 - [x] Design it (spec): `/architect Angular UI package and CSS standard`
 - [ ] Build it: `/develop Angular UI package and CSS standard`
-  - [ ] Upstream package release in the `angular` repo: bindable logout and published settings adapter, then raise the dependency (AC-13, AC-14, AC-16)
+  - [ ] Upstream package release in the `angular` repo: bindable logout and published settings adapter, then raise the dependency (AC-13, AC-14, AC-16) · code written and gate green in the `angular` repo, uncommitted there; waiting on `bun run publish` (expected `22.1.5`) before the dependency can be raised
   - [x] Package dependencies, theme provider, local icon font, and subpath imports (AC-1, AC-2, AC-3, AC-4)
   - [x] CSS migration, Tailwind token setup, and Angular style configuration (AC-5, AC-8)
   - [ ] Root `Shell` and `LayoutWrapperDefault` composition, settings adapter, and storage keys (AC-6, AC-9, AC-11, AC-13, AC-14)

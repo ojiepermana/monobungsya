@@ -75,3 +75,45 @@ emits no budget warning and that the initial bundle stays below 500 kB.
 - [ ] Inspect the `Shell` host, confirm web mode and `sync` color resolve from the explicit template inputs, and confirm no `shell-mode`, `shell-device`, `shell-color`, or `shell-frame` key is written to browser storage, verifies AC-13 and AC-11. Source: explicit `Shell` inputs in the authenticated template.
 - [ ] Inspect the `Layout` host, confirm surface `grid`, appearance `border-rail`, width `full`, and type `vertical` resolve from the explicit package inputs and the `LayoutVertical` variant, verifies AC-14. Source: explicit package `Layout` inputs.
 - [ ] Inspect the page slots, confirm `data-page-slot` header, dashboard, and footer are present, the dashboard slot is the single content scroll region, and `Page` itself does not add a page wide scroll container, verifies AC-15. Source: package `Page` slots.
+
+## Upstream library API, added 2026-08-21
+
+Steps for [upstream library API](0001-upstream-library-api.md) acceptance criteria AC-U1 to AC-U7.
+These run in the library repository at `/Users/ojiepermana/Development/ojiepermana/angular/`, not in
+monobungsia. Every step except the release ones is already covered by automated tests there, so
+`/check verify` can confirm them by running the commands rather than by hand.
+
+### Commands
+
+- [ ] `npx ng test angular-theme --watch=false` passes, including the ten logout cases and the seventeen adapter cases, verifies AC-U1, AC-U2, AC-U3, AC-U4, and AC-U5.
+- [ ] `npx ng test --watch=false` passes for every project, including the fifty seven showcase app tests that now run against the published adapter, verifies AC-U6.
+- [ ] `npx ng build angular --configuration production` completes, so the showcase app template still typechecks with no logout binding present, verifies AC-U6.
+- [ ] `node scripts/check-public-api.mjs` passes, and the contract diff for `@ojiepermana/angular-theme/component/settings` adds seven symbols and removes none, verifies AC-U6.
+- [ ] `bun run verify:libs` passes end to end before release, verifies AC-U7 is safe to attempt.
+- [ ] `bun run publish` releases the version, then `npm view @ojiepermana/angular version` reports it, and the number is recorded in spec 0001 and in the upstream spec, verifies AC-U7.
+
+### UI and manual
+
+- [ ] In the showcase app set nav type `sidebar`, press the footer logout button, and confirm nothing happens and no console error appears, since the showcase binds no handler, verifies AC-U1 and AC-U6.
+- [ ] Set nav type `dockbar`, press the rail footer logout button and then the aside footer logout button, and confirm both are wired to the same output, verifies AC-U2 and AC-U3.
+- [ ] Set layout type `fluid`, and confirm the brand only shell renders no logout control and no user email, verifies AC-U1 and AC-U3.
+- [ ] At a viewport below 640 pixels open the mobile drawer and confirm its footer logout control reaches the same consumer output, verifies AC-U2 and AC-U3.
+- [ ] Open theme settings, change layout type, nav type, and nav type mode, and confirm each disallowed combination is corrected rather than rendered, verifies AC-U4.
+
+### Value sourcing checks
+
+- [ ] Click the logout button on each of `sidebar`, `dockbar`, `navbar`, and `flyout`, and confirm the consumer receives one emission per click with no payload, verifies AC-U1 and AC-U3. Source: click event on the `LayoutUser` logout button.
+- [ ] Confirm the package performs no endpoint call and no navigation of its own when logout fires, by watching the network panel with no consumer handler bound, verifies AC-U1. Source: consumer only; the package decides nothing.
+- [ ] Set layout type `vertical` then `horizontal`, and confirm the offered nav types change to `sidebar` and `dockbar`, then `navbar` and `flyout`. Set shell mode `desktop` with layout type `horizontal` and confirm `desktop` becomes the only option, verifies AC-U4. Source: layout type and shell mode pair, a package rule.
+- [ ] With nav type `sidebar` confirm the modes offered are default and collapsed, with `dockbar` confirm default and drawer, and with `navbar` confirm default only, verifies AC-U4. Source: active nav type, a package rule.
+- [ ] Change layout type, nav type, and nav type mode, then read `localStorage` and confirm only `layout-type`, `nav-type`, and `nav-type-mode` are written, holding presentation values and no identity, verifies AC-U5. Source: package owned storage keys.
+- [ ] Put a foreign value in `nav-type` and reload, then block `localStorage` and reload again, and confirm the default `dockbar` renders with no thrown error either time, verifies AC-U5. Source: storage read with a safe fallback.
+- [ ] Set layout type `fluid` and confirm width is coerced to `fluid`, then leave `fluid` and confirm width returns to a non fluid value, verifies AC-U4. Source: active layout type, a package rule.
+
+### Acceptance criteria coverage
+
+- AC-U1, AC-U2, and AC-U3 are covered by the per variant logout tests, the mobile drawer test, the brand only test, and the manual clicks.
+- AC-U4 is covered by the adapter constraint tests and the settings surface checks.
+- AC-U5 is covered by the storage key, foreign value, and blocked storage tests.
+- AC-U6 is covered by the full test run, the production app build, and the additive public API contract diff.
+- AC-U7 is covered by the release gate, the publish run, and recording the version in both specs.
