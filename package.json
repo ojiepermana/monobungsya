@@ -67,6 +67,8 @@
     "@modelcontextprotocol/sdk": "latest",
     "@ojiepermana/angular": "^22.1.4",
     "@ojiepermana/angular-theme": "^22.1.4",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-notification": "^2",
     "elysia": "latest",
