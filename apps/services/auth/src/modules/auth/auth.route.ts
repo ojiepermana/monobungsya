@@ -172,7 +172,10 @@ export function createAuthRoute(
     );
 }
 
-function readCookie(header: string | null, name: string): string | undefined {
+export function readCookie(
+  header: string | null,
+  name: string,
+): string | undefined {
   if (!header) {
     return undefined;
   }
@@ -188,7 +191,7 @@ function readCookie(header: string | null, name: string): string | undefined {
   return undefined;
 }
 
-function serializeSessionCookie(
+export function serializeSessionCookie(
   name: string,
   value: string,
   expiresAt: Date,

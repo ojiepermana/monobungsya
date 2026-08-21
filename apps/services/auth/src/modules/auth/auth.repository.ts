@@ -16,17 +16,23 @@ export interface MagicLinkIssueResult {
   rateLimited: boolean;
 }
 
-export interface ConsumedSession {
-  user: AuthUser;
+export type RateLimitKeyType = "email" | "ip" | "passkey_ip";
+
+export interface SessionRecord {
   sessionId: string;
   idleExpiresAt: Date;
   absoluteExpiresAt: Date;
+}
+
+export interface ConsumedSession extends SessionRecord {
+  user: AuthUser;
 }
 
 export interface CleanupResult {
   loginTokens: number;
   sessions: number;
   rateLimits: number;
+  webauthnChallenges: number;
 }
 
 export class AuthRepository {
@@ -104,39 +110,22 @@ export class AuthRepository {
         return null;
       }
 
-      const [sessionRow] = await transaction`
-        INSERT INTO "auth"."sessions" (
-          session_token_hash,
-          user_id,
-          idle_expires_at,
-          absolute_expires_at,
-          last_activity
-        )
-        VALUES (
-          ${sessionTokenHash},
-          ${tokenRow.user_id},
-          now() + interval '8 hours',
-          now() + interval '7 days',
-          now()
-        )
-        RETURNING id, idle_expires_at, absolute_expires_at
-      `;
+      const session = await insertSession(
+        transaction,
+        sessionTokenHash,
+        String(tokenRow.user_id),
+      );
       const [userRow] = await transaction`
         SELECT id, email, name, role, suspended_at
         FROM "user"."users"
         WHERE id = ${tokenRow.user_id}
       `;
 
-      if (!sessionRow || !userRow) {
+      if (!session || !userRow) {
         return null;
       }
 
-      return {
-        user: mapUser(userRow),
-        sessionId: String(sessionRow.id),
-        idleExpiresAt: new Date(String(sessionRow.idle_expires_at)),
-        absoluteExpiresAt: new Date(String(sessionRow.absolute_expires_at)),
-      };
+      return { user: mapUser(userRow), ...session };
     });
   }
 
@@ -217,11 +206,20 @@ export class AuthRepository {
         )
         SELECT count(*)::integer AS count FROM deleted
       `;
+      const [webauthnChallenges] = await transaction`
+        WITH deleted AS (
+          DELETE FROM "auth"."webauthn_challenges"
+          WHERE used_at IS NOT NULL OR expires_at <= now()
+          RETURNING id
+        )
+        SELECT count(*)::integer AS count FROM deleted
+      `;
 
       return {
         loginTokens: Number(loginTokens?.count ?? 0),
         sessions: Number(sessions?.count ?? 0),
         rateLimits: Number(rateLimits?.count ?? 0),
+        webauthnChallenges: Number(webauthnChallenges?.count ?? 0),
       };
     });
   }
@@ -235,10 +233,11 @@ export class AuthRepository {
   }
 }
 
-async function incrementRateLimit(
+export async function incrementRateLimit(
   database: DatabaseClient,
-  keyType: "email" | "ip",
+  keyType: RateLimitKeyType,
   keyHash: string,
+  limit = 5,
 ): Promise<boolean> {
   const [row] = await database`
     INSERT INTO "auth"."auth_rate_limits" (
@@ -265,10 +264,44 @@ async function incrementRateLimit(
     RETURNING attempts
   `;
 
-  return Number(row?.attempts ?? 0) <= 5;
+  return Number(row?.attempts ?? 0) <= limit;
 }
 
-function mapUser(row: Record<string, unknown>): AuthUser {
+export async function insertSession(
+  transaction: DatabaseClient,
+  sessionTokenHash: string,
+  userId: string,
+): Promise<SessionRecord | null> {
+  const [row] = await transaction`
+    INSERT INTO "auth"."sessions" (
+      session_token_hash,
+      user_id,
+      idle_expires_at,
+      absolute_expires_at,
+      last_activity
+    )
+    VALUES (
+      ${sessionTokenHash},
+      ${userId},
+      now() + interval '8 hours',
+      now() + interval '7 days',
+      now()
+    )
+    RETURNING id, idle_expires_at, absolute_expires_at
+  `;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    sessionId: String(row.id),
+    idleExpiresAt: new Date(String(row.idle_expires_at)),
+    absoluteExpiresAt: new Date(String(row.absolute_expires_at)),
+  };
+}
+
+export function mapUser(row: Record<string, unknown>): AuthUser {
   return {
     id: String(row.id),
     email: String(row.email),

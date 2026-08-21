@@ -19,7 +19,15 @@ export function appNavigationFor(
     },
   ];
 
-  const settingsItems: NavigationItem[] = [];
+  const settingsItems: NavigationItem[] = [
+    {
+      id: 'passkeys',
+      type: 'item',
+      title: 'Passkey',
+      icon: 'fingerprint',
+      link: '/setting/passkeys',
+    },
+  ];
   if (permissions.includes('users.manage')) {
     settingsItems.push({
       id: 'users',

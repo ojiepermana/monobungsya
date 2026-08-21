@@ -40,6 +40,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'setting/passkeys',
+    title: 'MONOBUNGSYA · Passkey',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('../pages/settings/passkeys/passkeys.page').then((m) => m.PasskeysSettingsPage),
+  },
+  {
     path: 'setting/users',
     title: 'MONOBUNGSYA · User Access',
     canActivate: [authGuard, permissionGuard('users.manage')],

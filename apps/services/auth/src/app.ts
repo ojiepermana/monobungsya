@@ -12,10 +12,15 @@ import {
   type AuthRouteOptions,
   createAuthRoute,
 } from "./modules/auth/auth.route";
+import {
+  createPasskeyRoute,
+  type PasskeyRouteOptions,
+} from "./modules/auth/passkey.route";
 
 export function createApp(
   environment: AppEnvironment = loadAuthEnv(),
   authOptions: AuthRouteOptions = {},
+  passkeyOptions: PasskeyRouteOptions = {},
 ) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
 
@@ -33,6 +38,7 @@ export function createApp(
         tags: [
           { name: "Health", description: "Service health checks" },
           { name: "Auth", description: "Auth module" },
+          { name: "Passkey", description: "Passkey (WebAuthn) sign in" },
         ],
       }),
     )
@@ -46,5 +52,15 @@ export function createApp(
         detail: { tags: ["Health"], summary: "Check service health" },
       },
     )
-    .use(createAuthRoute(environment.serviceName, authOptions));
+    .use(createAuthRoute(environment.serviceName, authOptions))
+    .use(
+      createPasskeyRoute({
+        database: authOptions.database,
+        webAppUrl: authOptions.webAppUrl,
+        cookieName: authOptions.cookieName,
+        cookieSecure: authOptions.cookieSecure,
+        logger,
+        ...passkeyOptions,
+      }),
+    );
 }

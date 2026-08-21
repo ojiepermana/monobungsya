@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData } from './types.gen';
+import type { DeleteApiV1AuthPasskeysByIdData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -54,6 +54,62 @@ export const getApiV1AuthSession = <ThrowOnError extends boolean = false>(option
  * Logout the current auth session
  */
 export const postApiV1AuthLogout = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthLogoutData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
+
+/**
+ * Start passkey registration
+ */
+export const postApiV1AuthPasskeyRegisterOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyRegisterOptionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/register/options', ...options });
+
+/**
+ * Finish passkey registration
+ */
+export const postApiV1AuthPasskeyRegisterVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyRegisterVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/passkey/register/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Start passkey sign in
+ */
+export const postApiV1AuthPasskeyLoginOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyLoginOptionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/login/options', ...options });
+
+/**
+ * Finish passkey sign in
+ */
+export const postApiV1AuthPasskeyLoginVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyLoginVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/passkey/login/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List the current user's passkeys
+ */
+export const getApiV1AuthPasskeys = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthPasskeysData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys', ...options });
+
+/**
+ * Delete a passkey
+ */
+export const deleteApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys/{id}', ...options });
+
+/**
+ * Rename a passkey
+ */
+export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).patch<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/passkeys/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Forward users status request

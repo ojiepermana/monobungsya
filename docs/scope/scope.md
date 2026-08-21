@@ -13,6 +13,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 2   | Auth login and callback UI          | Foundation | in-progress |
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
 | 4   | MCP server for ERP tool access      | Foundation | in-progress |
+| 5   | Auth passkey login                  | Foundation | in-progress |
 
 ## Foundations
 
@@ -75,8 +76,27 @@ Scaffold an MCP server app at `apps/mcp` (Bun, TypeScript, STDIO transport) with
 
 Spec [0005](../specs/0005-mcp-server-scaffold.md) · code in `apps/mcp`, `package.json`, and `.env.example`
 
+### 5. Auth passkey login · in-progress
+
+Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the existing sessions, cookie, rate limits, and cleanup. Magic link stays unchanged as the universal fallback, and the Tauri desktop shell keeps magic link only.
+**Done when:** A user can register up to 5 passkeys, sign in with one and receive a session identical to a magic link session, manage (rename, delete) their own passkeys, and magic link login still works unchanged for everyone.
+
+- [x] Design it (spec): `/architect auth passkey login`
+- [x] Build it: `/develop auth passkey login`
+  - [x] Migration, ceremony core, and challenge safety in the auth service (AC-2, AC-3, AC-7, AC-9)
+  - [x] Public routes, gateway wiring, and regenerated OpenAPI plus SDK (AC-2, AC-3, AC-6, AC-7)
+  - [x] Web thread: gated login button, registration, and passkey sign in end to end (AC-1, AC-3, AC-4)
+  - [x] Management UI, post login prompt, rate limits, caps, and logging (AC-2, AC-5, AC-6, AC-8, AC-9)
+  - [x] Cleanup worker extension, tests, and env documentation (AC-7, AC-10)
+- [ ] Verify it: `/check verify auth passkey login`
+- [ ] Test it: `/test auth passkey login`
+
+Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/errors`
+
 ## Deferred
 
 - Gateway inventory stock endpoint (`/api/v1/stock`) · from spec 0005
 - Gateway machine auth scheme for service tokens · from spec 0005
 - Service registry endpoint so the console renders service cards from real data instead of a static list · from spec 0001
+- Conditional UI autofill (passkey suggestions in the login email field) · from spec 0006
+- Passkey support in the Tauri desktop shell when webview WebAuthn support matures · from spec 0006

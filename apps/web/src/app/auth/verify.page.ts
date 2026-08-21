@@ -19,6 +19,7 @@ import {
 import { TauriService } from '../desktop/tauri.service';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
+import { PasskeyService } from './passkey.service';
 
 @Component({
   selector: 'app-verify-page',
@@ -65,6 +66,25 @@ import { AuthService } from './auth.service';
                 <AlertDescription>Anda akan diarahkan ke dashboard.</AlertDescription>
               </Alert>
               <a Button size="xs" routerLink="/" class="mt-5 w-full gap-1.5"><Icon name="home" [size]="14" />Buka dashboard</a>
+
+              @if (showPasskeyPrompt()) {
+                <Alert class="mt-4">
+                  <AlertTitle>Lebih cepat lain kali</AlertTitle>
+                  <AlertDescription>
+                    <p>Daftarkan passkey agar bisa masuk dengan sidik jari atau face unlock, tanpa menunggu email.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <button Button size="xs" type="button" class="gap-1.5" [disabled]="passkeyLoading()" (click)="registerPasskey()">
+                        <Icon name="fingerprint" [size]="14" />
+                        {{ passkeyLoading() ? 'Menunggu passkey...' : 'Daftarkan passkey' }}
+                      </button>
+                      <button Button size="xs" type="button" variant="outline" (click)="dismissPasskeyPrompt()">Nanti saja</button>
+                    </div>
+                    @if (passkeyMessage(); as passkeyText) {
+                      <p class="mt-3 text-xs text-muted-foreground">{{ passkeyText }}</p>
+                    }
+                  </AlertDescription>
+                </Alert>
+              }
             } @else {
               <Alert variant="destructive">
                 <AlertTitle>Verifikasi gagal</AlertTitle>
@@ -89,11 +109,15 @@ export class VerifyPage {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly tauri = inject(TauriService);
+  private readonly passkey = inject(PasskeyService);
 
   protected readonly status = signal<'verifying' | 'success' | 'expired' | 'invalid' | 'missing'>(
     'verifying',
   );
   protected readonly message = signal('Mohon tunggu sebentar.');
+  protected readonly showPasskeyPrompt = signal(false);
+  protected readonly passkeyLoading = signal(false);
+  protected readonly passkeyMessage = signal<string | null>(null);
 
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -106,6 +130,7 @@ export class VerifyPage {
     if (callback === 'success') {
       this.status.set('success');
       this.message.set('Login berhasil. Anda dapat melanjutkan ke dashboard.');
+      this.offerPasskey();
       return;
     }
 
@@ -135,6 +160,42 @@ export class VerifyPage {
         this.message.set('Link tidak valid atau sudah pernah digunakan.');
       },
     });
+  }
+
+  registerPasskey(): void {
+    this.passkeyLoading.set(true);
+    this.passkeyMessage.set(null);
+
+    void this.passkey
+      .register()
+      .then(() => {
+        // Registered, so the offer is finished for this browser.
+        this.passkey.dismissPrompt();
+        this.showPasskeyPrompt.set(false);
+      })
+      .catch((error: unknown) => {
+        this.passkeyMessage.set(
+          this.passkey.messageFrom(error, 'Passkey gagal didaftarkan.'),
+        );
+      })
+      .finally(() => this.passkeyLoading.set(false));
+  }
+
+  dismissPasskeyPrompt(): void {
+    this.passkey.dismissPrompt();
+    this.showPasskeyPrompt.set(false);
+  }
+
+  /** Shown only to someone who can use passkeys and has none yet. */
+  private offerPasskey(): void {
+    if (!this.passkey.supported() || this.passkey.promptDismissed()) {
+      return;
+    }
+
+    void this.passkey
+      .load()
+      .then((passkeys) => this.showPasskeyPrompt.set(passkeys.length === 0))
+      .catch(() => this.showPasskeyPrompt.set(false));
   }
 
   title(): string {

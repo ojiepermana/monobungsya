@@ -8,6 +8,8 @@ tags:
     description: Service health checks
   - name: Auth
     description: Auth module
+  - name: Passkey
+    description: Passkey (WebAuthn) sign in
 paths:
   /health:
     get:
@@ -179,5 +181,486 @@ paths:
         - Auth
       summary: Revoke the current browser session
       operationId: postInternalAuthLogout
+  /internal/auth/passkey/register/options:
+    post:
+      tags:
+        - Passkey
+      summary: Start passkey registration for the signed in user
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                patternProperties:
+                  ^(.*)$: {}
+      operationId: postInternalAuthPasskeyRegisterOptions
+  /internal/auth/passkey/register/verify:
+    post:
+      tags:
+        - Passkey
+      summary: Finish passkey registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - label
+                  - createdAt
+                  - lastUsedAt
+                  - backupState
+                properties:
+                  id:
+                    type: string
+                  label:
+                    type: string
+                  createdAt:
+                    type: string
+                  lastUsedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  backupState:
+                    type: boolean
+      operationId: postInternalAuthPasskeyRegisterVerify
+  /internal/auth/passkey/login/options:
+    post:
+      tags:
+        - Passkey
+      summary: Start passkey sign in
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                patternProperties:
+                  ^(.*)$: {}
+      operationId: postInternalAuthPasskeyLoginOptions
+  /internal/auth/passkey/login/verify:
+    post:
+      tags:
+        - Passkey
+      summary: Finish passkey sign in and open a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                  - user
+                  - session
+                properties:
+                  authenticated:
+                    const: true
+                    type: boolean
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - email
+                      - name
+                      - role
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      name:
+                        type: string
+                      role:
+                        type: string
+                  session:
+                    type: object
+                    required:
+                      - id
+                      - idleExpiresAt
+                      - absoluteExpiresAt
+                    properties:
+                      id:
+                        type: string
+                      idleExpiresAt:
+                        type: string
+                      absoluteExpiresAt:
+                        type: string
+      operationId: postInternalAuthPasskeyLoginVerify
+  /internal/auth/passkeys:
+    get:
+      tags:
+        - Passkey
+      summary: List the signed in user's passkeys
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - passkeys
+                properties:
+                  passkeys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - label
+                        - createdAt
+                        - lastUsedAt
+                        - backupState
+                      properties:
+                        id:
+                          type: string
+                        label:
+                          type: string
+                        createdAt:
+                          type: string
+                        lastUsedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        backupState:
+                          type: boolean
+      operationId: getInternalAuthPasskeys
+  /internal/auth/passkeys/{id}:
+    patch:
+      tags:
+        - Passkey
+      summary: Rename one of the signed in user's passkeys
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - label
+                  - createdAt
+                  - lastUsedAt
+                  - backupState
+                properties:
+                  id:
+                    type: string
+                  label:
+                    type: string
+                  createdAt:
+                    type: string
+                  lastUsedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  backupState:
+                    type: boolean
+      operationId: patchInternalAuthPasskeysById
+    delete:
+      tags:
+        - Passkey
+      summary: Delete one of the signed in user's passkeys
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: deleteInternalAuthPasskeysById
 components:
   schemas: {}

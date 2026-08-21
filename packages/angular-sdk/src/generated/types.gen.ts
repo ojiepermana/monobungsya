@@ -62,6 +62,90 @@ export type PostApiV1AuthLogoutData = {
     url: '/api/v1/auth/logout';
 };
 
+export type PostApiV1AuthPasskeyRegisterOptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/passkey/register/options';
+};
+
+export type PostApiV1AuthPasskeyRegisterVerifyData = {
+    body: {
+        response: {
+            id: string;
+            rawId: string;
+            type: string;
+            response: {
+                [key: string]: unknown;
+            };
+            clientExtensionResults?: {
+                [key: string]: unknown;
+            };
+            authenticatorAttachment?: string;
+            [key: string]: unknown;
+        };
+        label?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/passkey/register/verify';
+};
+
+export type PostApiV1AuthPasskeyLoginOptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/passkey/login/options';
+};
+
+export type PostApiV1AuthPasskeyLoginVerifyData = {
+    body: {
+        response: {
+            id: string;
+            rawId: string;
+            type: string;
+            response: {
+                [key: string]: unknown;
+            };
+            clientExtensionResults?: {
+                [key: string]: unknown;
+            };
+            authenticatorAttachment?: string;
+            [key: string]: unknown;
+        };
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/passkey/login/verify';
+};
+
+export type GetApiV1AuthPasskeysData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/passkeys';
+};
+
+export type DeleteApiV1AuthPasskeysByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/passkeys/{id}';
+};
+
+export type PatchApiV1AuthPasskeysByIdData = {
+    body: {
+        label: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/passkeys/{id}';
+};
+
 export type GetApiV1UsersStatusData = {
     body?: never;
     path?: never;
