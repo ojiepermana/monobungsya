@@ -63,7 +63,7 @@ export class AuthRepository {
 
       const [userRow] = await transaction`
         SELECT id, email, name, role, suspended_at
-        FROM "auth"."users"
+        FROM "user"."users"
         WHERE lower(email) = ${email}
           AND suspended_at IS NULL
       `;
@@ -91,7 +91,7 @@ export class AuthRepository {
       const [tokenRow] = await transaction`
         UPDATE "auth"."login_tokens" AS token
         SET used_at = now(), updated_at = now()
-        FROM "auth"."users" AS user_record
+        FROM "user"."users" AS user_record
         WHERE token.token_hash = ${tokenHash}
           AND token.used_at IS NULL
           AND token.expires_at > now()
@@ -123,7 +123,7 @@ export class AuthRepository {
       `;
       const [userRow] = await transaction`
         SELECT id, email, name, role, suspended_at
-        FROM "auth"."users"
+        FROM "user"."users"
         WHERE id = ${tokenRow.user_id}
       `;
 
@@ -148,7 +148,7 @@ export class AuthRepository {
         last_activity = now(),
         idle_expires_at = LEAST(now() + interval '8 hours', session.absolute_expires_at),
         updated_at = now()
-      FROM "auth"."users" AS user_record
+      FROM "user"."users" AS user_record
       WHERE session.session_token_hash = ${sessionTokenHash}
         AND session.revoked_at IS NULL
         AND session.idle_expires_at > now()

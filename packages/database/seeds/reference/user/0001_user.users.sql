@@ -1,4 +1,4 @@
-INSERT INTO "auth"."users" (
+INSERT INTO "user"."users" (
   id,
   role,
   name,

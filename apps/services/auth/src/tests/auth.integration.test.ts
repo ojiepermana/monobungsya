@@ -169,7 +169,7 @@ describe("auth magic link integration", () => {
       `;
       await database`
         DELETE FROM "auth"."login_tokens"
-        WHERE user_id = (SELECT id FROM "auth"."users" WHERE email = 'system@project.local')
+        WHERE user_id = (SELECT id FROM "user"."users" WHERE email = 'system@project.local')
           AND used_at IS NULL
       `;
       await closeDatabaseClient(database);

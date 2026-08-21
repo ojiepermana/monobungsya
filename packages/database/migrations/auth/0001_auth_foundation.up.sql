@@ -1,6 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS "auth";
+CREATE SCHEMA IF NOT EXISTS "user";
 
-CREATE TABLE IF NOT EXISTS "auth"."users" (
+CREATE TABLE IF NOT EXISTS "user"."users" (
   id uuid PRIMARY KEY DEFAULT uuidv7(),
   role varchar(50) NOT NULL DEFAULT 'bi',
   name varchar(255) NOT NULL,
@@ -9,15 +10,15 @@ CREATE TABLE IF NOT EXISTS "auth"."users" (
   suspended_at timestamptz NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NULL,
-  CONSTRAINT auth_users_id_uuidv7_check
+  CONSTRAINT user_users_id_uuidv7_check
     CHECK ((get_byte(uuid_send(id), 6) >> 4) = 7),
-  CONSTRAINT auth_users_role_check
+  CONSTRAINT user_users_role_check
     CHECK (role IN ('admin', 'manager', 'bi', 'staff', 'legacy'))
 );
 
 CREATE TABLE IF NOT EXISTS "auth"."login_tokens" (
   id uuid PRIMARY KEY DEFAULT uuidv7(),
-  user_id uuid NOT NULL REFERENCES "auth"."users"(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES "user"."users"(id) ON DELETE CASCADE,
   token varchar(64) NOT NULL UNIQUE,
   expires_at timestamptz NOT NULL,
   used_at timestamptz NULL,
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "auth"."login_tokens" (
 CREATE TABLE IF NOT EXISTS "auth"."sessions" (
   id uuid PRIMARY KEY DEFAULT uuidv7(),
   session_key varchar(128) NOT NULL UNIQUE,
-  user_id uuid NULL REFERENCES "auth"."users"(id) ON DELETE CASCADE,
+  user_id uuid NULL REFERENCES "user"."users"(id) ON DELETE CASCADE,
   ip_address varchar(45) NULL,
   user_agent text NULL,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,

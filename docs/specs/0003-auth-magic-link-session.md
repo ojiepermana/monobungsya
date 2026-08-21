@@ -92,7 +92,7 @@ Implement magic link authentication in the auth service with SMTP deployment con
 
 ## Rationale
 
-The existing auth schema already contains users, login tokens, sessions, and rate limits, so server side magic link sessions extend the current foundation without introducing an identity provider or password lifecycle. Hashing raw tokens, atomic consume, and bounded session expiry address the highest risk paths directly.
+The existing user and auth schemas already contain users, login tokens, sessions, and rate limits, so server side magic link sessions extend the current foundation without introducing an identity provider or password lifecycle. Hashing raw tokens, atomic consume, and bounded session expiry address the highest risk paths directly.
 
 The engineer selected SMTP relay rather than a named provider, which keeps local and enterprise deployment flexible. The cost is that infrastructure must own deliverability, credentials, DNS, and monitoring. HMAC identity forwarding preserves service schema isolation, while the single organization boundary keeps the first authorization model small and explicit.
 
@@ -100,12 +100,12 @@ The engineer selected SMTP relay rather than a named provider, which keeps local
 
 **Data model sketch**:
 
-- `auth.users`: existing `id uuid` UUIDv7 primary key, required unique `email`, required `name`, required `role`, nullable `email_verified_at` and `suspended_at`, `created_at`, `updated_at`. No organization field in the single organization phase.
-- `auth.login_tokens`: `id uuid` UUIDv7 primary key, required `user_id` foreign key to `auth.users.id`, required unique `token_hash char(64)`, required `expires_at timestamptz`, nullable `used_at`, required `created_at`. Raw token is never persisted.
-- `auth.sessions`: `id uuid` UUIDv7 primary key, required unique `session_token_hash char(64)`, required `user_id` foreign key to `auth.users.id`, required `idle_expires_at`, required `absolute_expires_at`, required `last_activity`, nullable `revoked_at`, nullable request metadata, required `created_at` and `updated_at`.
+- `user.users`: existing `id uuid` UUIDv7 primary key, required unique `email`, required `name`, required `role`, nullable `email_verified_at` and `suspended_at`, `created_at`, `updated_at`. No organization field in the single organization phase.
+- `auth.login_tokens`: `id uuid` UUIDv7 primary key, required `user_id` foreign key to `user.users.id`, required unique `token_hash char(64)`, required `expires_at timestamptz`, nullable `used_at`, required `created_at`. Raw token is never persisted.
+- `auth.sessions`: `id uuid` UUIDv7 primary key, required unique `session_token_hash char(64)`, required `user_id` foreign key to `user.users.id`, required `idle_expires_at`, required `absolute_expires_at`, required `last_activity`, nullable `revoked_at`, nullable request metadata, required `created_at` and `updated_at`.
 - `auth.auth_rate_limits`: `id uuid` UUIDv7 primary key, required `key_hash char(64)`, required `key_type` with values `email` or `ip`, required `window_started_at`, required positive `attempts`, required `updated_at`, unique `(key_type, key_hash)`.
 
-One user has many login tokens and sessions. Rate limit rows have no business foreign key. No service schema has a foreign key to `auth.users`; internal identity carries the user UUID through the gateway contract.
+One user has many login tokens and sessions. Rate limit rows have no business foreign key. No service schema has a foreign key outside the auth-owned session tables; internal identity carries the user UUID through the gateway contract.
 
 **State transitions**:
 
@@ -132,14 +132,14 @@ The gateway applies session validation before signing identity headers for publi
 | Send magic link    | Raw token and link URL                                                   | Cryptographically random runtime value and `PUBLIC_API_URL` plus fixed verify path         |
 | Consume token      | User id and token state                                                  | SHA 256 of query token and `auth.login_tokens` row                                         |
 | Create session     | Session cookie value and expiry values                                   | Cryptographically random runtime value, `now()`, and fixed 8 hour or 7 day durations       |
-| Session endpoint   | Authenticated flag, user id, email, name, role, idle and absolute expiry | Session cookie hash, `auth.sessions`, and `auth.users`                                     |
+| Session endpoint   | Authenticated flag, user id, email, name, role, idle and absolute expiry | Session cookie hash, `auth.sessions`, and `user.users`                                     |
 | Signed identity    | User id, email, role, expiry, signature                                  | Validated session row and HMAC over the canonical identity input                           |
 | Rate limit         | Allowed or rejected decision                                             | `key_type`, SHA 256 email or IP key, window start, and attempts in `auth.auth_rate_limits` |
 | Cleanup            | Rows removed by category and count                                       | Expiry and revoke columns in auth tables, derived at cleanup time                          |
 
 **Key invariants**:
 
-- Email is normalized before lookup and remains unique in `auth.users`.
+- Email is normalized before lookup and remains unique in `user.users`.
 - Raw magic link and session values never enter PostgreSQL, structured logs, or response bodies.
 - Token consume and session creation occur in one transaction with a row lock. A token can create at most one session.
 - A suspended user cannot request or consume a login token and cannot use an existing session.
@@ -207,7 +207,7 @@ Magic link request and verify are public but rate limited and return generic res
 **Neutral**:
 
 - Password login, MFA, OIDC or SSO, tenant membership, and web page design are outside this feature.
-- Role values remain global in `auth.users` until a separate organization authorization decision.
+- Role values remain global in `user.users` until a separate organization authorization decision.
 - The auth migration must be forward only after the current migration history has been applied.
 
 ## Follow-up

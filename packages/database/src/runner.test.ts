@@ -60,7 +60,7 @@ describe("database tooling primitives", () => {
     ).toThrow("checksum mismatch for migration");
     expect(() =>
       assertChecksumMatches(
-        "reference/auth/0001_auth.users.sql",
+        "reference/user/0001_user.users.sql",
         "edited seed",
         sha256Hex("original seed"),
         "seed",
