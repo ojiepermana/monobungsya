@@ -1,5 +1,0 @@
-/* The package Shell owns viewport height for the authenticated surface, so the
-   host must not set its own. The session gate and auth routes size themselves. */
-:host {
-  display: block;
-}

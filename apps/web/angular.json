@@ -1,44 +1,80 @@
 {
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "$schema": "../../node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
-  "cli": {
-    "packageManager": "npm",
-    "analytics": "47f8fd42-1e5e-4905-a974-ce2a819da89f"
-  },
-  "newProjectRoot": "projects",
+  "newProjectRoot": "apps",
   "projects": {
-    "web": {
+    "app": {
       "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "css"
-        }
-      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
+      "schematics": {
+        "@schematics/angular:component": {
+          "path": "src/app/pages",
+          "flat": false,
+          "standalone": true,
+          "type": "page",
+          "inlineTemplate": true,
+          "inlineStyle": true,
+          "skipTests": true
+        },
+        "@schematics/angular:service": {
+          "path": "src/app",
+          "flat": false,
+          "type": "service",
+          "skipTests": true
+        },
+        "@schematics/angular:directive": {
+          "path": "src/app",
+          "flat": false,
+          "standalone": true,
+          "skipTests": true
+        },
+        "@schematics/angular:pipe": {
+          "path": "src/app",
+          "flat": false,
+          "standalone": true,
+          "skipTests": true
+        },
+        "@schematics/angular:guard": {
+          "path": "src/app",
+          "flat": false,
+          "skipTests": true
+        },
+        "@schematics/angular:interceptor": {
+          "path": "src/app",
+          "flat": false,
+          "skipTests": true
+        },
+        "@schematics/angular:resolver": {
+          "path": "src/app",
+          "flat": false,
+          "skipTests": true
+        }
+      },
       "architect": {
         "build": {
           "builder": "@angular/build:application",
           "options": {
             "outputPath": "../../dist/web",
+            "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "inlineStyleLanguage": "css",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
+            "polyfills": [],
+            "assets": [{ "glob": "**/*", "input": "public", "output": "." }],
             "styles": ["src/styles.css"]
           },
           "configurations": {
             "production": {
+              "optimization": {
+                "styles": {
+                  "inlineCritical": false
+                }
+              },
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "800kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -59,20 +95,38 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "web:build:production"
-            },
-            "development": {
-              "buildTarget": "web:build:development"
+          "options": {
+            "proxyConfig": "proxy.conf.cjs",
+            "port": 4200,
+            "prebundle": {
+              "exclude": [
+                "@ojiepermana/angular",
+                "@ojiepermana/angular-chart",
+                "@ojiepermana/angular-component",
+                "@ojiepermana/angular-navigation",
+                "@ojiepermana/angular-sdk",
+                "@ojiepermana/angular-theme"
+              ]
             }
+          },
+          "configurations": {
+            "production": { "buildTarget": "app:build:production" },
+            "development": { "buildTarget": "app:build:development" }
           },
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "runner": "vitest",
+            "watch": false
+          }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "854687a0-0200-4fe5-9acf-9da22a62ce66"
   }
 }

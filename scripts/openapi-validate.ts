@@ -1,7 +1,7 @@
 import { parse } from "yaml";
 
 const files = [
-  "apps/api-gateway/openapi.yaml",
+  "apps/gateway/erp/openapi.yaml",
   "apps/services/auth/openapi.yaml",
   "apps/services/user/openapi.yaml",
 ];

@@ -93,6 +93,9 @@ jobs:
       - name: Run tests
         run: bun run test
 
+      - name: Run web tests
+        run: bun run test:web
+
       - name: Run typecheck
         run: bun run typecheck
 
@@ -112,7 +115,7 @@ jobs:
         run: bun run openapi:validate
 
       - name: Check generated artifacts
-        run: git diff --exit-code -- apps/*/openapi.yaml packages/contracts/openapi packages/angular-sdk/src/generated
+        run: git diff --exit-code -- 'apps/**/openapi.yaml' packages/contracts/openapi packages/angular-sdk/src/generated
 
       - name: Build applications
         run: bun run build
@@ -138,7 +141,7 @@ jobs:
         include:
           - name: web
             file: infra/docker/web/Dockerfile
-            build_args: WEB_API_URL=https://gateway.example.com
+            build_args: ""
           - name: gateway
             file: infra/docker/gateway/Dockerfile
             build_args: ""

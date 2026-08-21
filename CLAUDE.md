@@ -10,18 +10,21 @@ Bun 1.4+ is the only package manager. There is a single root `package.json` and 
 bun install
 cp .env.example .env          # ENABLE_INFRASTRUCTURE=false runs services without PostgreSQL/NATS
 
-bun run dev                   # all apps in parallel (web + gateway + 5 services)
+bun run dev                   # web + gateway + auth + user
 bun run dev:gateway           # or one app: dev:web, dev:auth, dev:user
+bun run dev:tauri             # Angular dev server + Tauri desktop window
 
 bun run test                  # backend + package tests (bun test)
 bun test apps/services/auth/src/tests/auth.test.ts   # single test file
-bun run test:web              # Angular tests (ng test, vitest-based builder)
+bun run test:web              # Angular unit tests (Vitest builder)
 
 bun run lint                  # Biome (single quotes, 2-space indent, trailing commas)
-bun run typecheck             # tsc per app + ng build for web
+bun run typecheck             # Angular build + tsc per backend app and package + Rust
+bun run typecheck:tauri       # cargo check for desktop shell
 bun run build
+bun run build:tauri           # Tauri package build; runs build:web first
 
-bun run openapi:generate      # regenerate openapi.yaml specs + Angular SDK (run after changing Elysia schemas/routes)
+bun run openapi:generate      # regenerate openapi.yaml specs + generated SDK (run after changing Elysia schemas/routes)
 bun run openapi:validate
 bun run check:dependencies    # fails on cross-service imports
 
@@ -35,16 +38,18 @@ CI (`.github/workflows/ci.yml`) runs db reset/seed + idempotence check, tests, t
 
 ## Architecture
 
-Bun monorepo: Angular 22 web client → Elysia API Gateway → two domain services, with PostgreSQL and NATS behind them.
+Bun monorepo: Angular/Tauri clients → Elysia API Gateway → two domain services, with PostgreSQL and NATS behind them. An MCP server consumes the gateway contract.
 
-- **apps/web** (port 4200) — talks only to the gateway via the generated SDK (`#project/angular-sdk`). Never calls domain services directly.
-- **apps/api-gateway** (port 3000, public `/api/v1/*`) — CORS, request ID, public OpenAPI, proxying to services. No domain business logic.
+- **apps/web** (port 4200) — Angular 22 client using `@ojiepermana/angular`; talks to the gateway through its public API.
+- **apps/gateway/erp** (port 3000, public `/api/v1/*`) — CORS, request ID, public OpenAPI, proxying to services. No domain business logic.
 - **apps/services/{auth,user}** (ports 3101–3102, internal only) — each has the same shape: `main.ts` (composition root), `app.ts` (`createApp` factory), `config/env.ts`, `modules/<module>/`, `shared/plugins/`, `jobs/workers/`, `tests/`, Dockerfile.
+- **apps/mcp** (STDIO) — MCP tools that call the gateway through the shared contract.
+- **apps/tauri** — Tauri v2 desktop shell around the Angular build at `dist/web/browser`.
 - **packages/** — shared infrastructure only: `contracts` (OpenAPI artifacts + event contracts), `database` (Bun native SQL for PostgreSQL), `messaging` (NATS abstraction), `config`, `logger`, `errors`, `angular-sdk` (generated). Imported everywhere via the root import map `#project/*`.
 
 ### Layering inside a module
 
-```
+```text
 route → Elysia schema validation → service → domain repository → #project/database → PostgreSQL
 ```
 
@@ -69,10 +74,6 @@ PostgreSQL 18, native Bun SQL (no ORM). Multischema with per-domain ownership: `
 ### Auth
 
 Passwordless magic-link login (spec `docs/specs/0003`): tokens stored only as SHA-256 hashes, server-side sessions in PostgreSQL, HttpOnly cookie for the browser. The gateway validates the session cookie and forwards an HMAC-SHA-256-signed identity header (`INTERNAL_AUTH_SIGNING_SECRET`); services verify it via their `shared/plugins/auth-identity.plugin.ts` and never read the auth schema directly. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
-
-## Angular (apps/web)
-
-Follow [apps/web/AGENTS.md](apps/web/AGENTS.md) for all web work. Highlights: standalone components (don't write `standalone: true` — it's the default), signals for state (`signal`/`computed`/`linkedSignal`, never `mutate`), `input()`/`output()`/`model()` functions instead of decorators, `inject()` instead of constructor injection, native control flow (`@if`/`@for`/`@switch`), class/style bindings instead of `ngClass`/`ngStyle`, host bindings via the `host` object, Signal Forms for new forms, lazy-loaded feature routes, and WCAG AA / AXE-passing accessibility. Don't set `changeDetection: OnPush` explicitly (default in v22+).
 
 ## Workflow docs
 

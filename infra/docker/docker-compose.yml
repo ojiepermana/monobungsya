@@ -135,9 +135,6 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/web/Dockerfile
-      args:
-        WEB_API_URL: ${WEB_API_URL:-http://localhost:3000}
-        WEB_API_ENV: local
     ports:
       - "${WEB_PORT:-4200}:8080"
     depends_on:

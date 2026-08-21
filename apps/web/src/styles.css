@@ -1,40 +1,108 @@
-@import '@ojiepermana/angular-theme/theme-full.css';
-@import 'tailwindcss';
-@import '@ojiepermana/angular-theme/styles/css/base/tailwind.css';
-@import '@fontsource/material-symbols-rounded/400.css';
-@import './app/app-layout.css';
+/* Global styles for the Angular payroll app. */
+@import "@fontsource-variable/material-symbols-rounded/index.css";
+@import "@ojiepermana/angular-theme/theme-full.css";
+@import "tailwindcss" source(none);
+@import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
+@import "./theme.css";
 
-:root {
-  font-family: 'Avenir Next', 'Trebuchet MS', sans-serif;
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+@source "./**/*.{html,ts}";
+@source "../../../node_modules/@ojiepermana/*/fesm2022/*.mjs";
+
+html:has([data-shell-root][data-shell-mode='desktop']),
+body:has([data-shell-root][data-shell-mode='desktop']) {
+   background: transparent;
 }
 
-* {
-  box-sizing: border-box;
+[data-shell-root][data-shell-mode='desktop'] {
+   border-radius: var(--shell-frame-radius);
+   overflow: hidden;
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+[data-shell-root][data-shell-mode='desktop'][data-shell-frame='modern'] > app-login-page {
+   flex: 1 1 0%;
+   height: auto;
+   min-height: 0;
+   min-width: 0;
+   width: auto;
+   margin: 0 var(--shell-frame-inset) var(--shell-frame-inset);
+   border: 1px solid hsl(var(--shell-frame-border));
+   border-radius: var(--shell-frame-radius);
+   overflow: hidden;
 }
 
-button,
-a {
-  font: inherit;
+[data-shell-root][data-shell-mode='desktop'] [data-shell-bar] > [data-shell-bar-start],
+[data-shell-root][data-shell-mode='desktop'] [data-shell-bar] > [data-shell-bar-title],
+[data-shell-root][data-shell-mode='desktop'] [data-shell-bar] > [data-shell-bar-end] {
+   pointer-events: none;
 }
 
-button,
-input {
-  font: inherit;
+[data-shell-root][data-shell-mode='desktop']
+   [data-shell-bar]
+   :is(a, button, input, select, textarea, label, summary, [role], [tabindex]:not([tabindex='-1'])) {
+   pointer-events: auto;
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible {
-  outline: 3px solid hsl(var(--brand));
-  outline-offset: 3px;
+table[class*="text-"] {
+   font-size: 0.75rem;
+   font-weight: 400;
+}
+
+table[class*="text-"] thead th {
+   font-weight: 500;
+}
+
+table[class*="text-"] .font-medium {
+   font-weight: 400;
+}
+
+table[class*="text-"] .font-semibold {
+   font-weight: 500;
+}
+
+table[class*="text-"] .font-bold {
+   font-weight: 600;
+}
+
+pageheader h1 {
+   font-size: 0.875rem !important;
+   line-height: 1.25rem !important;
+}
+
+pageheader p {
+   display: none !important;
+}
+
+@layer utilities {
+   button,
+   [Button],
+   [AlertDialogCancel],
+   [AlertDialogAction] {
+      border-radius: var(--radius-xs) !important;
+   }
+
+   PageFilterToggle button {
+      @apply h-7! min-w-7! gap-1.5! px-2.5! text-xs!;
+   }
+}
+
+app-root NavigationHeader button[aria-label='Collapse navigation'],
+app-root NavigationHeader button[aria-label='Expand navigation'] {
+   display: none;
+}
+
+app-root NavigationHeader NavigationHeaderInitial,
+app-root NavigationFooter NavigationFooterInitial {
+   display: none;
+}
+
+app-root NavigationHeader ThemeSettings > button {
+   margin-left: auto;
+}
+
+.ThemeSettings icon {
+   font-family: 'Material Symbols Rounded Variable' !important;
+}
+
+.ThemeSettings button[drawerclose] icon {
+   font-family: 'Material Symbols Rounded Variable' !important;
 }

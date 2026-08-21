@@ -1,7 +1,7 @@
 import { stringify } from "yaml";
 import { loadEnv } from "#project/config";
-import { createApp as createGatewayApp } from "../apps/api-gateway/src/app";
-import { loadGatewayEnv } from "../apps/api-gateway/src/config/env";
+import { createApp as createGatewayApp } from "../apps/gateway/erp/src/app";
+import { loadGatewayEnv } from "../apps/gateway/erp/src/config/env";
 import { createApp as createAuthApp } from "../apps/services/auth/src/app";
 import { createApp as createUserApp } from "../apps/services/user/src/app";
 
@@ -15,7 +15,7 @@ type SpecTarget = {
 const targets: SpecTarget[] = [
   {
     name: "api-gateway",
-    output: "apps/api-gateway/openapi.yaml",
+    output: "apps/gateway/erp/openapi.yaml",
     fragment: "packages/contracts/openapi/generated/public-api.openapi.yaml",
     createApp: () =>
       createGatewayApp(loadGatewayEnv({ NODE_ENV: "test", PORT: "3000" })),

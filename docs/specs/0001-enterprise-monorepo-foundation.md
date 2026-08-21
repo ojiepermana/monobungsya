@@ -126,7 +126,7 @@ Setiap deployable app memiliki satu Dockerfile di folder deployment terpusat. Bu
 - Root `package.json` memiliki seluruh dependency versioning, scripts, dan app entrypoints.
 - Root `package.json` menyediakan import map `#project/*` untuk source shared packages.
 - Bun install menghasilkan satu physical `node_modules` di root.
-- App source berada di `apps/web`, `apps/api-gateway`, `apps/services/auth`, `apps/services/user`, `apps/services/employee`, `apps/services/payroll`, dan `apps/services/reporting` tanpa manifest lokal.
+- App source berada di `apps/web`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/employee`, `apps/services/payroll`, dan `apps/services/reporting` tanpa manifest lokal.
 - Shared package hanya berisi `contracts`, `angular-sdk`, `database`, `messaging`, `config`, `logger`, dan `errors`.
 - Setiap app memiliki `GET /health`, typed env, logger, error handler, OpenAPI, Bun smoke test, dan graceful shutdown.
 - Business module mengikuti `route -> schema -> service -> repository -> database`.

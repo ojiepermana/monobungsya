@@ -20,7 +20,7 @@ tidak sesuai dengan cara package dipakai, dan penyebabnya dapat ditunjuk dengan 
 **Premis yang salah.** Option 2 ditolak dengan alasan "session response saat ini hanya menyediakan
 name dan role", sehingga `UserIdentity` tidak dapat diisi. Premis itu tidak benar.
 `sessionResponse` di `apps/services/auth/src/modules/auth/auth.schema.ts` mengembalikan
-`user: { id, email, name, role }`, dan `apps/api-gateway/src/routes/proxy.route.ts` sudah membaca
+`user: { id, email, name, role }`, dan `apps/gateway/erp/src/routes/proxy.route.ts` sudah membaca
 `session.user.email`. Jadi penghalang utama Option 2 sebenarnya tidak ada.
 
 **Akibatnya pada kode.** Komposisi eksplisit memaksa aplikasi memiliki bagian yang paling sulit:
@@ -151,7 +151,7 @@ Self hosted Material Symbols dipilih untuk menghindari request eksternal. Packag
 5. `apps/web/src/app/*.css` dan `apps/web/src/styles.css`, style surface yang menjadi batas migrasi.
 6. Package metadata and README untuk `@ojiepermana/angular@22.1.4`, `@ojiepermana/angular-theme@22.1.4`, `@ojiepermana/angular-navigation@22.1.4`, dan `@fontsource/material-symbols-rounded@5.3.3`.
 7. `apps/services/auth/src/modules/auth/auth.schema.ts`, `sessionResponse` yang mengembalikan `user: { id, email, name, role }`, fakta yang membatalkan penolakan awal terhadap `LayoutWrapperDefault`.
-8. `apps/api-gateway/src/routes/proxy.route.ts`, gateway yang sudah membaca `session.user.email`.
+8. `apps/gateway/erp/src/routes/proxy.route.ts`, gateway yang sudah membaca `session.user.email`.
 
 **Package consumer reference** (repository library, dibaca langsung, bukan dari web):
 

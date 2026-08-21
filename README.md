@@ -1,6 +1,6 @@
 # Monobungsia
 
-Monobungsia adalah scaffold monorepo enterprise berbasis Bun. Satu repository berisi Angular sebagai web client, API Gateway berbasis Elysia, dan dua service domain yang dapat dikembangkan serta dibuat image Docker secara independen.
+Monobungsia adalah scaffold monorepo enterprise berbasis Bun. Satu repository berisi Angular web client, Tauri desktop shell, API Gateway berbasis Elysia, service domain, dan MCP server yang dapat dikembangkan serta dibuat image Docker secara independen.
 
 ## Arsitektur
 
@@ -14,7 +14,7 @@ flowchart LR
   postgres[(PostgreSQL)]
   nats[(NATS)]
 
-  web -->|Generated SDK| gateway
+  web -->|Generated SDK / gateway API| gateway
   desktop -->|Angular frontend| gateway
   gateway --> auth
   gateway --> user
@@ -24,19 +24,19 @@ flowchart LR
   user --> nats
 ```
 
-API Gateway adalah public entry point. Angular tidak memanggil service domain secara langsung. Service tidak mengimpor source service lain.
+API Gateway adalah public entry point. Web client tidak memanggil service domain secara langsung. Service tidak mengimpor source service lain.
 
 ## Struktur
 
-`apps/web` berisi Angular 22 dan hanya memakai client yang dihasilkan dari kontrak gateway.
+`apps/web` berisi Angular 22 dengan `@ojiepermana/angular` sebagai design system dan route auth/logs/settings.
 
-`apps/tauri` berisi shell desktop Tauri v2 yang memakai frontend Angular dari `apps/web`. Proyek Rust berada di `apps/tauri/src`; dependency CLI Tauri tetap dikelola oleh `package.json` root.
+`apps/tauri` berisi shell desktop Tauri v2 yang memakai build frontend dari `apps/web`. Ia memakai lifecycle command root `dev:tauri`, `typecheck:tauri`, dan `build:tauri`.
 
-`apps/api-gateway` berisi routing public, CORS, request ID, OpenAPI public, dan forwarding ke service internal. Gateway tidak memiliki business logic domain.
+`apps/gateway/erp` berisi routing public, CORS, request ID, OpenAPI public, dan forwarding ke service internal. Gateway tidak memiliki business logic domain.
 
 `apps/services/*` berisi auth dan user. Setiap service memiliki composition root, config typed, plugin lokal, module domain, repository domain, database boundary, jobs, test, dan Dockerfile.
 
-`packages/contracts` berisi HTTP artifacts OpenAPI dan event contracts. `packages/database` hanya berisi Bun SQL native untuk PostgreSQL. `packages/messaging` hanya berisi abstraction NATS. `packages/config`, `packages/logger`, dan `packages/errors` berisi infrastructure lintas service yang benar benar reusable.
+`packages/contracts` berisi HTTP artifacts OpenAPI dan event contracts. `packages/angular-sdk` berisi generated client dari kontrak gateway untuk consumer eksternal. `packages/database` hanya berisi Bun SQL native untuk PostgreSQL. `packages/messaging` hanya berisi abstraction NATS. `packages/config`, `packages/logger`, dan `packages/errors` berisi infrastructure lintas service yang benar benar reusable.
 
 Root `package.json` adalah sumber dependency versioning, import map `#project/*`, dan scripts untuk seluruh app. Bun membuat satu physical `node_modules` di root. Tidak ada `package.json` atau `node_modules` di bawah `apps` dan `packages`; semua source dijalankan langsung dari root.
 
@@ -58,25 +58,25 @@ Route tidak memanggil repository langsung. Repository tidak mengetahui HTTP. Tra
 
 ## Service ports
 
-| App         | Port | Public path                |
-| ----------- | ---: | -------------------------- |
-| web         | 4200 | Angular development server |
-| api gateway | 3000 | `/api/v1/*`                |
-| auth        | 3101 | internal only              |
-| user        | 3102 | internal only              |
+| App         | Port | Public path   |
+| ----------- | ---: | ------------- |
+| web         | 4200 | Angular SPA   |
+| api gateway | 3000 | `/api/v1/*`   |
+| auth        | 3101 | internal only |
+| user        | 3102 | internal only |
 
 Setiap app memiliki `GET /health`. Service module smoke endpoint berada pada `/internal/<module>/status` dan hanya menjadi contoh boundary awal.
 
 ## Menjalankan development
 
-Prasyarat: Bun 1.4 atau lebih baru dan Node.js untuk Angular CLI tooling. Dependency dikelola hanya dengan Bun.
+Prasyarat: Bun 1.4 atau lebih baru. Dependency dikelola hanya dengan Bun.
 
 ```bash
 bun install
 cp .env.example .env
+bun run dev:web
 bun run dev:gateway
 bun run dev:user
-bun run dev:web
 ```
 
 `bun run dev` menjalankan seluruh app secara paralel. Untuk development lokal tanpa PostgreSQL dan NATS, biarkan `ENABLE_INFRASTRUCTURE=false`. Koneksi Bun SQL dan NATS dibuat oleh `main.ts` hanya ketika flag tersebut diaktifkan.
@@ -87,12 +87,12 @@ Script utama:
 
 ```bash
 bun run dev
+bun run dev:web
 bun run dev:tauri
 bun run test
 bun run test:web
 bun run lint
 bun run typecheck
-bun run typecheck:tauri
 bun run build
 bun run build:tauri
 bun run openapi:generate
@@ -103,13 +103,13 @@ bun run db:seed
 bun run db:reset --confirm --seed
 ```
 
-## OpenAPI dan Angular SDK
+## OpenAPI dan generated SDK
 
 Schema Elysia adalah source of truth. `scripts/openapi-generate.ts` membuat spec dengan memanggil `/openapi/json` pada app composition root, tanpa perlu menyalakan server.
 
 Hasilnya ditulis ke `openapi.yaml` pada gateway dan service yang tersisa. Public gateway spec juga disalin ke `packages/contracts/openapi/generated/public-api.openapi.yaml`.
 
-`bun run openapi:generate` lalu menjalankan `@hey-api/openapi-ts` dan menulis generated SDK ke `packages/angular-sdk/src/generated`. Folder generated tidak diedit manual. Angular mengimpor `#project/angular-sdk` dari root import map dan mengonfigurasi generated client pada composition root aplikasi.
+`bun run openapi:generate` lalu menjalankan `@hey-api/openapi-ts` dan menulis generated SDK ke `packages/angular-sdk/src/generated`. Folder generated tidak diedit manual. Consumer dapat mengimpor `#project/angular-sdk` dari root import map.
 
 `bun run openapi:validate` memeriksa OpenAPI 3, `info`, dan `paths` pada seluruh spec.
 
@@ -181,13 +181,12 @@ Setiap deployable app memiliki satu Dockerfile canonical di `infra/docker`. Buil
 Gateway dan service backend dibundle dengan `bun build --minify` pada tahap build. Image final hanya memuat `main.js` hasil build dan Bun slim, lalu menjalankan artifact tersebut sebagai user non root.
 
 ```bash
-docker build -f infra/docker/web/Dockerfile --build-arg WEB_API_URL=https://api.example.com .
 docker build -f infra/docker/gateway/Dockerfile .
 docker build -f infra/docker/services/auth/Dockerfile .
 docker build -f infra/docker/services/user/Dockerfile .
 ```
 
-The web image listens on container port 8080 as a non root Nginx process. Map public port 80 to container port 8080 in the deployment. The gateway listens on 3000, while auth and user listen on 3101 and 3102. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
+The gateway listens on 3000, while auth and user listen on 3101 and 3102. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
 
 Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root repository:
 
@@ -195,7 +194,7 @@ Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root r
 docker compose -f infra/docker/docker-compose.yml up --build
 ```
 
-Buka web di `http://localhost:4200` dan Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, dua service domain, dan web. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
+Buka Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, dan dua service domain. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
 
 ## Aturan dependency antar service
 

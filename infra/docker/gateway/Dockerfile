@@ -4,11 +4,11 @@ WORKDIR /workspace
 
 COPY package.json bun.lock tsconfig.base.json ./
 COPY packages ./packages
-COPY apps/api-gateway ./apps/api-gateway
+COPY apps/gateway/erp ./apps/gateway/erp
 
 RUN bun install --frozen-lockfile --production
 
-RUN bun build apps/api-gateway/src/main.ts --outfile dist/gateway/main.js --target=bun --minify
+RUN bun build apps/gateway/erp/src/main.ts --outfile dist/gateway/main.js --target=bun --minify
 
 FROM oven/bun:1.4.0-slim
 

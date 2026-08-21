@@ -1,6 +1,6 @@
 # Scope: Monobungsia
 
-Monobungsia adalah monorepo enterprise untuk web client, gateway, dan service domain dengan PostgreSQL multischema.
+Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP server dengan PostgreSQL multischema.
 
 **Build approach:** Tracer Bullet (slices run through database, service, gateway, and client boundaries).
 **Workflow:** Beta (verify, then test).
@@ -31,39 +31,34 @@ Implement passwordless login, server side sessions, role authorization, and sign
 - [ ] Verify it: `/check verify auth magic link and session`
 - [x] Test it: `/test auth magic link and session`
 
-Spec [0003](../specs/0003-auth-magic-link-session.md) · code in `apps/services/auth`, `apps/api-gateway`, and `packages/contracts`
+Spec [0003](../specs/0003-auth-magic-link-session.md) · code in `apps/services/auth`, `apps/gateway/erp`, and `packages/contracts`
 
 ### 2. Auth login and callback UI · in-progress
 
-Provide login, check inbox, callback success, and callback error screens using the existing operations console visual language.
-**Done when:** Users can request a link, understand sent or failed states, and see deterministic callback success or error screens with accessible responsive behavior.
+Provide login, magic-link verification, and callback states in the Angular web
+client, with the same auth flow available from the Tauri desktop shell.
+**Done when:** Browser and desktop users can request a link, consume a valid
+session callback, and receive deterministic error states.
 
-- [x] Design it (spec): `/architect auth login and callback UI`
-- [x] Build it: `/develop auth login and callback UI`
-  - [x] Auth routes and callback states (AC-1, AC-4, AC-5)
-  - [x] Generated SDK integration and form state machine (AC-2, AC-3, AC-5, AC-8)
-  - [x] Auth shell, responsive styling, accessibility, and tests (AC-1, AC-4, AC-6, AC-7)
+- [x] Angular routes, auth service, guards, and callback screens
+- [x] Tauri runtime detection and desktop auth deep-link handoff
 - [ ] Verify it: `/check verify auth login and callback UI`
-- [x] Test it: `/test auth login and callback UI`
 
-Spec [0004](../specs/0004-auth-ui-callback.md)
+Spec [0004](../specs/0004-auth-ui-callback.md) · code in `apps/web` and `apps/tauri`
 
 ### 3. Angular UI package and CSS standard · in-progress
 
-Adopt `@ojiepermana/angular` for the web design system, migrate `apps/web` from SCSS to CSS, and align login and main app layouts with the package.
-**Done when:** The web app uses package theme, components, navigation, and settings with no active SCSS, a fluid accessible login shell, an authenticated main shell, and passing build, lint, unit, AXE, responsive, and bundle checks.
+Use `@ojiepermana/angular` for the web and desktop shell composition, with
+Tailwind v4, package theme tokens, responsive navigation, and shared layout
+settings.
+**Done when:** `apps/web` builds in the root workspace, its unit tests pass,
+and `apps/tauri` packages the same Angular output.
 
-- [x] Design it (spec): `/architect Angular UI package and CSS standard`
-- [ ] Build it: `/develop Angular UI package and CSS standard`
-  - [ ] Upstream package release in the `angular` repo: bindable logout and published settings adapter, then raise the dependency (AC-13, AC-14, AC-16) · code written and gate green in the `angular` repo, uncommitted there; waiting on `bun run publish` (expected `22.1.5`) before the dependency can be raised
-  - [x] Package dependencies, theme provider, local icon font, and subpath imports (AC-1, AC-2, AC-3, AC-4)
-  - [x] CSS migration, Tailwind token setup, and Angular style configuration (AC-5, AC-8)
-  - [ ] Root `Shell` and `LayoutWrapperDefault` composition, settings adapter, and storage keys (AC-6, AC-9, AC-11, AC-13, AC-14)
-  - [ ] Routed pages with `Page`, fluid gate and auth layout, logout wiring, and measured bundle (AC-7, AC-10, AC-12, AC-15, AC-16)
+- [x] Package theme, shell, navigation, page, settings, and icon integration
+- [x] Root web scripts, generated SDK dependency, and Tauri build wiring
 - [ ] Verify it: `/check verify Angular UI package and CSS standard`
-- [ ] Test it: `/test Angular UI package and CSS standard`
 
-Spec [0001](../specs/web/0001-angular-ui-standard/index.md) · code in `apps/web`, `package.json`, and `bun.lock`
+Spec [0001](../specs/web/0001-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
 
 ### 4. MCP server for ERP tool access · in-progress
 

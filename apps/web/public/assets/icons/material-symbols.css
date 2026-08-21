@@ -1,0 +1,123 @@
+@font-face {
+  font-family: 'Material Symbols Theme Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('./theme-settings-rounded.woff2?v=5') format('woff2');
+}
+
+:root {
+  --icon-font-family: 'Material Symbols Rounded Variable';
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100;
+  font-display: block;
+  src: url('./rounded-100.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 200;
+  font-display: block;
+  src: url('./rounded-200.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
+  src: url('./rounded-300.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./rounded-400.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('./rounded-500.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('./rounded-600.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('./rounded-700.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 100;
+  font-display: block;
+  src: url('./sharp-100.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 200;
+  font-display: block;
+  src: url('./sharp-200.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
+  src: url('./sharp-300.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./sharp-400.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('./sharp-500.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('./sharp-600.woff2?v=3') format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Sharp';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('./sharp-700.woff2?v=3') format('woff2');
+}
