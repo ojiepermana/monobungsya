@@ -20,7 +20,7 @@
     "dev:auth": "PORT=3101 bun --watch apps/services/auth/src/main.ts",
     "dev:user": "PORT=3102 bun --watch apps/services/user/src/main.ts",
     "dev:mcp": "bun --watch apps/mcp/src/index.ts",
-    "test": "bun test apps/gateway/erp/src apps/services packages/database/src packages/logger/src packages/contracts/src apps/mcp/src/tests",
+    "test": "bun test apps/gateway/erp/src apps/services packages/database/src packages/elysia/src packages/logger/src packages/contracts/src apps/mcp/src/tests",
     "test:mcp": "bun test apps/mcp/src/tests",
     "test:database": "bun test packages/database/src",
     "test:web": "cd apps/web && ../../node_modules/.bin/ng test",

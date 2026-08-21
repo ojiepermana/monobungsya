@@ -23,6 +23,26 @@ describe("auth service", () => {
     });
   });
 
+  it("returns the shared error envelope for unsigned internal identity", async () => {
+    const app = createApp(loadEnv("auth", { NODE_ENV: "test", PORT: "3101" }));
+
+    const response = await app.handle(
+      new Request("http://localhost/internal/auth/identity", {
+        headers: { "x-request-id": "request-123" },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "A valid signed identity is required",
+        requestId: "request-123",
+      },
+    });
+  });
+
   it("sends magic links through SMTP without local credentials", async () => {
     const commands: string[] = [];
     const server = createServer((socket) => {

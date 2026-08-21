@@ -6,7 +6,6 @@ import {
   createOpenApiPlugin,
   requestIdPlugin,
 } from "#project/elysia";
-import { toErrorResponse, ValidationError } from "#project/errors";
 import { Logger } from "#project/logger";
 import type { GatewayEnvironment } from "./config/env";
 import { loadGatewayEnv } from "./config/env";
@@ -19,6 +18,7 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
     .use(cors({ origin: environment.CORS_ORIGIN, credentials: true }))
     .use(requestIdPlugin)
     .use(createLoggerPlugin(logger, "gateway-logger"))
+    .use(createErrorHandler("gateway-error-handler", { logger }))
     .use(
       createOpenApiPlugin({
         info: {
@@ -43,20 +43,5 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
         detail: { tags: ["Health"], summary: "Check gateway health" },
       },
     )
-    .use(createProxyRoute(environment))
-    .use(createErrorHandler("gateway-error-handler"))
-    .onError(({ code, error, request, set }) => {
-      const mapped = toErrorResponse(
-        code === "VALIDATION"
-          ? new ValidationError("Request validation failed")
-          : error,
-        request.headers.get("x-request-id") ?? undefined,
-      );
-      set.status = mapped.status;
-      logger.error("request.failed", {
-        requestId: request.headers.get("x-request-id"),
-        error: mapped.body,
-      });
-      return mapped.body;
-    });
+    .use(createProxyRoute(environment));
 }

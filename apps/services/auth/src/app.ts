@@ -6,7 +6,6 @@ import {
   createOpenApiPlugin,
   requestIdPlugin,
 } from "#project/elysia";
-import { toErrorResponse, ValidationError } from "#project/errors";
 import { Logger } from "#project/logger";
 import { loadAuthEnv } from "./config/env";
 import {
@@ -23,6 +22,7 @@ export function createApp(
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
     .use(createLoggerPlugin(logger, "auth-logger"))
+    .use(createErrorHandler("auth-error-handler", { logger }))
     .use(
       createOpenApiPlugin({
         info: {
@@ -46,20 +46,5 @@ export function createApp(
         detail: { tags: ["Health"], summary: "Check service health" },
       },
     )
-    .use(createAuthRoute(environment.serviceName, authOptions))
-    .use(createErrorHandler("auth-error-handler"))
-    .onError(({ code, error, request, set }) => {
-      const mapped = toErrorResponse(
-        code === "VALIDATION"
-          ? new ValidationError("Request validation failed")
-          : error,
-        request.headers.get("x-request-id") ?? undefined,
-      );
-      set.status = mapped.status;
-      logger.error("request.failed", {
-        requestId: request.headers.get("x-request-id"),
-        error: mapped.body,
-      });
-      return mapped.body;
-    });
+    .use(createAuthRoute(environment.serviceName, authOptions));
 }
