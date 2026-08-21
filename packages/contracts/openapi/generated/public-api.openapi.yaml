@@ -8,6 +8,8 @@ tags:
     description: Gateway health checks
   - name: Auth
     description: Public auth boundary
+  - name: Passkey
+    description: Public passkey (WebAuthn) boundary
   - name: Users
     description: Public users boundary
 paths:
@@ -107,6 +109,340 @@ paths:
         - Auth
       summary: Logout the current auth session
       operationId: postApiV1AuthLogout
+  /api/v1/auth/passkey/register/options:
+    post:
+      tags:
+        - Passkey
+      summary: Start passkey registration
+      operationId: postApiV1AuthPasskeyRegisterOptions
+  /api/v1/auth/passkey/register/verify:
+    post:
+      tags:
+        - Passkey
+      summary: Finish passkey registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+      operationId: postApiV1AuthPasskeyRegisterVerify
+  /api/v1/auth/passkey/login/options:
+    post:
+      tags:
+        - Passkey
+      summary: Start passkey sign in
+      operationId: postApiV1AuthPasskeyLoginOptions
+  /api/v1/auth/passkey/login/verify:
+    post:
+      tags:
+        - Passkey
+      summary: Finish passkey sign in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  additionalProperties: true
+                  type: object
+                  required:
+                    - id
+                    - rawId
+                    - type
+                    - response
+                  properties:
+                    id:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    rawId:
+                      minLength: 1
+                      maxLength: 1024
+                      type: string
+                    type:
+                      minLength: 1
+                      maxLength: 32
+                      type: string
+                    response:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    clientExtensionResults:
+                      type: object
+                      patternProperties:
+                        ^(.*)$: {}
+                    authenticatorAttachment:
+                      maxLength: 32
+                      type: string
+      operationId: postApiV1AuthPasskeyLoginVerify
+  /api/v1/auth/passkeys:
+    get:
+      tags:
+        - Passkey
+      summary: List the current user's passkeys
+      operationId: getApiV1AuthPasskeys
+  /api/v1/auth/passkeys/{id}:
+    patch:
+      tags:
+        - Passkey
+      summary: Rename a passkey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  minLength: 1
+                  maxLength: 100
+                  type: string
+      operationId: patchApiV1AuthPasskeysById
+    delete:
+      tags:
+        - Passkey
+      summary: Delete a passkey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: deleteApiV1AuthPasskeysById
   /api/v1/users/status:
     get:
       tags:
