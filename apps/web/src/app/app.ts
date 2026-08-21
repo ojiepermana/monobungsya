@@ -35,11 +35,11 @@ import { ThemeSettingsAdapterService } from './shell/theme-settings-adapter';
       [color]="shell.color()"
       [frame]="shell.frame()"
       navigationFlyoutIcon="apps"
-      barAriaLabel="ETOS Payroll window controls"
+      barAriaLabel="Monobungsya window controls"
     >
       <span shellBarTitle class="inline-flex items-center gap-2">
         <Icon [name]="appBrandIcon" [size]="16" aria-hidden="true" />
-        <span>ETOS Payroll</span>
+        <span>Monobungsya</span>
       </span>
       @if (isGuestRoute()) {
         <router-outlet />

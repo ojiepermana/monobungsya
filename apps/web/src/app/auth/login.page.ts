@@ -48,7 +48,7 @@ import { AuthService } from './auth.service';
       <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-4 py-8 sm:px-6">
         <Card class="block w-full max-w-md">
           <CardHeader class="text-center">
-            <CardTitle class="text-xl sm:text-2xl">Masuk ke ETOS Payroll</CardTitle>
+            <CardTitle class="text-xl sm:text-2xl">Masuk ke Monobungsya</CardTitle>
             <p CardDescription>Gunakan email kantor atau email yang sudah terdaftar.</p>
           </CardHeader>
 

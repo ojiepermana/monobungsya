@@ -9,7 +9,7 @@ import { ApiService } from '../../../services/api.service';
       <header>
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>
         <h1 class="mt-2 text-2xl font-semibold text-foreground">Log Overview</h1>
-        <p class="mt-2 max-w-2xl text-sm text-muted-foreground">Pantau kesiapan gateway dan akses ke area operasional ETOS Payroll.</p>
+        <p class="mt-2 max-w-2xl text-sm text-muted-foreground">Pantau kesiapan gateway dan akses ke area operasional Monobungsya.</p>
       </header>
 
       <section class="grid gap-4 md:grid-cols-2" aria-label="System status">
@@ -19,7 +19,7 @@ import { ApiService } from '../../../services/api.service';
         </article>
         <article class="border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">Workspace</p>
-          <p class="mt-3 text-xl font-semibold text-foreground">ETOS Payroll</p>
+          <p class="mt-3 text-xl font-semibold text-foreground">Monobungsya</p>
         </article>
       </section>
     </main>

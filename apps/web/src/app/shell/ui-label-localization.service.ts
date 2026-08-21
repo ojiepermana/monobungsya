@@ -2,7 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { inject, Service } from '@angular/core';
 
 const LABELS_ID: Readonly<Record<string, string>> = {
-  'ETOS Payroll': 'ETOS Payroll',
+  Monobungsya: 'Monobungsya',
   'ETOS · Login': 'ETOS · Masuk',
   'ETOS · Verify': 'ETOS · Verifikasi',
   'ETOS · User Access': 'ETOS · Akses Pengguna',

@@ -116,7 +116,7 @@ export class VerifyPage {
     }
 
     if (desktop && token) {
-      this.message.set('Membuka aplikasi desktop ETOS Payroll.');
+      this.message.set('Membuka aplikasi desktop Monobungsya.');
       this.tauri.redirectToDesktopAuth(token);
       return;
     }
