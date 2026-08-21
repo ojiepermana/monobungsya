@@ -54,10 +54,12 @@ Adopt `@ojiepermana/angular` for the web design system, migrate `apps/web` from 
 **Done when:** The web app uses package theme, components, navigation, and settings with no active SCSS, a fluid accessible login shell, an authenticated main shell, and passing build, lint, unit, AXE, responsive, and bundle checks.
 
 - [x] Design it (spec): `/architect Angular UI package and CSS standard`
-- [x] Build it: `/develop Angular UI package and CSS standard`
-  - [x] Package dependencies, theme provider, local icon font, and subpath imports (AC-1, AC-2, AC-3, AC-4, AC-11)
-  - [x] CSS migration, Tailwind token setup, Angular style configuration, and bundle guardrails (AC-3, AC-5, AC-12)
-  - [x] Authenticated main navigation shell, settings surface, session gate, and fluid auth layout (AC-6, AC-7, AC-8, AC-9, AC-10)
+- [ ] Build it: `/develop Angular UI package and CSS standard`
+  - [ ] Upstream package release in the `angular` repo: bindable logout and published settings adapter, then raise the dependency (AC-13, AC-14, AC-16)
+  - [x] Package dependencies, theme provider, local icon font, and subpath imports (AC-1, AC-2, AC-3, AC-4)
+  - [x] CSS migration, Tailwind token setup, and Angular style configuration (AC-5, AC-8)
+  - [ ] Root `Shell` and `LayoutWrapperDefault` composition, settings adapter, and storage keys (AC-6, AC-9, AC-11, AC-13, AC-14)
+  - [ ] Routed pages with `Page`, fluid gate and auth layout, logout wiring, and measured bundle (AC-7, AC-10, AC-12, AC-15, AC-16)
 - [ ] Verify it: `/check verify Angular UI package and CSS standard`
 - [ ] Test it: `/test Angular UI package and CSS standard`
 
@@ -82,3 +84,4 @@ Spec [0005](../specs/0005-mcp-server-scaffold.md) · code in `apps/mcp`, `packag
 
 - Gateway inventory stock endpoint (`/api/v1/stock`) · from spec 0005
 - Gateway machine auth scheme for service tokens · from spec 0005
+- Service registry endpoint so the console renders service cards from real data instead of a static list · from spec 0001

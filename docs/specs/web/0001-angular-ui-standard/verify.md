@@ -1,4 +1,12 @@
-# Verify: Angular UI package and CSS standard, spec 0001, updated 2026-08-20
+# Verify: Angular UI package and CSS standard, spec 0001, updated 2026-08-21
+
+> **Stale as of the 2026-08-21 layout revision.** Spec 0001 changed the layout decision from hand
+> composed package primitives to `LayoutWrapperDefault`, an input free `Shell` at the application
+> root, and pages as lazy loaded routed components. Steps below that name `LayoutVertical`,
+> `LayoutNavigation`, `LayoutContent`, a pinned shell mode, a deferred workspace chunk, five service
+> cards, or a 500 kB initial budget no longer match the decision. Keep this file for the auth,
+> theme, storage, and accessibility steps, which still hold, and regenerate the composition and
+> bundle steps with `/develop` after the rebuild lands.
 
 Steps derived from spec 0001 acceptance criteria. `/check verify` can run these, and `/test` can lock the durable cases.
 
@@ -7,10 +15,13 @@ Steps derived from spec 0001 acceptance criteria. `/check verify` can run these,
 - [ ] Open `/auth/login` at a desktop viewport, confirm the fluid two column shell, labeled email field, visible focus, strong submit action, and no main navigation, verifies AC-8 and AC-10.
 - [ ] Open `/auth/login` at 390 by 844, confirm one column layout, hidden context panel, readable copy, 44 pixel controls, and no horizontal overflow, verifies AC-8, AC-9, and AC-10.
 - [ ] Open `/` with an authenticated session, confirm loading appears first, then the main navigation, theme settings trigger, gateway status, five service cards, and footer, verifies AC-6 and AC-7.
+- [ ] Inspect the authenticated main DOM, confirm package `Shell`, `Layout`, `LayoutVertical`, `LayoutNavigation`, `LayoutContent`, and `Page` hosts are present with the expected package attributes, verifies AC-13, AC-14, and AC-15.
+- [ ] Confirm the main app uses `PageHeader`, `PageDashboard` or `PageContent`, and `PageFooter` for its page sections, while gateway and service markup remains projected application content, verifies AC-15.
 - [ ] Open `/` with no session, confirm operation content does not render and the browser navigates to `/auth/login`, verifies AC-7.
 - [ ] Make the session endpoint return a service failure, confirm a visible retryable error and no operation content, verifies AC-7.
 - [ ] At a desktop viewport, confirm sidebar navigation and five service cards do not overflow, verifies AC-6 and AC-9.
 - [ ] At a mobile viewport, open the navigation flyout, confirm focus enters the menu, Escape closes it, outside click closes it, and focus returns to the trigger, verifies AC-6, AC-9, and AC-10.
+- [ ] Audit landmarks and scrolling, confirm one `main` landmark, one primary navigation landmark, a working skip link target, one authenticated content scroll owner, and no local outer frame duplicate, verifies AC-14 and AC-16.
 - [ ] Open theme settings and choose light, dark, and system, confirm the rendered mode changes and the choice survives reload, verifies AC-4 and AC-8.
 - [ ] Inspect browser storage after login and main app use, confirm only package theme keys and navigation keys exist. Confirm no email, token, cookie value, token hash, health response, or identity is stored, verifies AC-4 and AC-11.
 - [ ] Inspect network requests while icons render, confirm no Google Fonts or other external font request occurs, verifies AC-3 and AC-11.
@@ -35,6 +46,7 @@ Steps derived from spec 0001 acceptance criteria. `/check verify` can run these,
 - [ ] `rg -n '\.scss|inlineStyleLanguage|"style": "scss"|styles\.scss' apps/web package.json` returns no SCSS source or SCSS configuration, verifies AC-5.
 - [ ] `rg -n "from '@ojiepermana/angular'|import '@ojiepermana/angular'" apps/web` returns no production root barrel import, verifies AC-2.
 - [ ] Inspect the production output and confirm settings is a lazy chunk and the initial bundle remains below 500 kB, verifies AC-12.
+- [ ] `rg -n "@ojiepermana/angular/(theme/shell|theme/layout|theme/page|navigation|theme/component/settings)" apps/web/src` finds explicit package subpath imports, and no local shell wrapper replaces the package composition, verifies AC-13, AC-14, AC-15, and AC-16.
 
 ## Acceptance criteria coverage
 
@@ -45,3 +57,21 @@ Steps derived from spec 0001 acceptance criteria. `/check verify` can run these,
 - AC-9 and AC-10 are covered by responsive, focus, keyboard, overlay, AXE, and unit checks.
 - AC-11 is covered by storage and network inspection.
 - AC-12 is covered by build, lint, tests, and production bundle inspection.
+
+## Deferred shell boundary and bundle reality, added 2026-08-21
+
+The authenticated composition loads as a deferred chunk, so the initial bundle stays close to
+its pre feature size. These steps supersede the two earlier claims that `bun run typecheck:web`
+emits no budget warning and that the initial bundle stays below 500 kB.
+
+- [ ] Open `/` with an authenticated session on a cold cache, confirm the session gate loading state is followed by the deferred workspace placeholder and then the package shell, with no duplicate frame flash, verifies AC-7 and AC-13.
+- [ ] Throttle the network to slow 3G and reload `/`, confirm the workspace placeholder keeps an accessible live region and the workspace renders once the deferred chunk arrives, verifies AC-7 and AC-10.
+- [ ] Inspect the production output, confirm `theme-shell`, `theme-page-root`, the navigation menu chunks, badge, and card are lazy chunks, and record the initial bundle at 504.44 kB against the 500 kB warning, verifies AC-12 and leaves the remaining 4.44 kB as an open budget decision.
+- [ ] Confirm `LayoutContent` is the only element carrying `role="main"`, and that the mobile `Navigation` inside `PageHeader` is hidden at desktop widths so exactly one navigation landmark is exposed per viewport, verifies AC-16.
+- [ ] Resize from 1440 to 390 CSS pixels, confirm the desktop `LayoutNavigation` hides, the `PageHeader` flyout trigger appears, sections stack, service cards become one column, and no horizontal overflow appears, verifies AC-9 and AC-15.
+
+## Value sourcing checks for shell, layout, and page axes, added 2026-08-21
+
+- [ ] Inspect the `Shell` host, confirm web mode and `sync` color resolve from the explicit template inputs, and confirm no `shell-mode`, `shell-device`, `shell-color`, or `shell-frame` key is written to browser storage, verifies AC-13 and AC-11. Source: explicit `Shell` inputs in the authenticated template.
+- [ ] Inspect the `Layout` host, confirm surface `grid`, appearance `border-rail`, width `full`, and type `vertical` resolve from the explicit package inputs and the `LayoutVertical` variant, verifies AC-14. Source: explicit package `Layout` inputs.
+- [ ] Inspect the page slots, confirm `data-page-slot` header, dashboard, and footer are present, the dashboard slot is the single content scroll region, and `Page` itself does not add a page wide scroll container, verifies AC-15. Source: package `Page` slots.
