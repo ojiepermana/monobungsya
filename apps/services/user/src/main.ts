@@ -1,11 +1,10 @@
-import { closeDatabaseClient } from "#project/database";
+import { closeDatabaseClient, createDatabaseClient } from "#project/database";
 import { connectMessaging } from "#project/messaging";
 import { createApp } from "./app";
 import { env } from "./config/env";
-import { createServiceDatabase } from "./database/client";
 
 const database = env.ENABLE_INFRASTRUCTURE
-  ? createServiceDatabase(env)
+  ? createDatabaseClient(env.DATABASE_URL)
   : undefined;
 const messaging = env.ENABLE_INFRASTRUCTURE
   ? await connectMessaging(env.NATS_URL, env.serviceName)

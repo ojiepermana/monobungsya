@@ -1,7 +1,4 @@
-export type UsersModuleStatus = {
-  status: "ok";
-  module: "users";
-};
+import type { UsersModuleStatus } from "./types/repository.types";
 
 export class UsersRepository {
   getModuleStatus(): UsersModuleStatus {

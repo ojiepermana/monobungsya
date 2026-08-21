@@ -7,6 +7,7 @@
     "#project/config": "./packages/config/src/index.ts",
     "#project/contracts": "./packages/contracts/src/index.ts",
     "#project/database": "./packages/database/src/index.ts",
+    "#project/elysia": "./packages/elysia/src/index.ts",
     "#project/errors": "./packages/errors/src/index.ts",
     "#project/logger": "./packages/logger/src/index.ts",
     "#project/messaging": "./packages/messaging/src/index.ts"
@@ -26,8 +27,9 @@
     "lint": "bunx biome check --files-ignore-unknown=true .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "bun run --parallel typecheck:web typecheck:gateway typecheck:auth typecheck:user typecheck:mcp typecheck:database typecheck:tauri",
+    "typecheck": "bun run --parallel typecheck:web typecheck:gateway typecheck:auth typecheck:user typecheck:mcp typecheck:database typecheck:elysia typecheck:tauri",
     "typecheck:database": "./node_modules/.bin/tsc --noEmit -p packages/database/tsconfig.json",
+    "typecheck:elysia": "./node_modules/.bin/tsc --noEmit -p packages/elysia/tsconfig.json",
     "typecheck:web": "cd apps/web && ../../node_modules/.bin/ng build",
     "typecheck:gateway": "tsc --noEmit -p apps/gateway/erp/tsconfig.json",
     "typecheck:auth": "tsc --noEmit -p apps/services/auth/tsconfig.json",

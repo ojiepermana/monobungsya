@@ -45,7 +45,7 @@ Bun monorepo: Angular/Tauri clients → Elysia API Gateway → two domain servic
 - **apps/services/{auth,user}** (ports 3101–3102, internal only) — each has the same shape: `main.ts` (composition root), `app.ts` (`createApp` factory), `config/env.ts`, `modules/<module>/`, `shared/plugins/`, `jobs/workers/`, `tests/`, Dockerfile.
 - **apps/mcp** (STDIO) — MCP tools that call the gateway through the shared contract.
 - **apps/tauri** — Tauri v2 desktop shell around the Angular build at `dist/web/browser`.
-- **packages/** — shared infrastructure only: `contracts` (OpenAPI artifacts + event contracts), `database` (Bun native SQL for PostgreSQL), `messaging` (NATS abstraction), `config`, `logger`, `errors`, `angular-sdk` (generated). Imported everywhere via the root import map `#project/*`.
+- **packages/** — shared infrastructure only: `contracts` (OpenAPI artifacts + event contracts), `database` (Bun native SQL for PostgreSQL), `elysia` (shared Elysia adapters), `messaging` (NATS abstraction), `config`, `logger`, `errors`, `angular-sdk` (generated). Imported everywhere via the root import map `#project/*`.
 
 ### Layering inside a module
 

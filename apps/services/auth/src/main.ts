@@ -1,15 +1,14 @@
-import { closeDatabaseClient } from "#project/database";
+import { closeDatabaseClient, createDatabaseClient } from "#project/database";
 import { Logger } from "#project/logger";
 import { connectMessaging } from "#project/messaging";
 import { createApp } from "./app";
 import { env } from "./config/env";
-import { createServiceDatabase } from "./database/client";
 import { startAuthCleanupWorker } from "./jobs/workers/auth-cleanup.worker";
 import { SmtpAuthMailer } from "./modules/auth/auth.mailer";
 import { AuthRepository } from "./modules/auth/auth.repository";
 
 const database = env.ENABLE_INFRASTRUCTURE
-  ? createServiceDatabase(env)
+  ? createDatabaseClient(env.DATABASE_URL)
   : undefined;
 const messaging = env.ENABLE_INFRASTRUCTURE
   ? await connectMessaging(env.NATS_URL, env.serviceName)

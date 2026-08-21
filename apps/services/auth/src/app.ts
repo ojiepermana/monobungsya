@@ -1,5 +1,11 @@
 import { Elysia, t } from "elysia";
 import type { AppEnvironment } from "#project/config";
+import {
+  createErrorHandler,
+  createLoggerPlugin,
+  createOpenApiPlugin,
+  requestIdPlugin,
+} from "#project/elysia";
 import { toErrorResponse, ValidationError } from "#project/errors";
 import { Logger } from "#project/logger";
 import { loadAuthEnv } from "./config/env";
@@ -7,10 +13,6 @@ import {
   type AuthRouteOptions,
   createAuthRoute,
 } from "./modules/auth/auth.route";
-import { createErrorHandler } from "./shared/errors/error-handler";
-import { createLoggerPlugin } from "./shared/plugins/logger.plugin";
-import { openapiPlugin } from "./shared/plugins/openapi.plugin";
-import { requestIdPlugin } from "./shared/plugins/request-id.plugin";
 
 export function createApp(
   environment: AppEnvironment = loadAuthEnv(),
@@ -20,8 +22,20 @@ export function createApp(
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
-    .use(createLoggerPlugin(logger))
-    .use(openapiPlugin)
+    .use(createLoggerPlugin(logger, "auth-logger"))
+    .use(
+      createOpenApiPlugin({
+        info: {
+          title: "Auth Service API",
+          version: "0.1.0",
+          description: "Internal HTTP contract for the auth service.",
+        },
+        tags: [
+          { name: "Health", description: "Service health checks" },
+          { name: "Auth", description: "Auth module" },
+        ],
+      }),
+    )
     .get(
       "/health",
       () => ({ status: "ok" as const, service: environment.serviceName }),
@@ -33,7 +47,7 @@ export function createApp(
       },
     )
     .use(createAuthRoute(environment.serviceName, authOptions))
-    .use(createErrorHandler())
+    .use(createErrorHandler("auth-error-handler"))
     .onError(({ code, error, request, set }) => {
       const mapped = toErrorResponse(
         code === "VALIDATION"
