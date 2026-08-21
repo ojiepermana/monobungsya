@@ -175,6 +175,18 @@ function mappedGatewayError(error: unknown, requestId: string): Response {
   });
 }
 
+const webAuthnResponse = t.Object(
+  {
+    id: t.String({ minLength: 1, maxLength: 1024 }),
+    rawId: t.String({ minLength: 1, maxLength: 1024 }),
+    type: t.String({ minLength: 1, maxLength: 32 }),
+    response: t.Record(t.String(), t.Unknown()),
+    clientExtensionResults: t.Optional(t.Record(t.String(), t.Unknown())),
+    authenticatorAttachment: t.Optional(t.String({ maxLength: 32 })),
+  },
+  { additionalProperties: true },
+);
+
 export function createProxyRoute(environment: GatewayEnvironment) {
   return new Elysia({ name: "gateway-proxy-routes" })
     .all("/api/v1/auth/identity", () => new Response(null, { status: 404 }), {
@@ -252,6 +264,139 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         ),
       {
         detail: { tags: ["Auth"], summary: "Logout the current auth session" },
+      },
+    )
+    .post(
+      "/api/v1/auth/passkey/register/options",
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+        ),
+      {
+        detail: {
+          tags: ["Passkey"],
+          summary: "Start passkey registration",
+        },
+      },
+    )
+    .post(
+      "/api/v1/auth/passkey/register/verify",
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({
+          response: webAuthnResponse,
+          label: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+        }),
+        detail: {
+          tags: ["Passkey"],
+          summary: "Finish passkey registration",
+        },
+      },
+    )
+    .post(
+      "/api/v1/auth/passkey/login/options",
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+        ),
+      {
+        detail: {
+          tags: ["Passkey"],
+          summary: "Start passkey sign in",
+        },
+      },
+    )
+    .post(
+      "/api/v1/auth/passkey/login/verify",
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({ response: webAuthnResponse }),
+        detail: {
+          tags: ["Passkey"],
+          summary: "Finish passkey sign in",
+        },
+      },
+    )
+    .get(
+      "/api/v1/auth/passkeys",
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+        ),
+      {
+        detail: {
+          tags: ["Passkey"],
+          summary: "List the current user's passkeys",
+        },
+      },
+    )
+    .patch(
+      "/api/v1/auth/passkeys/:id",
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+          false,
+          body,
+        ),
+      {
+        params: t.Object({ id: t.String({ format: "uuid" }) }),
+        body: t.Object({ label: t.String({ minLength: 1, maxLength: 100 }) }),
+        detail: {
+          tags: ["Passkey"],
+          summary: "Rename a passkey",
+        },
+      },
+    )
+    .delete(
+      "/api/v1/auth/passkeys/:id",
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          "/api/v1/auth",
+          "/internal/auth",
+          environment,
+        ),
+      {
+        params: t.Object({ id: t.String({ format: "uuid" }) }),
+        detail: {
+          tags: ["Passkey"],
+          summary: "Delete a passkey",
+        },
       },
     )
     .get(

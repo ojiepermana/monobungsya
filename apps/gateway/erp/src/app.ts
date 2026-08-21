@@ -29,6 +29,7 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
         tags: [
           { name: "Health", description: "Gateway health checks" },
           { name: "Auth", description: "Public auth boundary" },
+          { name: "Passkey", description: "Public passkey (WebAuthn) boundary" },
           { name: "Users", description: "Public users boundary" },
         ],
       }),
