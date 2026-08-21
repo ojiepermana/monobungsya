@@ -19,6 +19,7 @@ import {
 } from '@ojiepermana/angular/theme/page';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService } from './auth.service';
+import { PasskeyService } from './passkey.service';
 
 @Component({
   selector: 'app-login-page',
@@ -53,6 +54,27 @@ import { AuthService } from './auth.service';
           </CardHeader>
 
           <CardContent>
+            @if (passkeySupported) {
+              <div class="mb-5 grid gap-3">
+                <button
+                  Button
+                  size="xs"
+                  type="button"
+                  class="w-full gap-1.5"
+                  [disabled]="passkeyLoading()"
+                  (click)="signInWithPasskey()"
+                >
+                  <Icon name="fingerprint" [size]="14" />
+                  {{ passkeyLoading() ? 'Menunggu passkey...' : 'Masuk dengan passkey' }}
+                </button>
+                <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span class="h-px flex-1 bg-border"></span>
+                  atau gunakan email
+                  <span class="h-px flex-1 bg-border"></span>
+                </div>
+              </div>
+            }
+
             <form class="space-y-5" (submit)="send($event)">
               <label class="grid gap-2 text-sm font-medium" for="login-email">
                 Email
@@ -113,12 +135,20 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly tauri = inject(TauriService);
+  private readonly passkey = inject(PasskeyService);
+
+  /**
+   * Read once, not per change detection: WebAuthn support and the Tauri runtime
+   * cannot change while this page is open.
+   */
+  protected readonly passkeySupported = this.passkey.supported();
 
   protected readonly email = signal('');
   protected readonly loading = signal(false);
   protected readonly message = signal<string | null>(null);
   protected readonly magicLink = signal<string | null>(null);
   protected readonly localLoginEnabled = signal(false);
+  protected readonly passkeyLoading = signal(false);
 
   constructor() {
     this.auth.localDevLoginStatus().subscribe({
@@ -153,6 +183,22 @@ export class LoginPage {
         this.loading.set(false);
       },
     });
+  }
+
+  signInWithPasskey(): void {
+    this.passkeyLoading.set(true);
+    this.message.set(null);
+    this.magicLink.set(null);
+
+    void this.passkey
+      .signIn()
+      .then(() => this.router.navigateByUrl('/'))
+      .catch((error: unknown) => {
+        this.message.set(
+          this.passkey.messageFrom(error, 'Login dengan passkey gagal.'),
+        );
+      })
+      .finally(() => this.passkeyLoading.set(false));
   }
 
   loginLocally(): void {
