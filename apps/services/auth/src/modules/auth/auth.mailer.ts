@@ -19,10 +19,10 @@ export class SmtpAuthMailer implements AuthMailer {
       host: config.host,
       port: config.port,
       secure: config.port === 465,
-      auth: {
-        user: config.username,
-        pass: config.password,
-      },
+      auth:
+        config.username && config.password
+          ? { user: config.username, pass: config.password }
+          : undefined,
     });
   }
 

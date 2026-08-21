@@ -14,6 +14,7 @@ async function forwardRequest(
   internalPrefix: string,
   environment: GatewayEnvironment,
   requiresIdentity = false,
+  requestBody?: unknown,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
   const suffix = incomingUrl.pathname.slice(publicPrefix.length);
@@ -33,6 +34,10 @@ async function forwardRequest(
       "",
   );
 
+  if (requestBody !== undefined) {
+    headers.delete("content-length");
+  }
+
   if (requiresIdentity) {
     const identityError = await addIdentityHeaders(
       request,
@@ -50,10 +55,13 @@ async function forwardRequest(
     return await fetch(upstreamUrl, {
       method: request.method,
       headers,
+      redirect: "manual",
       body:
         request.method === "GET" || request.method === "HEAD"
           ? undefined
-          : await request.arrayBuffer(),
+          : requestBody === undefined
+            ? await request.arrayBuffer()
+            : JSON.stringify(requestBody),
     });
   } catch {
     const mapped = toErrorResponse(
@@ -186,13 +194,15 @@ export function createProxyRoute(environment: GatewayEnvironment) {
     )
     .post(
       "/api/v1/auth/magic-link",
-      ({ request }) =>
+      ({ body, request }) =>
         forwardRequest(
           request,
           environment.serviceUrls.auth,
           "/api/v1/auth",
           "/internal/auth",
           environment,
+          false,
+          body,
         ),
       {
         body: t.Object({

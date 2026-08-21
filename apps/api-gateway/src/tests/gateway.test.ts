@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { readAndVerifyAuthIdentity } from "#project/contracts";
 import { createApp } from "../app";
 import { loadGatewayEnv } from "../config/env";
@@ -69,6 +71,86 @@ describe("api gateway", () => {
       );
     } finally {
       globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("forwards validated auth request bodies", async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: "test",
+        PORT: "3000",
+        AUTH_SERVICE_URL: "http://auth.internal",
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let upstreamRequest: Request | undefined;
+
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        upstreamRequest = new Request(input, init);
+        return Response.json({ accepted: true });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request("http://localhost/api/v1/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: "system@project.local" }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(upstreamRequest?.url).toBe(
+        "http://auth.internal/internal/auth/magic-link",
+      );
+      expect(await upstreamRequest?.json()).toEqual({
+        email: "system@project.local",
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("preserves auth redirects from the upstream service", async () => {
+    const upstreamServer = createServer((_request, response) => {
+      response.writeHead(302, {
+        Location: "http://web.local/auth/callback-complete",
+      });
+      response.end();
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      upstreamServer.once("error", reject);
+      upstreamServer.listen(0, "127.0.0.1", resolve);
+    });
+
+    const address = upstreamServer.address() as AddressInfo;
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: "test",
+        PORT: "3000",
+        AUTH_SERVICE_URL: `http://127.0.0.1:${address.port}`,
+      }),
+    );
+
+    try {
+      const response = await app.handle(
+        new Request(
+          "http://localhost/api/v1/auth/verify?token=valid-token-for-test",
+        ),
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe(
+        "http://web.local/auth/callback-complete",
+      );
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        upstreamServer.close((error) => (error ? reject(error) : resolve()));
+      });
     }
   });
 
