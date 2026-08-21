@@ -91,9 +91,9 @@ export class App {
 
   /** Brand shown in the layout's sidebar header. */
   protected readonly brand: BrandIdentity = {
-    name: 'PT ETOS INDONUSA',
+    name: 'PT MONOBUNGSYA INDONUSA',
     icon: APP_BRAND_ICON,
-    title: 'PT ETOS INDONUSA',
+    title: 'PT MONOBUNGSYA INDONUSA',
     subtitle: '',
   };
 

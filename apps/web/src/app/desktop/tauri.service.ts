@@ -38,7 +38,7 @@ export class TauriService {
   }
 
   desktopAuthUrl(token: string): string {
-    const url = new URL('etos://auth');
+    const url = new URL('monobungsya://auth');
     url.searchParams.set('token', token);
 
     return url.toString();

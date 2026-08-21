@@ -1,6 +1,6 @@
 # Security Model
 
-ETOS Payroll uses magic-link authentication, server-side sessions, and native
+Monobungsya Payroll uses magic-link authentication, server-side sessions, and native
 bearer tokens for desktop clients.
 
 - `users.manage` controls user administration.

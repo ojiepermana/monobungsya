@@ -61,7 +61,7 @@ import { AuthService } from './auth.service';
                   Input
                   type="email"
                   autocomplete="email"
-                  placeholder="nama@etos.id"
+                  placeholder="nama@monobungsya.id"
                   [value]="email()"
                   (input)="updateEmail($event)"
                 />

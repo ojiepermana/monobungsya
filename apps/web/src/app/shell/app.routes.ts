@@ -4,19 +4,19 @@ import { authGuard, guestGuard, permissionGuard } from '../auth/auth.guard';
 export const routes: Routes = [
   {
     path: 'auth/login',
-    title: 'ETOS · Login',
+    title: 'MONOBUNGSYA · Login',
     canActivate: [guestGuard],
     loadComponent: () => import('../auth/login.page').then((m) => m.LoginPage),
   },
   {
     path: 'auth/callback-complete',
-    title: 'ETOS · Login Complete',
+    title: 'MONOBUNGSYA · Login Complete',
     data: { callback: 'success' },
     loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
     path: 'auth/callback-error',
-    title: 'ETOS · Login Error',
+    title: 'MONOBUNGSYA · Login Error',
     data: { callback: 'error' },
     loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
   },
@@ -27,12 +27,12 @@ export const routes: Routes = [
   },
   {
     path: 'verify',
-    title: 'ETOS · Verify',
+    title: 'MONOBUNGSYA · Verify',
     loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
     path: '',
-    title: 'ETOS · Logs',
+    title: 'MONOBUNGSYA · Logs',
     canActivate: [authGuard],
     loadComponent: () =>
       import('../pages/logs/overview/logs.page').then(
@@ -41,7 +41,7 @@ export const routes: Routes = [
   },
   {
     path: 'setting/users',
-    title: 'ETOS · User Access',
+    title: 'MONOBUNGSYA · User Access',
     canActivate: [authGuard, permissionGuard('users.manage')],
     loadComponent: () =>
       import('../pages/settings/user-access-settings/user-access-settings.page').then(
@@ -55,21 +55,21 @@ export const routes: Routes = [
   },
   {
     path: 'logs/audit',
-    title: 'ETOS · Audit Logs',
+    title: 'MONOBUNGSYA · Audit Logs',
     canActivate: [authGuard, permissionGuard('logs.read')],
     loadComponent: () =>
       import('../pages/logs/audit/audit-logs.page').then((m) => m.AuditLogsPage),
   },
   {
     path: 'logs/access',
-    title: 'ETOS · Access Logs',
+    title: 'MONOBUNGSYA · Access Logs',
     canActivate: [authGuard, permissionGuard('logs.read')],
     loadComponent: () =>
       import('../pages/logs/access/access-logs.page').then((m) => m.AccessLogsPage),
   },
   {
     path: 'logs/application',
-    title: 'ETOS · Application Logs',
+    title: 'MONOBUNGSYA · Application Logs',
     canActivate: [authGuard, permissionGuard('logs.read')],
     loadComponent: () =>
       import('../pages/logs/application/application-logs.page').then(
@@ -78,7 +78,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    title: 'ETOS · Page Not Found',
+    title: 'MONOBUNGSYA · Page Not Found',
     canActivate: [authGuard],
     loadComponent: () =>
       import('../pages/system/not-found/not-found.page').then((m) => m.NotFoundPage),
