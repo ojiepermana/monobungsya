@@ -12,6 +12,14 @@ export interface AuthUser {
   suspendedAt: Date | null;
 }
 
+export interface AuthUserAdmin {
+  id: string;
+  email: string;
+  name: string;
+  role: AuthRole;
+  suspendedAt: string | null;
+}
+
 export interface SessionIdentity extends AuthUser {
   sessionId: string;
   idleExpiresAt: Date;

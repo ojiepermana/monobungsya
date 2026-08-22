@@ -85,6 +85,18 @@ paths:
                   maxLength: 255
                   type: string
       operationId: postApiV1AuthMagic-link
+  /api/v1/auth/users:
+    get:
+      tags:
+        - Auth
+      summary: List users for authorized operators
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      operationId: getApiV1AuthUsers
   /api/v1/auth/verify:
     get:
       tags:

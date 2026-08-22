@@ -44,3 +44,19 @@ export const identityResponse = t.Object({
   role: t.String(),
   expiresAt: t.String(),
 });
+
+export const authUsersQuery = t.Object({
+  search: t.Optional(t.String({ maxLength: 255 })),
+});
+
+export const authUsersResponse = t.Object({
+  data: t.Array(
+    t.Object({
+      id: t.String(),
+      name: t.String(),
+      email: t.String(),
+      role: t.String(),
+      suspendedAt: t.Union([t.String(), t.Null()]),
+    }),
+  ),
+});

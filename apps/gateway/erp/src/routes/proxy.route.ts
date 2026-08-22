@@ -224,6 +224,25 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       },
     )
     .get(
+      '/api/v1/auth/users',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          true,
+        ),
+      {
+        query: t.Object({ search: t.Optional(t.String()) }),
+        detail: {
+          tags: ['Auth'],
+          summary: 'List users for authorized operators',
+        },
+      },
+    )
+    .get(
       '/api/v1/auth/verify',
       ({ request }) =>
         forwardRequest(

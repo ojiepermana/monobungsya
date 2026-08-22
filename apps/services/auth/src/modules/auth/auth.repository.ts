@@ -46,6 +46,19 @@ export class AuthRepository {
     return { status: 'ok', module: 'auth' };
   }
 
+  async listUsers(search: string): Promise<AuthUser[]> {
+    const database = this.requireDatabase();
+    const rows = (await database.unsafe(
+      `SELECT id, email, name, role, suspended_at
+       FROM "user"."users"
+       WHERE concat_ws(' ', name, email, role) ILIKE $1 ESCAPE '\\'
+       ORDER BY name, email`,
+      [`%${escapeLikePattern(search)}%`] as never[],
+    )) as Array<Record<string, unknown>>;
+
+    return rows.map(mapUser);
+  }
+
   async issueMagicLink(
     email: string,
     emailHash: string,
@@ -231,6 +244,10 @@ export class AuthRepository {
 
     return this.database;
   }
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 export async function incrementRateLimit(

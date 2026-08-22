@@ -10,6 +10,7 @@ import type {
   AuthMailer,
   AuthPermission,
   AuthRole,
+  AuthUserAdmin,
   SessionIdentity,
 } from './auth.types';
 
@@ -57,6 +58,18 @@ export class AuthService {
       service: this.serviceName,
       ...this.repository.getModuleStatus(),
     };
+  }
+
+  async listUsers(search: string): Promise<AuthUserAdmin[]> {
+    const users = await this.repository.listUsers(search);
+
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      suspendedAt: user.suspendedAt?.toISOString() ?? null,
+    }));
   }
 
   async requestMagicLink(

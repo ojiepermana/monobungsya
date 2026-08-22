@@ -59,6 +59,52 @@ paths:
                     const: auth
                     type: string
       operationId: getInternalAuthStatus
+  /internal/auth/users:
+    get:
+      tags:
+        - Auth
+      summary: List users for authorized operators
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            maxLength: 255
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - email
+                        - role
+                        - suspendedAt
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        role:
+                          type: string
+                        suspendedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+      operationId: getInternalAuthUsers
   /internal/auth/magic-link:
     post:
       tags:

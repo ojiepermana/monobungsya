@@ -128,6 +128,71 @@ describe('api gateway', () => {
     }
   });
 
+  it('forwards the protected auth user list with a signed identity', async () => {
+    const secret = 'integration-signing-secret';
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: secret,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let upstreamRequest: Request | undefined;
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
+
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+
+        if (new URL(request.url).pathname === '/internal/auth/session') {
+          return Response.json({
+            authenticated: true,
+            user: {
+              id: '0198f8a0-0000-7000-8000-000000000001',
+              email: 'admin@project.local',
+              role: 'admin',
+            },
+            session: { absoluteExpiresAt: expiresAt },
+          });
+        }
+
+        upstreamRequest = request;
+        return Response.json({ data: [] });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/auth/users?search=system', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(upstreamRequest?.url).toBe(
+        'http://auth.internal/internal/auth/users?search=system',
+      );
+      expect(
+        readAndVerifyAuthIdentity(
+          upstreamRequest?.headers ?? new Headers(),
+          'GET',
+          '/internal/auth/users',
+          secret,
+        ),
+      ).toMatchObject({
+        userId: '0198f8a0-0000-7000-8000-000000000001',
+        email: 'admin@project.local',
+        role: 'admin',
+        expiresAt,
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('preserves auth redirects from the upstream service', async () => {
     const upstreamServer = createServer((_request, response) => {
       response.writeHead(302, {

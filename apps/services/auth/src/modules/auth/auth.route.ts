@@ -1,10 +1,15 @@
 import { Elysia } from 'elysia';
-import { readAndVerifyAuthIdentity } from '#project/contracts';
+import {
+  canAccessAuthCapability,
+  readAndVerifyAuthIdentity,
+} from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
-import { UnauthorizedError } from '#project/errors';
+import { ForbiddenError, UnauthorizedError } from '#project/errors';
 import { AuthRepository } from './auth.repository';
 import {
   authStatusResponse,
+  authUsersQuery,
+  authUsersResponse,
   identityResponse,
   magicLinkAcceptedResponse,
   magicLinkQuery,
@@ -53,6 +58,37 @@ export function createAuthRoute(
   );
 
   return route
+    .get(
+      '/internal/auth/users',
+      async ({ query, request }) => {
+        const identity = readAndVerifyAuthIdentity(
+          request.headers,
+          request.method,
+          new URL(request.url).pathname,
+          signingSecret,
+          Date.now(),
+          clockSkewSeconds,
+        );
+
+        if (!identity) {
+          throw new UnauthorizedError('A valid signed identity is required');
+        }
+
+        if (!canAccessAuthCapability(identity.role, 'admin')) {
+          throw new ForbiddenError('The current role cannot manage users');
+        }
+
+        return { data: await service.listUsers(query.search ?? '') };
+      },
+      {
+        query: authUsersQuery,
+        response: { 200: authUsersResponse },
+        detail: {
+          tags: ['Auth'],
+          summary: 'List users for authorized operators',
+        },
+      },
+    )
     .get(
       '/internal/auth/identity',
       ({ request }) => {

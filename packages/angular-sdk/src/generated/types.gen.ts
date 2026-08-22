@@ -39,6 +39,15 @@ export type PostApiV1AuthMagicLinkData = {
     url: '/api/v1/auth/magic-link';
 };
 
+export type GetApiV1AuthUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+    };
+    url: '/api/v1/auth/users';
+};
+
 export type GetApiV1AuthVerifyData = {
     body?: never;
     path?: never;

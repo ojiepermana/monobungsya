@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'bun:test';
 import { type AddressInfo, createServer } from 'node:net';
 import { loadEnv } from '#project/config';
+import { signAuthIdentity } from '#project/contracts';
+import type { DatabaseClient } from '#project/database';
 import { createApp } from '../app';
 import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
 import { permissionsForRole } from '../modules/auth/auth.service';
+
+function createFakeDatabase(
+  rows: Array<Record<string, unknown>>,
+): DatabaseClient {
+  return {
+    unsafe: async () => rows,
+  } as unknown as DatabaseClient;
+}
 
 describe('auth service', () => {
   it('exposes health and module status endpoints', async () => {
@@ -135,5 +145,60 @@ describe('permissionsForRole (covers AC-5 of spec logs/0001)', () => {
     expect(permissionsForRole('staff')).toEqual([]);
     expect(permissionsForRole('bi')).toEqual([]);
     expect(permissionsForRole('legacy')).toEqual([]);
+  });
+});
+
+describe('auth user administration', () => {
+  it('lists users for a signed admin identity', async () => {
+    const secret = 'auth-service-signing-secret';
+    const identity = {
+      userId: '0198f8a0-0000-7000-8000-000000000001',
+      email: 'admin@project.local',
+      role: 'admin' as const,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    };
+    const signature = signAuthIdentity(
+      'GET',
+      '/internal/auth/users',
+      identity,
+      secret,
+    );
+    const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }), {
+      database: createFakeDatabase([
+        {
+          id: '0198f8a0-0000-7000-8000-000000000002',
+          name: 'System User',
+          email: 'system@project.local',
+          role: 'admin',
+          suspended_at: null,
+        },
+      ]),
+      signingSecret: secret,
+    });
+
+    const response = await app.handle(
+      new Request('http://localhost/internal/auth/users?search=system', {
+        headers: {
+          'x-auth-user-id': identity.userId,
+          'x-auth-email': identity.email,
+          'x-auth-role': identity.role,
+          'x-auth-expires-at': identity.expiresAt,
+          'x-auth-signature': signature,
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: [
+        {
+          id: '0198f8a0-0000-7000-8000-000000000002',
+          name: 'System User',
+          email: 'system@project.local',
+          role: 'admin',
+          suspendedAt: null,
+        },
+      ],
+    });
   });
 });
