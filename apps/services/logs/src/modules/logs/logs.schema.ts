@@ -14,6 +14,7 @@ export const auditTrailsQuery = t.Object({
   module: t.Optional(t.String()),
   action: t.Optional(t.String()),
   page: t.Optional(t.String()),
+  actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 
 export const auditTrailsResponse = t.Object({
@@ -48,6 +49,7 @@ export const accessLogsQuery = t.Object({
   event: t.Optional(t.String()),
   outcome: t.Optional(t.String()),
   page: t.Optional(t.String()),
+  actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 
 export const accessLogsResponse = t.Object({
@@ -78,6 +80,7 @@ export const applicationLogsQuery = t.Object({
   module: t.Optional(t.String()),
   event: t.Optional(t.String()),
   page: t.Optional(t.String()),
+  actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 
 export const applicationLogsResponse = t.Object({

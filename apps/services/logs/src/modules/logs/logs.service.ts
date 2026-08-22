@@ -27,6 +27,12 @@ function buildMeta(page: number, total: number): LogsMeta {
   };
 }
 
+/**
+ * The actorUserId filter (spec docs/specs/0007-user-management, AC-10) is
+ * deliberately not echoed back in `filters`: it narrows a list to one user for
+ * the user detail page rather than being one of the viewer's own filter
+ * controls, so the response contract the log viewer pages read stays unchanged.
+ */
 export class LogsService {
   constructor(private readonly repository: LogsRepository) {}
 
@@ -34,6 +40,7 @@ export class LogsService {
     search?: string;
     module?: string;
     action?: string;
+    actorUserId?: string;
     page?: string;
   }): Promise<AuditTrailsResult> {
     const filters = {
@@ -44,6 +51,7 @@ export class LogsService {
     const page = parsePage(query.page);
     const { items, total } = await this.repository.listAuditTrails({
       ...filters,
+      actorUserId: squish(query.actorUserId),
       page,
     });
 
@@ -59,6 +67,7 @@ export class LogsService {
     search?: string;
     event?: string;
     outcome?: string;
+    actorUserId?: string;
     page?: string;
   }): Promise<AccessLogsResult> {
     const filters = {
@@ -69,6 +78,7 @@ export class LogsService {
     const page = parsePage(query.page);
     const { items, total } = await this.repository.listAccessLogs({
       ...filters,
+      actorUserId: squish(query.actorUserId),
       page,
     });
 
@@ -85,6 +95,7 @@ export class LogsService {
     level?: string;
     module?: string;
     event?: string;
+    actorUserId?: string;
     page?: string;
   }): Promise<ApplicationLogsResult> {
     // Drain queued best effort writes first, so a log written just before
@@ -100,6 +111,7 @@ export class LogsService {
     const page = parsePage(query.page);
     const { items, total } = await this.repository.listApplicationLogs({
       ...filters,
+      actorUserId: squish(query.actorUserId),
       page,
     });
 

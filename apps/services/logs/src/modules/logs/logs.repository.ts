@@ -39,12 +39,21 @@ const APPLICATION_SEARCH_COLUMNS = [
   'actor_email',
 ] as const;
 
-const AUDIT_FILTER_COLUMNS = { module: 'module', action: 'action' } as const;
-const ACCESS_FILTER_COLUMNS = { event: 'event', outcome: 'outcome' } as const;
+const AUDIT_FILTER_COLUMNS = {
+  module: 'module',
+  action: 'action',
+  actorUserId: 'actor_user_id',
+} as const;
+const ACCESS_FILTER_COLUMNS = {
+  event: 'event',
+  outcome: 'outcome',
+  actorUserId: 'actor_user_id',
+} as const;
 const APPLICATION_FILTER_COLUMNS = {
   level: 'level',
   module: 'module',
   event: 'event',
+  actorUserId: 'actor_user_id',
 } as const;
 
 function escapeLikePattern(value: string): string {
@@ -111,11 +120,13 @@ export class LogsRepository {
     search: string;
     module: string;
     action: string;
+    actorUserId: string;
     page: number;
   }): Promise<ListPage<AuditTrailItem>> {
     const clause = buildWhere(query.search, AUDIT_SEARCH_COLUMNS, [
       [AUDIT_FILTER_COLUMNS.module, query.module],
       [AUDIT_FILTER_COLUMNS.action, query.action],
+      [AUDIT_FILTER_COLUMNS.actorUserId, query.actorUserId],
     ]);
     const rows = await this.listRows(
       '"logs"."audit_trails"',
@@ -154,11 +165,13 @@ export class LogsRepository {
     search: string;
     event: string;
     outcome: string;
+    actorUserId: string;
     page: number;
   }): Promise<ListPage<AccessLogItem>> {
     const clause = buildWhere(query.search, ACCESS_SEARCH_COLUMNS, [
       [ACCESS_FILTER_COLUMNS.event, query.event],
       [ACCESS_FILTER_COLUMNS.outcome, query.outcome],
+      [ACCESS_FILTER_COLUMNS.actorUserId, query.actorUserId],
     ]);
     const rows = await this.listRows(
       '"logs"."access_logs"',
@@ -192,12 +205,14 @@ export class LogsRepository {
     level: string;
     module: string;
     event: string;
+    actorUserId: string;
     page: number;
   }): Promise<ListPage<ApplicationLogItem>> {
     const clause = buildWhere(query.search, APPLICATION_SEARCH_COLUMNS, [
       [APPLICATION_FILTER_COLUMNS.level, query.level],
       [APPLICATION_FILTER_COLUMNS.module, query.module],
       [APPLICATION_FILTER_COLUMNS.event, query.event],
+      [APPLICATION_FILTER_COLUMNS.actorUserId, query.actorUserId],
     ]);
     const rows = await this.listRows(
       '"logs"."logging"',
