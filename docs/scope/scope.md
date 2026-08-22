@@ -88,7 +88,7 @@ Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the
   - [x] Web thread: gated login button, registration, and passkey sign in end to end (AC-1, AC-3, AC-4)
   - [x] Management UI, post login prompt, rate limits, caps, and logging (AC-2, AC-5, AC-6, AC-8, AC-9)
   - [x] Cleanup worker extension, tests, and env documentation (AC-7, AC-10)
-- [ ] Verify it: `/check verify auth passkey login`
+- [x] Verify it: `/check verify auth passkey login`
 - [ ] Test it: `/test auth passkey login`
 
 Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/errors`
