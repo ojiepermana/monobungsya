@@ -39,15 +39,6 @@ export type PostApiV1AuthMagicLinkData = {
     url: '/api/v1/auth/magic-link';
 };
 
-export type GetApiV1AuthUsersData = {
-    body?: never;
-    path?: never;
-    query?: {
-        search?: string;
-    };
-    url: '/api/v1/auth/users';
-};
-
 export type GetApiV1AuthVerifyData = {
     body?: never;
     path?: never;
@@ -162,6 +153,116 @@ export type GetApiV1UsersStatusData = {
     url: '/api/v1/users/status';
 };
 
+export type GetApiV1UsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        status?: string;
+        page?: string;
+    };
+    url: '/api/v1/users';
+};
+
+export type PostApiV1UsersData = {
+    body: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/users';
+};
+
+export type DeleteApiV1UsersByIdData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}';
+};
+
+export type GetApiV1UsersByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}';
+};
+
+export type PatchApiV1UsersByIdData = {
+    body: {
+        name?: string;
+        role?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}';
+};
+
+export type PostApiV1UsersByIdSuspendData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/suspend';
+};
+
+export type PostApiV1UsersByIdUnsuspendData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/unsuspend';
+};
+
+export type PostApiV1UsersByIdBlockData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/block';
+};
+
+export type PostApiV1UsersByIdUnblockData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/unblock';
+};
+
+export type PostApiV1UsersByIdRestoreData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/restore';
+};
+
 export type GetApiV1LogsAuditTrailsData = {
     body?: never;
     path?: never;
@@ -169,6 +270,7 @@ export type GetApiV1LogsAuditTrailsData = {
         search?: string;
         module?: string;
         action?: string;
+        actorUserId?: string;
         page?: string;
     };
     url: '/api/v1/logs/audit-trails';
@@ -181,6 +283,7 @@ export type GetApiV1LogsAccessLogsData = {
         search?: string;
         event?: string;
         outcome?: string;
+        actorUserId?: string;
         page?: string;
     };
     url: '/api/v1/logs/access-logs';
@@ -194,6 +297,7 @@ export type GetApiV1LogsApplicationLogsData = {
         level?: string;
         module?: string;
         event?: string;
+        actorUserId?: string;
         page?: string;
     };
     url: '/api/v1/logs/application-logs';

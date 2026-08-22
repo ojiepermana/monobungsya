@@ -57,5 +57,1206 @@ paths:
                     const: users
                     type: string
       operationId: getInternalUsersStatus
+  /internal/users:
+    get:
+      tags:
+        - Users
+      summary: List users with search, status filter, and paging
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            maxLength: 255
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ""
+              - active
+              - suspended
+              - blocked
+              - deleted
+              - all
+        - name: page
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - email
+                        - role
+                        - status
+                        - emailVerifiedAt
+                        - suspendedAt
+                        - blockedAt
+                        - deletedAt
+                        - createdAt
+                        - updatedAt
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        role:
+                          type: string
+                          enum:
+                            - admin
+                            - manager
+                            - bi
+                            - staff
+                            - legacy
+                        status:
+                          type: string
+                          enum:
+                            - active
+                            - suspended
+                            - blocked
+                            - deleted
+                        emailVerifiedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        suspendedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        blockedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        deletedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - status
+                    properties:
+                      search:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                          - ""
+                          - active
+                          - suspended
+                          - blocked
+                          - deleted
+                          - all
+                  options:
+                    type: object
+                    required:
+                      - roles
+                      - statuses
+                    properties:
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - admin
+                            - manager
+                            - bi
+                            - staff
+                            - legacy
+                      statuses:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - active
+                            - suspended
+                            - blocked
+                            - deleted
+      operationId: getInternalUsers
+    post:
+      tags:
+        - Users
+      summary: Create a user with a client generated UUIDv7 id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsers
+  /internal/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Read one user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: getInternalUsersById
+    patch:
+      tags:
+        - Users
+      summary: Update a user's name and role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - manager
+                    - bi
+                    - staff
+                    - legacy
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: patchInternalUsersById
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: deleteInternalUsersById
+  /internal/users/{id}/suspend:
+    post:
+      tags:
+        - Users
+      summary: Suspend a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsersByIdSuspend
+  /internal/users/{id}/unsuspend:
+    post:
+      tags:
+        - Users
+      summary: Unsuspend a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsersByIdUnsuspend
+  /internal/users/{id}/block:
+    post:
+      tags:
+        - Users
+      summary: Block a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsersByIdBlock
+  /internal/users/{id}/unblock:
+    post:
+      tags:
+        - Users
+      summary: Unblock a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsersByIdUnblock
+  /internal/users/{id}/restore:
+    post:
+      tags:
+        - Users
+      summary: Restore a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - manager
+                      - bi
+                      - staff
+                      - legacy
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+      operationId: postInternalUsersByIdRestore
 components:
   schemas: {}

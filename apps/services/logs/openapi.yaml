@@ -57,6 +57,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
+            type: string
       responses:
         "200":
           description: Response for status 200
@@ -200,6 +206,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
+            type: string
       responses:
         "200":
           description: Response for status 200
@@ -328,6 +340,12 @@ paths:
           in: query
           required: false
           schema:
+            type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
             type: string
       responses:
         "200":

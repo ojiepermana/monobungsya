@@ -85,18 +85,6 @@ paths:
                   maxLength: 255
                   type: string
       operationId: postApiV1AuthMagic-link
-  /api/v1/auth/users:
-    get:
-      tags:
-        - Auth
-      summary: List users for authorized operators
-      parameters:
-        - name: search
-          in: query
-          required: false
-          schema:
-            type: string
-      operationId: getApiV1AuthUsers
   /api/v1/auth/verify:
     get:
       tags:
@@ -463,6 +451,450 @@ paths:
         - Users
       summary: Forward users status request
       operationId: getApiV1UsersStatus
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: List users (requires the admin role)
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+      operationId: getApiV1Users
+    post:
+      tags:
+        - Users
+      summary: Create a user with a client generated UUIDv7 id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - id
+                - name
+                - email
+                - role
+              properties:
+                id:
+                  format: uuid
+                  type: string
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                email:
+                  format: email
+                  minLength: 3
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+      operationId: postApiV1Users
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Read one user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: getApiV1UsersById
+    patch:
+      tags:
+        - Users
+      summary: Update a user's name and role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  minLength: 1
+                  maxLength: 255
+                  type: string
+                role:
+                  minLength: 1
+                  maxLength: 50
+                  type: string
+      operationId: patchApiV1UsersById
+    delete:
+      tags:
+        - Users
+      summary: Soft delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: deleteApiV1UsersById
+  /api/v1/users/{id}/suspend:
+    post:
+      tags:
+        - Users
+      summary: Suspend a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1UsersByIdSuspend
+  /api/v1/users/{id}/unsuspend:
+    post:
+      tags:
+        - Users
+      summary: Unsuspend a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1UsersByIdUnsuspend
+  /api/v1/users/{id}/block:
+    post:
+      tags:
+        - Users
+      summary: Block a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1UsersByIdBlock
+  /api/v1/users/{id}/unblock:
+    post:
+      tags:
+        - Users
+      summary: Unblock a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1UsersByIdUnblock
+  /api/v1/users/{id}/restore:
+    post:
+      tags:
+        - Users
+      summary: Restore a soft deleted user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1UsersByIdRestore
   /api/v1/logs/audit-trails:
     get:
       tags:
@@ -483,6 +915,12 @@ paths:
           in: query
           required: false
           schema:
+            type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
             type: string
         - name: page
           in: query
@@ -510,6 +948,12 @@ paths:
           in: query
           required: false
           schema:
+            type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
             type: string
         - name: page
           in: query
@@ -542,6 +986,12 @@ paths:
           in: query
           required: false
           schema:
+            type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            format: uuid
             type: string
         - name: page
           in: query
