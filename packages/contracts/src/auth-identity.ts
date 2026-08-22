@@ -1,7 +1,17 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export type AuthIdentityRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
-export type AuthCapability = 'admin' | 'operational' | 'read';
+export type AuthCapability =
+  | 'admin'
+  | 'operational'
+  | 'read'
+  /**
+   * User lifecycle management (spec docs/specs/0007-user-management, AC-8):
+   * admin only, deliberately narrower than 'admin', which also lets a manager
+   * through. Manager level read access to the user pages is a follow up that
+   * would need its own tier here and in the web menu gating.
+   */
+  | 'user-management';
 
 export interface AuthIdentity {
   userId: string;
@@ -20,6 +30,10 @@ export function canAccessAuthCapability(
 
   if (capability === 'operational') {
     return role !== 'legacy';
+  }
+
+  if (capability === 'user-management') {
+    return role === 'admin';
   }
 
   return role === 'admin' || role === 'manager';

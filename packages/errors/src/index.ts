@@ -13,6 +13,13 @@ export interface ErrorResponse {
   error: {
     code: AppErrorCode;
     message: string;
+    /**
+     * Machine readable discriminator inside one code, so a client can tell two
+     * responses with the same code apart (spec docs/specs/0007-user-management
+     * AC-1 needs a duplicate id and a duplicate email to be distinguishable
+     * while both stay a 409 CONFLICT). Safe to expose; never carries internals.
+     */
+    reason?: string;
     requestId?: string;
   };
 }
@@ -23,6 +30,8 @@ export class AppError extends Error {
     public readonly status: number,
     message: string,
     public readonly details?: unknown,
+    /** Exposed in the response envelope; keep it a stable snake_case token. */
+    public readonly reason?: string,
   ) {
     super(message);
     this.name = code;
@@ -54,8 +63,11 @@ export class ForbiddenError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message = 'The request conflicts with current state') {
-    super('CONFLICT', 409, message);
+  constructor(
+    message = 'The request conflicts with current state',
+    reason?: string,
+  ) {
+    super('CONFLICT', 409, message, undefined, reason);
   }
 }
 
@@ -99,6 +111,7 @@ export function toErrorResponse(
       error: {
         code: appError.code,
         message: appError.message,
+        ...(appError.reason ? { reason: appError.reason } : {}),
         ...(requestId ? { requestId } : {}),
       },
     },

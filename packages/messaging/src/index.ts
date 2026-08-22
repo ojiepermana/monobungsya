@@ -33,6 +33,31 @@ export async function connectMessaging(
   return new NatsMessaging(connection);
 }
 
+/**
+ * Connects, or returns undefined when the broker cannot be reached.
+ *
+ * `connectMessaging` throws, which takes a composition root down with it at
+ * startup. A service whose events are fire and forget must keep serving
+ * requests when NATS is down: spec docs/specs/0007-user-management (AC-2)
+ * requires a user create to still succeed, with the skipped invitation logged
+ * as a warning. Use this wherever a missing broker degrades the service instead
+ * of stopping it, and keep `connectMessaging` for the case where events are
+ * load bearing enough that the service should refuse to start without them.
+ */
+export async function tryConnectMessaging(
+  url: string,
+  serviceName: string,
+  onUnavailable?: (error: unknown) => void,
+): Promise<NatsMessaging | undefined> {
+  try {
+    return await connectMessaging(url, serviceName);
+  } catch (error) {
+    onUnavailable?.(error);
+
+    return undefined;
+  }
+}
+
 export class NatsMessaging implements Publisher, Subscriber, Requester {
   private readonly codec = JSONCodec<unknown>();
 
