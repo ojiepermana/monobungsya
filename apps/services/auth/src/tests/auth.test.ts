@@ -3,6 +3,7 @@ import { type AddressInfo, createServer } from 'node:net';
 import { loadEnv } from '#project/config';
 import { createApp } from '../app';
 import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
+import { permissionsForRole } from '../modules/auth/auth.service';
 
 describe('auth service', () => {
   it('exposes health and module status endpoints', async () => {
@@ -118,5 +119,21 @@ describe('auth service', () => {
         server.close((error) => (error ? reject(error) : resolve()));
       });
     }
+  });
+});
+
+describe('permissionsForRole (covers AC-5 of spec logs/0001)', () => {
+  it('grants users.manage and logs.read to admin and manager', () => {
+    expect(permissionsForRole('admin')).toEqual(['users.manage', 'logs.read']);
+    expect(permissionsForRole('manager')).toEqual([
+      'users.manage',
+      'logs.read',
+    ]);
+  });
+
+  it('grants no permissions to staff, bi, and legacy', () => {
+    expect(permissionsForRole('staff')).toEqual([]);
+    expect(permissionsForRole('bi')).toEqual([]);
+    expect(permissionsForRole('legacy')).toEqual([]);
   });
 });

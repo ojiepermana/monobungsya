@@ -1,0 +1,10 @@
+{
+  "tool": "bun test",
+  "gate": null,
+  "additionalTools": [],
+  "e2eTool": "playwright",
+  "testDir": "src/tests (services), beside the source (packages), e2e/ (playwright)",
+  "filePattern": "*.test.ts (unit/integration), *.spec.ts (e2e)",
+  "packageManager": "bun",
+  "notes": "Backend and packages run on bun test. The Angular web app runs vitest through bun run test:web. Playwright e2e needs PostgreSQL up with migrations applied; servers start via the playwright webServer config."
+}

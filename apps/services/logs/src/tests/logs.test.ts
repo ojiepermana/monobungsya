@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import { loadEnv } from '#project/config';
 import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
+import { ActivityLog } from '#project/logger';
 import { createApp } from '../app';
 import { LogsRepository } from '../modules/logs/logs.repository';
 import { LogsService } from '../modules/logs/logs.service';
@@ -293,6 +294,48 @@ describe('logs service pagination and filters', () => {
 
     expect(result.filters.search).toBe('failed invoice');
     expect(result.filters.level).toBe('error');
+  });
+
+  it('drains the ActivityLog queue before querying application logs (covers AC-8)', async () => {
+    const order: string[] = [];
+    const flushSpy = spyOn(ActivityLog, 'flush').mockImplementation(
+      async () => {
+        order.push('flush');
+      },
+    );
+
+    try {
+      const { database } = createFakeDatabase((query) => {
+        order.push('query');
+        if (query.text.startsWith('SELECT count')) return [{ total: 0 }];
+        return [];
+      });
+      const service = new LogsService(new LogsRepository(database));
+
+      await service.getApplicationLogs({});
+
+      expect(order[0]).toBe('flush');
+      expect(order.filter((step) => step === 'flush')).toHaveLength(1);
+      expect(order.length).toBeGreaterThan(1);
+    } finally {
+      flushSpy.mockRestore();
+    }
+  });
+
+  it('does not drain the queue for audit or access reads (flush is the application logs contract)', async () => {
+    const flushSpy = spyOn(ActivityLog, 'flush').mockImplementation(
+      async () => {},
+    );
+
+    try {
+      const service = new LogsService(repositoryWithTotal(0));
+      await service.getAuditTrails({});
+      await service.getAccessLogs({});
+
+      expect(flushSpy).toHaveBeenCalledTimes(0);
+    } finally {
+      flushSpy.mockRestore();
+    }
   });
 
   it('maps audit rows through the repository into the response shape', async () => {

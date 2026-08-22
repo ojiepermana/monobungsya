@@ -22,6 +22,19 @@ describe('application navigation authorization', () => {
     );
   });
 
+  it('does not expose any logs destination without logs.read (covers AC-5)', () => {
+    const ids = navigationIds(appNavigationFor(['users.manage']));
+
+    expect(ids).not.toContain('logs-audit');
+    expect(ids).not.toContain('logs-access');
+    expect(ids).not.toContain('logs-application');
+
+    const unprivileged = navigationIds(appNavigationFor([]));
+    expect(unprivileged).not.toContain('logs-audit');
+    expect(unprivileged).not.toContain('logs-access');
+    expect(unprivileged).not.toContain('logs-application');
+  });
+
   it('lets every signed in user manage their own passkeys', () => {
     expect(navigationIds(appNavigationFor([]))).toContain('passkeys');
     expect(navigationIds(appNavigationFor(['logs.read']))).toContain(

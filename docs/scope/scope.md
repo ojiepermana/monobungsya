@@ -107,7 +107,7 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
   - [x] Web viewer pages with search, filters, and paging (AC-9)
   - [x] Tests and regenerated OpenAPI artifacts
 - [x] Verify it: `/check verify log subsystem`
-- [ ] Test it: `/test log subsystem`
+- [x] Test it: `/test log subsystem`
 
 Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 

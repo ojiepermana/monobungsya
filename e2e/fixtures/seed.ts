@@ -1,0 +1,66 @@
+/**
+ * E2E fixture seeder, run with bun (never imported by Playwright directly).
+ * Creates two users (admin and staff), a fresh magic-link token for each, and
+ * enough tagged log rows to exercise paging. Prints one JSON line to stdout:
+ * { adminToken, staffToken }. cleanup.ts removes everything created here.
+ */
+import { createHash, randomBytes } from 'node:crypto';
+import { closeDatabaseClient, createDatabaseClient } from '#project/database';
+import { ActivityLog } from '#project/logger';
+
+const db = createDatabaseClient(
+  process.env.DATABASE_URL ?? 'postgres://root@127.0.0.1:5432/monobungsia',
+);
+
+async function mintToken(email: string, role: string): Promise<string> {
+  const [user] = await db`
+    INSERT INTO "user"."users" (role, name, email, email_verified_at)
+    VALUES (${role}, ${`E2E ${role}`}, ${email}, now())
+    ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role
+    RETURNING id
+  `;
+  const token = randomBytes(32).toString('hex');
+  const hash = createHash('sha256').update(token, 'utf8').digest('hex');
+  await db`
+    INSERT INTO "auth"."login_tokens" (user_id, token_hash, expires_at)
+    VALUES (${user.id}, ${hash}, now() + interval '15 minutes')
+  `;
+  return token;
+}
+
+// Idempotent: a crashed earlier run may have left rows behind.
+await db`DELETE FROM logs.logging WHERE module = 'e2e'`;
+await db`DELETE FROM logs.audit_trails WHERE module = 'e2e'`;
+await db`DELETE FROM logs.access_logs WHERE guard = 'e2e'`;
+
+const adminToken = await mintToken('e2e-admin@local.test', 'admin');
+const staffToken = await mintToken('e2e-staff@local.test', 'staff');
+
+ActivityLog.configure(db);
+
+// 30 application rows: more than one 25-row page, so paging is walkable.
+for (let i = 1; i <= 30; i++) {
+  ActivityLog.writeLog({
+    level: i % 3 === 0 ? 'error' : i % 2 === 0 ? 'warning' : 'info',
+    message: `e2e seed row ${i}`,
+    module: 'e2e',
+    event: 'e2e.seed',
+  });
+}
+await ActivityLog.writeAudit({
+  action: 'create',
+  module: 'e2e',
+  entityType: 'E2EEntity',
+  entityId: 'e2e-1',
+  changeSummary: 'e2e seeded audit row',
+});
+ActivityLog.writeAccess({
+  event: 'sign_in',
+  guard: 'e2e',
+  authenticationMethod: 'magic_link',
+});
+ActivityLog.writeAccess({ event: 'sign_out', guard: 'e2e' });
+await ActivityLog.flush();
+
+console.log(JSON.stringify({ adminToken, staffToken }));
+await closeDatabaseClient(db);
