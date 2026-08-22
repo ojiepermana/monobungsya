@@ -570,6 +570,79 @@ describe('limits', () => {
     expect(response.status).toBe(401);
     // Generic message: it must not say whether the account exists.
     expect(await response.text()).not.toContain(SUSPENDED_EMAIL);
+
+    // Reset for the tests that follow, which reuse this same fixture user.
+    await database`
+      UPDATE "user"."users" SET suspended_at = NULL WHERE id = ${suspended}
+    `;
+  });
+
+  // Spec docs/specs/0007-user-management extends the same suspended_at guard
+  // to blocked_at and deleted_at (AC-4): passkey.repository.ts's authenticate
+  // query now excludes all three, not suspended_at alone. Each test resets
+  // all three columns itself first, so it does not depend on execution order.
+  test('a blocked user cannot sign in with a passkey', async () => {
+    if (!database) return;
+
+    const target = await userId(SUSPENDED_EMAIL);
+    await database`
+      UPDATE "user"."users"
+      SET suspended_at = NULL, blocked_at = NULL, deleted_at = NULL
+      WHERE id = ${target}
+    `;
+
+    const magic = await magicLinkSession(SUSPENDED_EMAIL);
+    const registered = await registerPasskey(magic.cookie);
+    expect(registered.status).toBe(200);
+
+    await database`
+      UPDATE "user"."users" SET blocked_at = now() WHERE id = ${target}
+    `;
+
+    try {
+      const response = await signIn(
+        registered.authenticator,
+        await loginChallenge(),
+      );
+      expect(response.status).toBe(401);
+      expect(await response.text()).not.toContain(SUSPENDED_EMAIL);
+    } finally {
+      await database`
+        UPDATE "user"."users" SET blocked_at = NULL WHERE id = ${target}
+      `;
+    }
+  });
+
+  test('a deleted user cannot sign in with a passkey', async () => {
+    if (!database) return;
+
+    const target = await userId(SUSPENDED_EMAIL);
+    await database`
+      UPDATE "user"."users"
+      SET suspended_at = NULL, blocked_at = NULL, deleted_at = NULL
+      WHERE id = ${target}
+    `;
+
+    const magic = await magicLinkSession(SUSPENDED_EMAIL);
+    const registered = await registerPasskey(magic.cookie);
+    expect(registered.status).toBe(200);
+
+    await database`
+      UPDATE "user"."users" SET deleted_at = now() WHERE id = ${target}
+    `;
+
+    try {
+      const response = await signIn(
+        registered.authenticator,
+        await loginChallenge(),
+      );
+      expect(response.status).toBe(401);
+      expect(await response.text()).not.toContain(SUSPENDED_EMAIL);
+    } finally {
+      await database`
+        UPDATE "user"."users" SET deleted_at = NULL WHERE id = ${target}
+      `;
+    }
   });
 });
 

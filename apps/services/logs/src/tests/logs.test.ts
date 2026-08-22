@@ -125,6 +125,7 @@ describe('logs repository', () => {
       search: injection,
       module: '',
       action: '',
+      actorUserId: '',
       page: 1,
     });
 
@@ -146,6 +147,7 @@ describe('logs repository', () => {
       search: '50%_done',
       event: '',
       outcome: '',
+      actorUserId: '',
       page: 1,
     });
 
@@ -163,6 +165,7 @@ describe('logs repository', () => {
       search: '',
       module: 'users',
       action: '',
+      actorUserId: '',
       page: 2,
     });
 
@@ -202,6 +205,7 @@ describe('logs repository', () => {
       level: '',
       module: '',
       event: '',
+      actorUserId: '',
       page: 1,
     });
 
@@ -223,6 +227,69 @@ describe('logs repository', () => {
       occurredAt: '2026-08-22T09:15:30.123Z',
       createdAt: '2026-08-22T09:15:30.123Z',
     });
+  });
+
+  it('binds actorUserId as an exact filter on all three endpoints (covers AC-10)', async () => {
+    // Spec docs/specs/0007-user-management, AC-10: the detail page log tabs
+    // narrow every log endpoint to one user's rows via actorUserId.
+    const actorUserId = '0198f8a0-0000-7000-8000-0000000000aa';
+    const { database, queries } = createFakeDatabase((query) =>
+      query.text.startsWith('SELECT count') ? [{ total: 0 }] : [],
+    );
+    const repository = new LogsRepository(database);
+
+    await repository.listAuditTrails({
+      search: '',
+      module: '',
+      action: '',
+      actorUserId,
+      page: 1,
+    });
+    await repository.listAccessLogs({
+      search: '',
+      event: '',
+      outcome: '',
+      actorUserId,
+      page: 1,
+    });
+    await repository.listApplicationLogs({
+      search: '',
+      level: '',
+      module: '',
+      event: '',
+      actorUserId,
+      page: 1,
+    });
+
+    const listQueries = queries.filter(
+      (query) =>
+        query.text.startsWith('SELECT id') ||
+        query.text.startsWith('SELECT event'),
+    );
+    expect(listQueries).toHaveLength(3);
+    for (const query of listQueries) {
+      expect(query.text).toContain('actor_user_id = $1');
+      expect(query.params[0]).toBe(actorUserId);
+    }
+  });
+
+  it('omits the actorUserId condition entirely when it is not supplied', async () => {
+    const { database, queries } = createFakeDatabase((query) =>
+      query.text.startsWith('SELECT count') ? [{ total: 0 }] : [],
+    );
+    const repository = new LogsRepository(database);
+
+    await repository.listAuditTrails({
+      search: '',
+      module: '',
+      action: '',
+      actorUserId: '',
+      page: 1,
+    });
+
+    for (const query of queries) {
+      expect(query.text).not.toContain('actor_user_id');
+    }
   });
 
   it('reads distinct dropdown options per filter column', async () => {

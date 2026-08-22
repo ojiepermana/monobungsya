@@ -128,13 +128,14 @@ describe('api gateway', () => {
     }
   });
 
-  it('forwards the protected auth user list with a signed identity', async () => {
+  it('forwards the protected user list with a signed admin identity', async () => {
     const secret = 'integration-signing-secret';
     const app = createApp(
       loadGatewayEnv({
         NODE_ENV: 'test',
         PORT: '3000',
         AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
         INTERNAL_AUTH_SIGNING_SECRET: secret,
       }),
     );
@@ -166,20 +167,21 @@ describe('api gateway', () => {
 
     try {
       const response = await app.handle(
-        new Request('http://localhost/api/v1/auth/users?search=system', {
-          headers: { cookie: 'project_session=session-value' },
-        }),
+        new Request(
+          'http://localhost/api/v1/users?search=system&status=&page=1',
+          { headers: { cookie: 'project_session=session-value' } },
+        ),
       );
 
       expect(response.status).toBe(200);
       expect(upstreamRequest?.url).toBe(
-        'http://auth.internal/internal/auth/users?search=system',
+        'http://user.internal/internal/users?search=system&status=&page=1',
       );
       expect(
         readAndVerifyAuthIdentity(
           upstreamRequest?.headers ?? new Headers(),
           'GET',
-          '/internal/auth/users',
+          '/internal/users',
           secret,
         ),
       ).toMatchObject({
@@ -188,6 +190,147 @@ describe('api gateway', () => {
         role: 'admin',
         expiresAt,
       });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('refuses the user boundary for a non admin role (spec 0007 AC-8)', async () => {
+    const secret = 'integration-signing-secret';
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: secret,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let reachedUpstream = false;
+
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+
+        if (new URL(request.url).pathname === '/internal/auth/session') {
+          return Response.json({
+            authenticated: true,
+            user: {
+              id: '0198f8a0-0000-7000-8000-000000000003',
+              email: 'manager@project.local',
+              role: 'manager',
+            },
+            session: {
+              absoluteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+          });
+        }
+
+        reachedUpstream = true;
+        return Response.json({ data: [] });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/users?search=&status=&page=1', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      // The refusal happens before any identity is signed, so the user
+      // service is never called at all.
+      expect(reachedUpstream).toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('refuses create, update, and status action user routes for a non admin role (spec 0007 AC-8)', async () => {
+    const secret = 'integration-signing-secret';
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: secret,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let reachedUpstream = false;
+
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+
+        if (new URL(request.url).pathname === '/internal/auth/session') {
+          return Response.json({
+            authenticated: true,
+            user: {
+              id: '0198f8a0-0000-7000-8000-000000000004',
+              email: 'staff@project.local',
+              role: 'staff',
+            },
+            session: {
+              absoluteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+          });
+        }
+
+        reachedUpstream = true;
+        return Response.json({});
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const cookie = { headers: { cookie: 'project_session=session-value' } };
+
+    try {
+      const create = await app.handle(
+        new Request('http://localhost/api/v1/users', {
+          method: 'POST',
+          ...cookie,
+          headers: { ...cookie.headers, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            id: '0198f8a0-0000-7000-8000-000000000099',
+            name: 'New User',
+            email: 'new@project.local',
+            role: 'staff',
+          }),
+        }),
+      );
+      const update = await app.handle(
+        new Request(
+          'http://localhost/api/v1/users/0198f8a0-0000-7000-8000-000000000099',
+          {
+            method: 'PATCH',
+            ...cookie,
+            headers: { ...cookie.headers, 'content-type': 'application/json' },
+            body: JSON.stringify({ name: 'Renamed' }),
+          },
+        ),
+      );
+      const suspend = await app.handle(
+        new Request(
+          'http://localhost/api/v1/users/0198f8a0-0000-7000-8000-000000000099/suspend',
+          {
+            method: 'POST',
+            ...cookie,
+            headers: { ...cookie.headers, 'content-type': 'application/json' },
+            body: JSON.stringify({ reason: 'policy violation' }),
+          },
+        ),
+      );
+
+      expect(create.status).toBe(403);
+      expect(update.status).toBe(403);
+      expect(suspend.status).toBe(403);
+      // The refusal happens before any identity is signed, for every one of
+      // these routes, so the user service is never called at all.
+      expect(reachedUpstream).toBe(false);
     } finally {
       globalThis.fetch = originalFetch;
     }

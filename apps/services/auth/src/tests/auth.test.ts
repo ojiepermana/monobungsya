@@ -1,19 +1,22 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import { type AddressInfo, createServer } from 'node:net';
 import { loadEnv } from '#project/config';
-import { signAuthIdentity } from '#project/contracts';
-import type { DatabaseClient } from '#project/database';
+import {
+  USER_INVITED_SUBJECT,
+  type UserInvitedEvent,
+} from '#project/contracts';
+import { Logger } from '#project/logger';
+import type { Subscriber } from '#project/messaging';
 import { createApp } from '../app';
+import { subscribeUserInvited } from '../modules/auth/auth.events';
 import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
-import { permissionsForRole } from '../modules/auth/auth.service';
-
-function createFakeDatabase(
-  rows: Array<Record<string, unknown>>,
-): DatabaseClient {
-  return {
-    unsafe: async () => rows,
-  } as unknown as DatabaseClient;
-}
+import type { AuthRepository } from '../modules/auth/auth.repository';
+import { AuthService, permissionsForRole } from '../modules/auth/auth.service';
+import type {
+  AuthMailer,
+  AuthUser,
+  MagicLinkMessage,
+} from '../modules/auth/auth.types';
 
 describe('auth service', () => {
   it('exposes health and module status endpoints', async () => {
@@ -133,12 +136,9 @@ describe('auth service', () => {
 });
 
 describe('permissionsForRole (covers AC-5 of spec logs/0001)', () => {
-  it('grants users.manage and logs.read to admin and manager', () => {
+  it('grants logs.read to admin and manager, users.manage to admin only', () => {
     expect(permissionsForRole('admin')).toEqual(['users.manage', 'logs.read']);
-    expect(permissionsForRole('manager')).toEqual([
-      'users.manage',
-      'logs.read',
-    ]);
+    expect(permissionsForRole('manager')).toEqual(['logs.read']);
   });
 
   it('grants no permissions to staff, bi, and legacy', () => {
@@ -148,57 +148,180 @@ describe('permissionsForRole (covers AC-5 of spec logs/0001)', () => {
   });
 });
 
-describe('auth user administration', () => {
-  it('lists users for a signed admin identity', async () => {
-    const secret = 'auth-service-signing-secret';
-    const identity = {
-      userId: '0198f8a0-0000-7000-8000-000000000001',
-      email: 'admin@project.local',
-      role: 'admin' as const,
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+describe('AuthService.sendInvitation (spec docs/specs/0007-user-management, AC-2)', () => {
+  it('sends an invitation magic link for an active user and returns true', async () => {
+    const sent: MagicLinkMessage[] = [];
+    const user: AuthUser = {
+      id: '0198f8a0-0000-7000-8000-000000000010',
+      email: 'new.hire@project.local',
+      name: 'New Hire',
+      role: 'staff',
+      suspendedAt: null,
     };
-    const signature = signAuthIdentity(
-      'GET',
-      '/internal/auth/users',
-      identity,
-      secret,
+    const repository = {
+      issueInvitationLink: async () => user,
+    } as unknown as AuthRepository;
+    const mailer: AuthMailer = {
+      sendMagicLink: async (message) => {
+        sent.push(message);
+      },
+    };
+    const service = new AuthService('auth', repository, mailer);
+
+    const result = await service.sendInvitation(user.id);
+
+    expect(result).toBe(true);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.recipient).toBe(user.email);
+    expect(sent[0]?.recipientName).toBe(user.name);
+    expect(sent[0]?.token.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('returns false without sending mail when the user is missing or not active', async () => {
+    const sent: MagicLinkMessage[] = [];
+    const repository = {
+      issueInvitationLink: async () => null,
+    } as unknown as AuthRepository;
+    const mailer: AuthMailer = {
+      sendMagicLink: async (message) => {
+        sent.push(message);
+      },
+    };
+    const service = new AuthService('auth', repository, mailer);
+
+    const result = await service.sendInvitation(
+      '0198f8a0-0000-7000-8000-000000000011',
     );
-    const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }), {
-      database: createFakeDatabase([
-        {
-          id: '0198f8a0-0000-7000-8000-000000000002',
-          name: 'System User',
-          email: 'system@project.local',
-          role: 'admin',
-          suspended_at: null,
-        },
-      ]),
-      signingSecret: secret,
+
+    expect(result).toBe(false);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('throws when no mailer is configured, the same as a self requested link', async () => {
+    const repository = {
+      issueInvitationLink: async () => null,
+    } as unknown as AuthRepository;
+    const service = new AuthService('auth', repository, undefined);
+
+    await expect(
+      service.sendInvitation('0198f8a0-0000-7000-8000-000000000012'),
+    ).rejects.toThrow('Auth email delivery is not configured');
+  });
+});
+
+describe('subscribeUserInvited (spec docs/specs/0007-user-management, AC-2)', () => {
+  /**
+   * The handler owns every failure mode itself (bad payload, inactive user,
+   * mail transport error): it never rethrows, so a fake Subscriber only needs
+   * to capture the handler `subscribeUserInvited` registers and let the test
+   * invoke it directly, the same way a real message arriving would.
+   */
+  function fakeSubscriber(): {
+    subscriber: Subscriber;
+    emit: (event: unknown) => Promise<void>;
+  } {
+    let handler: ((event: unknown, message: unknown) => unknown) | undefined;
+    const subscriber = {
+      subscribe: (
+        subject: string,
+        subscribedHandler: (event: unknown, message: unknown) => unknown,
+      ) => {
+        expect(subject).toBe(USER_INVITED_SUBJECT);
+        handler = subscribedHandler;
+
+        return {};
+      },
+    } as unknown as Subscriber;
+
+    return {
+      subscriber,
+      emit: async (event: unknown) => {
+        if (!handler) {
+          throw new Error('handler was never subscribed');
+        }
+
+        await handler(event, undefined);
+      },
+    };
+  }
+
+  function fakeAuthService(
+    sendInvitation: (userId: string) => Promise<boolean>,
+  ) {
+    return { sendInvitation } as unknown as AuthService;
+  }
+
+  it('sends the invitation and logs success when the user is active', async () => {
+    const { subscriber, emit } = fakeSubscriber();
+    const service = fakeAuthService(async () => true);
+    const logger = new Logger('auth-test', 'debug');
+    const infoSpy = spyOn(logger, 'info');
+
+    subscribeUserInvited(subscriber, service, logger);
+    await emit({
+      type: 'user.invited',
+      version: 1,
+      occurredAt: new Date().toISOString(),
+      userId: '0198f8a0-0000-7000-8000-000000000020',
+      email: 'new@project.local',
+      name: 'New User',
+      requestedBy: 'admin-id',
+    } satisfies UserInvitedEvent);
+
+    expect(infoSpy).toHaveBeenCalledWith('user.invited.sent', {
+      userId: '0198f8a0-0000-7000-8000-000000000020',
     });
+  });
 
-    const response = await app.handle(
-      new Request('http://localhost/internal/auth/users?search=system', {
-        headers: {
-          'x-auth-user-id': identity.userId,
-          'x-auth-email': identity.email,
-          'x-auth-role': identity.role,
-          'x-auth-expires-at': identity.expiresAt,
-          'x-auth-signature': signature,
-        },
-      }),
-    );
+  it('logs a warning and drops the event when the payload has no userId', async () => {
+    const { subscriber, emit } = fakeSubscriber();
+    let calls = 0;
+    const service = fakeAuthService(async () => {
+      calls += 1;
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      data: [
-        {
-          id: '0198f8a0-0000-7000-8000-000000000002',
-          name: 'System User',
-          email: 'system@project.local',
-          role: 'admin',
-          suspendedAt: null,
-        },
-      ],
+      return true;
+    });
+    const logger = new Logger('auth-test', 'debug');
+    const warnSpy = spyOn(logger, 'warn');
+
+    subscribeUserInvited(subscriber, service, logger);
+    await emit({});
+
+    expect(warnSpy).toHaveBeenCalledWith('user.invited.ignored', {
+      reason: 'missing userId',
+    });
+    expect(calls).toBe(0);
+  });
+
+  it('logs a warning when the user is missing or not active', async () => {
+    const { subscriber, emit } = fakeSubscriber();
+    const service = fakeAuthService(async () => false);
+    const logger = new Logger('auth-test', 'debug');
+    const warnSpy = spyOn(logger, 'warn');
+
+    subscribeUserInvited(subscriber, service, logger);
+    await emit({ userId: 'missing-user' });
+
+    expect(warnSpy).toHaveBeenCalledWith('user.invited.skipped', {
+      userId: 'missing-user',
+      reason: 'user is missing or not active',
+    });
+  });
+
+  it('logs an error and drops the event when sending the invitation throws', async () => {
+    const { subscriber, emit } = fakeSubscriber();
+    const service = fakeAuthService(async () => {
+      throw new Error('smtp exploded');
+    });
+    const logger = new Logger('auth-test', 'debug');
+    const errorSpy = spyOn(logger, 'error');
+
+    subscribeUserInvited(subscriber, service, logger);
+    await emit({ userId: 'user-1' });
+
+    expect(errorSpy).toHaveBeenCalledWith('user.invited.failed', {
+      userId: 'user-1',
+      error: 'smtp exploded',
     });
   });
 });
