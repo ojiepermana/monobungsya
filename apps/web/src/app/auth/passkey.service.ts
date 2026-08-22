@@ -1,17 +1,17 @@
-import { inject, signal, Service } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import {
-  browserSupportsWebAuthn,
-  startAuthentication,
-  startRegistration,
-} from '@simplewebauthn/browser';
+import { inject, Service, signal } from '@angular/core';
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/browser';
+import {
+  browserSupportsWebAuthn,
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService, type AuthUser } from './auth.service';
@@ -69,10 +69,13 @@ export class PasskeyService {
     const attestation = await this.runCeremony(() =>
       startRegistration({ optionsJSON: options }),
     );
-    const created = await this.post<Passkey>('/api/v1/auth/passkey/register/verify', {
-      response: attestation,
-      ...(label && label.trim().length > 0 ? { label: label.trim() } : {}),
-    });
+    const created = await this.post<Passkey>(
+      '/api/v1/auth/passkey/register/verify',
+      {
+        response: attestation,
+        ...(label && label.trim().length > 0 ? { label: label.trim() } : {}),
+      },
+    );
 
     this.passkeys.update((current) => [...current, created]);
 
@@ -104,7 +107,9 @@ export class PasskeyService {
 
   async load(): Promise<Passkey[]> {
     const response = await firstValueFrom(
-      this.http.get<{ passkeys: Passkey[] }>(`${this.base}/api/v1/auth/passkeys`),
+      this.http.get<{ passkeys: Passkey[] }>(
+        `${this.base}/api/v1/auth/passkeys`,
+      ),
     );
     this.passkeys.set(response.passkeys);
     this.loaded.set(true);
@@ -114,7 +119,9 @@ export class PasskeyService {
 
   async rename(id: string, label: string): Promise<Passkey> {
     const updated = await firstValueFrom(
-      this.http.patch<Passkey>(`${this.base}/api/v1/auth/passkeys/${id}`, { label }),
+      this.http.patch<Passkey>(`${this.base}/api/v1/auth/passkeys/${id}`, {
+        label,
+      }),
     );
     this.passkeys.update((current) =>
       current.map((passkey) => (passkey.id === updated.id ? updated : passkey)),
@@ -127,7 +134,9 @@ export class PasskeyService {
     await firstValueFrom(
       this.http.delete<void>(`${this.base}/api/v1/auth/passkeys/${id}`),
     );
-    this.passkeys.update((current) => current.filter((passkey) => passkey.id !== id));
+    this.passkeys.update((current) =>
+      current.filter((passkey) => passkey.id !== id),
+    );
   }
 
   /** The one time prompt after a magic link login, dismissed per browser. */
@@ -176,15 +185,18 @@ export class PasskeyService {
     return fallback;
   }
 
-  private async post<TResponse>(path: string, body?: unknown): Promise<TResponse> {
+  private async post<TResponse>(
+    path: string,
+    body?: unknown,
+  ): Promise<TResponse> {
     return firstValueFrom(
       this.http.post<TResponse>(`${this.base}${path}`, body ?? {}),
     );
   }
 
-  private async runCeremony<TResponse extends
-    | RegistrationResponseJSON
-    | AuthenticationResponseJSON>(run: () => Promise<TResponse>): Promise<TResponse> {
+  private async runCeremony<
+    TResponse extends RegistrationResponseJSON | AuthenticationResponseJSON,
+  >(run: () => Promise<TResponse>): Promise<TResponse> {
     try {
       return await run();
     } catch (error) {

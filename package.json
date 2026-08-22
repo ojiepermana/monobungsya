@@ -26,8 +26,7 @@
     "test:database": "bun test packages/database/src",
     "test:web": "cd apps/web && ../../node_modules/.bin/ng test",
     "lint": "bunx biome check --files-ignore-unknown=true .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "bunx biome format --files-ignore-unknown=true --write .",
     "typecheck": "bun run --parallel typecheck:web typecheck:gateway typecheck:auth typecheck:user typecheck:mcp typecheck:database typecheck:elysia typecheck:tauri",
     "typecheck:database": "./node_modules/.bin/tsc --noEmit -p packages/database/tsconfig.json",
     "typecheck:elysia": "./node_modules/.bin/tsc --noEmit -p packages/elysia/tsconfig.json",
@@ -91,7 +90,6 @@
     "@types/bun": "latest",
     "@types/nodemailer": "^8.0.1",
     "jsdom": "^28.1.0",
-    "prettier": "^3.9.6",
     "typescript": "~6.0.3",
     "vitest": "^4.1.11",
     "yaml": "latest"

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { ApiService, type AccessLogItem } from '../../../services/api.service';
+import { type AccessLogItem, ApiService } from '../../../services/api.service';
 
 @Component({
   selector: 'app-access-logs-page',
@@ -35,12 +35,14 @@ export class AccessLogsPage {
   protected readonly loading = signal(true);
 
   constructor() {
-    this.api.accessLogs({ search: '', event: '', outcome: '', page: 1 }).subscribe({
-      next: (response) => {
-        this.items.set(response.data);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.api
+      .accessLogs({ search: '', event: '', outcome: '', page: 1 })
+      .subscribe({
+        next: (response) => {
+          this.items.set(response.data);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 }

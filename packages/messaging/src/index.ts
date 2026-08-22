@@ -4,7 +4,7 @@ import {
   type Msg,
   type NatsConnection,
   type Subscription,
-} from "nats";
+} from 'nats';
 
 export interface Publisher {
   publish<T>(subject: string, payload: T): void;

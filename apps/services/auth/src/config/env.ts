@@ -1,4 +1,4 @@
-import { type AppEnvironment, loadEnv } from "#project/config";
+import { type AppEnvironment, loadEnv } from '#project/config';
 
 export interface AuthEnvironment extends AppEnvironment {
   SMTP_HOST: string;
@@ -19,43 +19,43 @@ export interface AuthEnvironment extends AppEnvironment {
 export function loadAuthEnv(
   source: Record<string, string | undefined> = Bun.env,
 ): AuthEnvironment {
-  const environment = loadEnv("auth", source);
-  const webAppUrl = source.WEB_APP_URL ?? "http://localhost:4200";
+  const environment = loadEnv('auth', source);
+  const webAppUrl = source.WEB_APP_URL ?? 'http://localhost:4200';
   const result: AuthEnvironment = {
     ...environment,
-    SMTP_HOST: source.SMTP_HOST ?? "127.0.0.1",
-    SMTP_PORT: parseNumber(source.SMTP_PORT, 2525, "SMTP_PORT"),
-    SMTP_USERNAME: source.SMTP_USERNAME ?? "monobungsia",
-    SMTP_PASSWORD: source.SMTP_PASSWORD ?? "",
-    SMTP_FROM: source.SMTP_FROM ?? "no-reply@localhost",
-    PUBLIC_API_URL: source.PUBLIC_API_URL ?? "http://localhost:3000",
+    SMTP_HOST: source.SMTP_HOST ?? '127.0.0.1',
+    SMTP_PORT: parseNumber(source.SMTP_PORT, 2525, 'SMTP_PORT'),
+    SMTP_USERNAME: source.SMTP_USERNAME ?? 'monobungsia',
+    SMTP_PASSWORD: source.SMTP_PASSWORD ?? '',
+    SMTP_FROM: source.SMTP_FROM ?? 'no-reply@localhost',
+    PUBLIC_API_URL: source.PUBLIC_API_URL ?? 'http://localhost:3000',
     WEB_APP_URL: webAppUrl,
-    INTERNAL_AUTH_SIGNING_SECRET: source.INTERNAL_AUTH_SIGNING_SECRET ?? "",
+    INTERNAL_AUTH_SIGNING_SECRET: source.INTERNAL_AUTH_SIGNING_SECRET ?? '',
     AUTH_SESSION_COOKIE_NAME:
-      source.AUTH_SESSION_COOKIE_NAME ?? "project_session",
+      source.AUTH_SESSION_COOKIE_NAME ?? 'project_session',
     AUTH_COOKIE_SECURE:
       source.AUTH_COOKIE_SECURE === undefined
-        ? environment.NODE_ENV === "production"
-        : source.AUTH_COOKIE_SECURE === "true",
+        ? environment.NODE_ENV === 'production'
+        : source.AUTH_COOKIE_SECURE === 'true',
     AUTH_CLOCK_SKEW_SECONDS: parseNumber(
       source.AUTH_CLOCK_SKEW_SECONDS,
       30,
-      "AUTH_CLOCK_SKEW_SECONDS",
+      'AUTH_CLOCK_SKEW_SECONDS',
     ),
     WEBAUTHN_RP_ID:
       optional(source.WEBAUTHN_RP_ID) ?? relyingPartyId(webAppUrl),
-    WEBAUTHN_RP_NAME: optional(source.WEBAUTHN_RP_NAME) ?? "Monobungsya",
+    WEBAUTHN_RP_NAME: optional(source.WEBAUTHN_RP_NAME) ?? 'Monobungsya',
   };
 
   if (
     (environment.ENABLE_INFRASTRUCTURE ||
-      environment.NODE_ENV === "production") &&
+      environment.NODE_ENV === 'production') &&
     (!result.SMTP_USERNAME ||
-      (environment.NODE_ENV === "production" && !result.SMTP_PASSWORD) ||
+      (environment.NODE_ENV === 'production' && !result.SMTP_PASSWORD) ||
       !result.INTERNAL_AUTH_SIGNING_SECRET)
   ) {
     throw new Error(
-      "SMTP_USERNAME and INTERNAL_AUTH_SIGNING_SECRET are required when auth infrastructure is enabled; SMTP_PASSWORD is also required in production",
+      'SMTP_USERNAME and INTERNAL_AUTH_SIGNING_SECRET are required when auth infrastructure is enabled; SMTP_PASSWORD is also required in production',
     );
   }
 
@@ -77,7 +77,7 @@ function relyingPartyId(webAppUrl: string): string {
   try {
     return new URL(webAppUrl).hostname;
   } catch {
-    return "localhost";
+    return 'localhost';
   }
 }
 

@@ -1,6 +1,6 @@
-import type { DatabaseClient } from "#project/database";
+import type { DatabaseClient } from '#project/database';
 
-export type AuthRole = "admin" | "manager" | "bi" | "staff" | "legacy";
+export type AuthRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
 
 export interface AuthUser {
   id: string;

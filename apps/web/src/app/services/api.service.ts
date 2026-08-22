@@ -1,6 +1,6 @@
-import { inject, Service } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { inject, Service } from '@angular/core';
+import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import type { AuthRole } from '../auth/auth.service';
 
@@ -158,10 +158,16 @@ export class ApiService {
   }
 
   saveAuthUser(payload: SaveAuthUserPayload): Observable<AuthUserAdmin> {
-    return this.http.post<AuthUserAdmin>(`${this.base}/api/v1/auth/users`, payload);
+    return this.http.post<AuthUserAdmin>(
+      `${this.base}/api/v1/auth/users`,
+      payload,
+    );
   }
 
-  suspendAuthUser(id: string, payload: SuspendAuthUserPayload): Observable<AuthUserAdmin> {
+  suspendAuthUser(
+    id: string,
+    payload: SuspendAuthUserPayload,
+  ): Observable<AuthUserAdmin> {
     return this.http.patch<AuthUserAdmin>(
       `${this.base}/api/v1/auth/users/${encodeURIComponent(id)}/suspension`,
       payload,
@@ -176,33 +182,44 @@ export class ApiService {
   }
 
   auditTrails(filters: AuditTrailFilters): Observable<AuditTrailsResponse> {
-    return this.http.get<AuditTrailsResponse>(`${this.base}/api/v1/logs/audit-trails`, {
-      params: new HttpParams()
-        .set('search', filters.search)
-        .set('module', filters.module)
-        .set('action', filters.action)
-        .set('page', String(filters.page)),
-    });
+    return this.http.get<AuditTrailsResponse>(
+      `${this.base}/api/v1/logs/audit-trails`,
+      {
+        params: new HttpParams()
+          .set('search', filters.search)
+          .set('module', filters.module)
+          .set('action', filters.action)
+          .set('page', String(filters.page)),
+      },
+    );
   }
 
   accessLogs(filters: AccessLogFilters): Observable<AccessLogsResponse> {
-    return this.http.get<AccessLogsResponse>(`${this.base}/api/v1/logs/access-logs`, {
-      params: new HttpParams()
-        .set('search', filters.search)
-        .set('event', filters.event)
-        .set('outcome', filters.outcome)
-        .set('page', String(filters.page)),
-    });
+    return this.http.get<AccessLogsResponse>(
+      `${this.base}/api/v1/logs/access-logs`,
+      {
+        params: new HttpParams()
+          .set('search', filters.search)
+          .set('event', filters.event)
+          .set('outcome', filters.outcome)
+          .set('page', String(filters.page)),
+      },
+    );
   }
 
-  applicationLogs(filters: ApplicationLogFilters): Observable<ApplicationLogsResponse> {
-    return this.http.get<ApplicationLogsResponse>(`${this.base}/api/v1/logs/application-logs`, {
-      params: new HttpParams()
-        .set('search', filters.search)
-        .set('level', filters.level)
-        .set('module', filters.module)
-        .set('event', filters.event)
-        .set('page', String(filters.page)),
-    });
+  applicationLogs(
+    filters: ApplicationLogFilters,
+  ): Observable<ApplicationLogsResponse> {
+    return this.http.get<ApplicationLogsResponse>(
+      `${this.base}/api/v1/logs/application-logs`,
+      {
+        params: new HttpParams()
+          .set('search', filters.search)
+          .set('level', filters.level)
+          .set('module', filters.module)
+          .set('event', filters.event)
+          .set('page', String(filters.page)),
+      },
+    );
   }
 }

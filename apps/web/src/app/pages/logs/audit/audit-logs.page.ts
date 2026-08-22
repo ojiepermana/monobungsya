@@ -37,12 +37,14 @@ export class AuditLogsPage {
   protected readonly loading = signal(true);
 
   constructor() {
-    this.api.auditTrails({ search: '', module: '', action: '', page: 1 }).subscribe({
-      next: (response) => {
-        this.items.set(response.data);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.api
+      .auditTrails({ search: '', module: '', action: '', page: 1 })
+      .subscribe({
+        next: (response) => {
+          this.items.set(response.data);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 }

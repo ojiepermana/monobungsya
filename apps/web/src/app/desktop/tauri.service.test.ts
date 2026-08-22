@@ -5,7 +5,9 @@ describe('TauriService', () => {
   it('builds the desktop auth deep link without putting the raw token in path segments', () => {
     const service = new TauriService();
 
-    expect(service.desktopAuthUrl('token with spaces')).toBe('monobungsya://auth?token=token+with+spaces');
+    expect(service.desktopAuthUrl('token with spaces')).toBe(
+      'monobungsya://auth?token=token+with+spaces',
+    );
   });
 
   it('does not request desktop magic-link behavior in a normal browser runtime', () => {

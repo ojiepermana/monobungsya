@@ -12,13 +12,15 @@ export const routes: Routes = [
     path: 'auth/callback-complete',
     title: 'MONOBUNGSYA · Login Complete',
     data: { callback: 'success' },
-    loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
+    loadComponent: () =>
+      import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
     path: 'auth/callback-error',
     title: 'MONOBUNGSYA · Login Error',
     data: { callback: 'error' },
-    loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
+    loadComponent: () =>
+      import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
     path: 'login',
@@ -28,32 +30,33 @@ export const routes: Routes = [
   {
     path: 'verify',
     title: 'MONOBUNGSYA · Verify',
-    loadComponent: () => import('../auth/verify.page').then((m) => m.VerifyPage),
+    loadComponent: () =>
+      import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
     path: '',
     title: 'MONOBUNGSYA · Logs',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('../pages/logs/overview/logs.page').then(
-        (m) => m.LogsPage,
-      ),
+      import('../pages/logs/overview/logs.page').then((m) => m.LogsPage),
   },
   {
     path: 'setting/passkeys',
     title: 'MONOBUNGSYA · Passkey',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('../pages/settings/passkeys/passkeys.page').then((m) => m.PasskeysSettingsPage),
+      import('../pages/settings/passkeys/passkeys.page').then(
+        (m) => m.PasskeysSettingsPage,
+      ),
   },
   {
     path: 'setting/users',
     title: 'MONOBUNGSYA · User Access',
     canActivate: [authGuard, permissionGuard('users.manage')],
     loadComponent: () =>
-      import('../pages/settings/user-access-settings/user-access-settings.page').then(
-        (m) => m.UserAccessSettingsPage,
-      ),
+      import(
+        '../pages/settings/user-access-settings/user-access-settings.page'
+      ).then((m) => m.UserAccessSettingsPage),
   },
   {
     path: 'logs',
@@ -65,14 +68,18 @@ export const routes: Routes = [
     title: 'MONOBUNGSYA · Audit Logs',
     canActivate: [authGuard, permissionGuard('logs.read')],
     loadComponent: () =>
-      import('../pages/logs/audit/audit-logs.page').then((m) => m.AuditLogsPage),
+      import('../pages/logs/audit/audit-logs.page').then(
+        (m) => m.AuditLogsPage,
+      ),
   },
   {
     path: 'logs/access',
     title: 'MONOBUNGSYA · Access Logs',
     canActivate: [authGuard, permissionGuard('logs.read')],
     loadComponent: () =>
-      import('../pages/logs/access/access-logs.page').then((m) => m.AccessLogsPage),
+      import('../pages/logs/access/access-logs.page').then(
+        (m) => m.AccessLogsPage,
+      ),
   },
   {
     path: 'logs/application',
@@ -88,6 +95,8 @@ export const routes: Routes = [
     title: 'MONOBUNGSYA · Page Not Found',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('../pages/system/not-found/not-found.page').then((m) => m.NotFoundPage),
+      import('../pages/system/not-found/not-found.page').then(
+        (m) => m.NotFoundPage,
+      ),
   },
 ];

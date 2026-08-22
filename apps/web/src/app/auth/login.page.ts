@@ -1,8 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { AlertComponent, AlertDescriptionComponent, AlertTitleComponent } from '@ojiepermana/angular/component/alert';
+import {
+  AlertComponent,
+  AlertDescriptionComponent,
+  AlertTitleComponent,
+} from '@ojiepermana/angular/component/alert';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
-import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   CardComponent,
   CardContentComponent,
@@ -10,6 +13,7 @@ import {
   CardHeaderComponent,
   CardTitleComponent,
 } from '@ojiepermana/angular/component/card';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import {
   PageComponent,
@@ -153,17 +157,22 @@ export class LoginPage {
     this.message.set(null);
     this.magicLink.set(null);
 
-    this.auth.requestMagicLink(this.email(), this.tauri.magicLinkOptions()).subscribe({
-      next: (response) => {
-        this.message.set(response.message ?? 'Magic link berhasil diminta. Periksa inbox email Anda.');
-        this.magicLink.set(response.magicLink ?? null);
-        this.loading.set(false);
-      },
-      error: (error: { error?: { error?: string } }) => {
-        this.message.set(error.error?.error ?? 'Magic link gagal dibuat.');
-        this.loading.set(false);
-      },
-    });
+    this.auth
+      .requestMagicLink(this.email(), this.tauri.magicLinkOptions())
+      .subscribe({
+        next: (response) => {
+          this.message.set(
+            response.message ??
+              'Magic link berhasil diminta. Periksa inbox email Anda.',
+          );
+          this.magicLink.set(response.magicLink ?? null);
+          this.loading.set(false);
+        },
+        error: (error: { error?: { error?: string } }) => {
+          this.message.set(error.error?.error ?? 'Magic link gagal dibuat.');
+          this.loading.set(false);
+        },
+      });
   }
 
   signInWithPasskey(): void {

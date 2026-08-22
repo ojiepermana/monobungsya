@@ -118,9 +118,11 @@ app-root NavigationHeader ThemeSettings > button {
 }
 
 .ThemeSettings icon {
+  /* biome-ignore lint/a11y/useGenericFontNames: an icon font has no meaningful generic fallback */
   font-family: "Material Symbols Rounded Variable" !important;
 }
 
 .ThemeSettings button[drawerclose] icon {
+  /* biome-ignore lint/a11y/useGenericFontNames: an icon font has no meaningful generic fallback */
   font-family: "Material Symbols Rounded Variable" !important;
 }

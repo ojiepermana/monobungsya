@@ -1,18 +1,18 @@
-import { describe, expect, it } from "bun:test";
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-import { readAndVerifyAuthIdentity } from "#project/contracts";
-import { createApp } from "../app";
-import { loadGatewayEnv } from "../config/env";
+import { describe, expect, it } from 'bun:test';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { readAndVerifyAuthIdentity } from '#project/contracts';
+import { createApp } from '../app';
+import { loadGatewayEnv } from '../config/env';
 
-describe("api gateway", () => {
-  it("exposes health and forwards public boundaries", async () => {
-    const app = createApp(loadGatewayEnv({ NODE_ENV: "test", PORT: "3000" }));
-    const health = await app.handle(new Request("http://localhost/health"));
+describe('api gateway', () => {
+  it('exposes health and forwards public boundaries', async () => {
+    const app = createApp(loadGatewayEnv({ NODE_ENV: 'test', PORT: '3000' }));
+    const health = await app.handle(new Request('http://localhost/health'));
     const originalFetch = globalThis.fetch;
     const unavailableFetch = Object.assign(
       async () => {
-        throw new Error("user service unavailable");
+        throw new Error('user service unavailable');
       },
       { preconnect: originalFetch.preconnect },
     );
@@ -21,29 +21,29 @@ describe("api gateway", () => {
 
     try {
       const unavailableService = await app.handle(
-        new Request("http://localhost/api/v1/users/status"),
+        new Request('http://localhost/api/v1/users/status'),
       );
 
       expect(health.status).toBe(200);
       expect(await health.json()).toEqual({
-        status: "ok",
-        service: "api-gateway",
+        status: 'ok',
+        service: 'api-gateway',
       });
       expect(unavailableService.status).toBe(503);
       expect(await unavailableService.json()).toMatchObject({
-        error: { code: "SERVICE_UNAVAILABLE" },
+        error: { code: 'SERVICE_UNAVAILABLE' },
       });
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it("forwards the public request contract to the user service", async () => {
+  it('forwards the public request contract to the user service', async () => {
     const app = createApp(
       loadGatewayEnv({
-        NODE_ENV: "test",
-        PORT: "3000",
-        USER_SERVICE_URL: "http://user.internal",
+        NODE_ENV: 'test',
+        PORT: '3000',
+        USER_SERVICE_URL: 'http://user.internal',
       }),
     );
     const originalFetch = globalThis.fetch;
@@ -53,7 +53,7 @@ describe("api gateway", () => {
       async (input: RequestInfo | URL, init?: RequestInit) => {
         upstreamRequest = new Request(input, init);
         return Response.json(
-          { service: "user", status: "ok", module: "users" },
+          { service: 'user', status: 'ok', module: 'users' },
           { status: 200 },
         );
       },
@@ -62,38 +62,38 @@ describe("api gateway", () => {
 
     try {
       const response = await app.handle(
-        new Request("http://localhost/api/v1/users/status?detail=full", {
+        new Request('http://localhost/api/v1/users/status?detail=full', {
           headers: {
-            "x-request-id": "request-123",
-            "x-correlation-id": "correlation-456",
+            'x-request-id': 'request-123',
+            'x-correlation-id': 'correlation-456',
           },
         }),
       );
 
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({
-        service: "user",
-        status: "ok",
-        module: "users",
+        service: 'user',
+        status: 'ok',
+        module: 'users',
       });
       expect(upstreamRequest?.url).toBe(
-        "http://user.internal/internal/users/status?detail=full",
+        'http://user.internal/internal/users/status?detail=full',
       );
-      expect(upstreamRequest?.headers.get("x-request-id")).toBe("request-123");
-      expect(upstreamRequest?.headers.get("x-correlation-id")).toBe(
-        "correlation-456",
+      expect(upstreamRequest?.headers.get('x-request-id')).toBe('request-123');
+      expect(upstreamRequest?.headers.get('x-correlation-id')).toBe(
+        'correlation-456',
       );
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it("forwards validated auth request bodies", async () => {
+  it('forwards validated auth request bodies', async () => {
     const app = createApp(
       loadGatewayEnv({
-        NODE_ENV: "test",
-        PORT: "3000",
-        AUTH_SERVICE_URL: "http://auth.internal",
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
       }),
     );
     const originalFetch = globalThis.fetch;
@@ -109,43 +109,43 @@ describe("api gateway", () => {
 
     try {
       const response = await app.handle(
-        new Request("http://localhost/api/v1/auth/magic-link", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email: "system@project.local" }),
+        new Request('http://localhost/api/v1/auth/magic-link', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email: 'system@project.local' }),
         }),
       );
 
       expect(response.status).toBe(200);
       expect(upstreamRequest?.url).toBe(
-        "http://auth.internal/internal/auth/magic-link",
+        'http://auth.internal/internal/auth/magic-link',
       );
       expect(await upstreamRequest?.json()).toEqual({
-        email: "system@project.local",
+        email: 'system@project.local',
       });
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it("preserves auth redirects from the upstream service", async () => {
+  it('preserves auth redirects from the upstream service', async () => {
     const upstreamServer = createServer((_request, response) => {
       response.writeHead(302, {
-        Location: "http://web.local/auth/callback-complete",
+        Location: 'http://web.local/auth/callback-complete',
       });
       response.end();
     });
 
     await new Promise<void>((resolve, reject) => {
-      upstreamServer.once("error", reject);
-      upstreamServer.listen(0, "127.0.0.1", resolve);
+      upstreamServer.once('error', reject);
+      upstreamServer.listen(0, '127.0.0.1', resolve);
     });
 
     const address = upstreamServer.address() as AddressInfo;
     const app = createApp(
       loadGatewayEnv({
-        NODE_ENV: "test",
-        PORT: "3000",
+        NODE_ENV: 'test',
+        PORT: '3000',
         AUTH_SERVICE_URL: `http://127.0.0.1:${address.port}`,
       }),
     );
@@ -153,13 +153,13 @@ describe("api gateway", () => {
     try {
       const response = await app.handle(
         new Request(
-          "http://localhost/api/v1/auth/verify?token=valid-token-for-test",
+          'http://localhost/api/v1/auth/verify?token=valid-token-for-test',
         ),
       );
 
       expect(response.status).toBe(302);
-      expect(response.headers.get("location")).toBe(
-        "http://web.local/auth/callback-complete",
+      expect(response.headers.get('location')).toBe(
+        'http://web.local/auth/callback-complete',
       );
     } finally {
       await new Promise<void>((resolve, reject) => {
@@ -168,14 +168,14 @@ describe("api gateway", () => {
     }
   });
 
-  it("validates a session and forwards a verifiable signed identity", async () => {
-    const secret = "integration-signing-secret";
+  it('validates a session and forwards a verifiable signed identity', async () => {
+    const secret = 'integration-signing-secret';
     const app = createApp(
       loadGatewayEnv({
-        NODE_ENV: "test",
-        PORT: "3000",
-        AUTH_SERVICE_URL: "http://auth.internal",
-        USER_SERVICE_URL: "http://user.internal",
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
         INTERNAL_AUTH_SIGNING_SECRET: secret,
       }),
     );
@@ -187,28 +187,28 @@ describe("api gateway", () => {
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const request = new Request(input, init);
 
-        if (new URL(request.url).pathname === "/internal/auth/session") {
+        if (new URL(request.url).pathname === '/internal/auth/session') {
           return Response.json({
             authenticated: true,
             user: {
-              id: "0198f8a0-0000-7000-8000-000000000001",
-              email: "system@project.local",
-              role: "admin",
+              id: '0198f8a0-0000-7000-8000-000000000001',
+              email: 'system@project.local',
+              role: 'admin',
             },
             session: { absoluteExpiresAt: expiresAt },
           });
         }
 
         upstreamRequest = request;
-        return Response.json({ status: "ok" });
+        return Response.json({ status: 'ok' });
       },
       { preconnect: originalFetch.preconnect },
     );
 
     try {
       const response = await app.handle(
-        new Request("http://localhost/api/v1/users/status", {
-          headers: { cookie: "project_session=session-value" },
+        new Request('http://localhost/api/v1/users/status', {
+          headers: { cookie: 'project_session=session-value' },
         }),
       );
       const identityHeaders = upstreamRequest?.headers;
@@ -217,14 +217,14 @@ describe("api gateway", () => {
       expect(
         readAndVerifyAuthIdentity(
           identityHeaders ?? new Headers(),
-          "GET",
-          "/internal/users/status",
+          'GET',
+          '/internal/users/status',
           secret,
         ),
       ).toMatchObject({
-        userId: "0198f8a0-0000-7000-8000-000000000001",
-        email: "system@project.local",
-        role: "admin",
+        userId: '0198f8a0-0000-7000-8000-000000000001',
+        email: 'system@project.local',
+        role: 'admin',
         expiresAt,
       });
     } finally {

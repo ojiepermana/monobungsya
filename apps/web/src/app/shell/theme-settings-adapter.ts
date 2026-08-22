@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import type {
   ThemeSettingsAdapter,
   ThemeSettingsNavigationMode,
@@ -12,7 +12,13 @@ import type { ShellMode } from '@ojiepermana/angular/theme/shell/types';
 
 const NAVIGATION_TYPE_STORAGE_KEY = 'theme-settings-nav-type';
 const NAVIGATION_MODE_STORAGE_KEY = 'theme-settings-nav-type-mode';
-const NAVIGATION_TYPES = ['sidebar', 'dockbar', 'navbar', 'flyout', 'desktop'] as const;
+const NAVIGATION_TYPES = [
+  'sidebar',
+  'dockbar',
+  'navbar',
+  'flyout',
+  'desktop',
+] as const;
 const NAVIGATION_MODES = ['default', 'collapsed', 'drawer'] as const;
 
 function navigationTypesFor(
@@ -85,7 +91,9 @@ export class ThemeSettingsAdapterService implements ThemeSettingsAdapter {
   }
 
   setNavType(value: ThemeSettingsNavigationType): void {
-    if (!navigationTypesFor(this.layout.type(), this.shell.mode()).includes(value)) {
+    if (
+      !navigationTypesFor(this.layout.type(), this.shell.mode()).includes(value)
+    ) {
       return;
     }
 
@@ -104,7 +112,10 @@ export class ThemeSettingsAdapterService implements ThemeSettingsAdapter {
   }
 
   private normalizeNavigation(): void {
-    const allowedTypes = navigationTypesFor(this.layout.type(), this.shell.mode());
+    const allowedTypes = navigationTypesFor(
+      this.layout.type(),
+      this.shell.mode(),
+    );
     const currentType = this.navTypeState();
 
     if (allowedTypes.length && !allowedTypes.includes(currentType)) {
@@ -131,7 +142,8 @@ export class ThemeSettingsAdapterService implements ThemeSettingsAdapter {
   private readNavigationType(): ThemeSettingsNavigationType | null {
     const value = this.readStorage(NAVIGATION_TYPE_STORAGE_KEY);
 
-    return value && NAVIGATION_TYPES.includes(value as ThemeSettingsNavigationType)
+    return value &&
+      NAVIGATION_TYPES.includes(value as ThemeSettingsNavigationType)
       ? (value as ThemeSettingsNavigationType)
       : null;
   }
@@ -139,7 +151,8 @@ export class ThemeSettingsAdapterService implements ThemeSettingsAdapter {
   private readNavigationMode(): ThemeSettingsNavigationMode | null {
     const value = this.readStorage(NAVIGATION_MODE_STORAGE_KEY);
 
-    return value && NAVIGATION_MODES.includes(value as ThemeSettingsNavigationMode)
+    return value &&
+      NAVIGATION_MODES.includes(value as ThemeSettingsNavigationMode)
       ? (value as ThemeSettingsNavigationMode)
       : null;
   }

@@ -1,8 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AlertComponent, AlertDescriptionComponent, AlertTitleComponent } from '@ojiepermana/angular/component/alert';
+import {
+  AlertComponent,
+  AlertDescriptionComponent,
+  AlertTitleComponent,
+} from '@ojiepermana/angular/component/alert';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
-import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   CardComponent,
   CardContentComponent,
@@ -10,6 +13,7 @@ import {
   CardHeaderComponent,
   CardTitleComponent,
 } from '@ojiepermana/angular/component/card';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   PageComponent,
   PageContentComponent,
@@ -17,7 +21,6 @@ import {
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
 import { TauriService } from '../desktop/tauri.service';
-import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
 
@@ -111,9 +114,9 @@ export class VerifyPage {
   private readonly tauri = inject(TauriService);
   private readonly passkey = inject(PasskeyService);
 
-  protected readonly status = signal<'verifying' | 'success' | 'expired' | 'invalid' | 'missing'>(
-    'verifying',
-  );
+  protected readonly status = signal<
+    'verifying' | 'success' | 'expired' | 'invalid' | 'missing'
+  >('verifying');
   protected readonly message = signal('Mohon tunggu sebentar.');
   protected readonly showPasskeyPrompt = signal(false);
   protected readonly passkeyLoading = signal(false);
@@ -122,10 +125,15 @@ export class VerifyPage {
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');
     const desktop = this.route.snapshot.queryParamMap.get('desktop') === '1';
+    // biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature requires bracket access on route data
     const callback = this.route.snapshot.data['callback'];
 
     // Remove the bearer token from browser history and screenshots immediately.
-    window.history.replaceState(window.history.state, '', window.location.pathname);
+    window.history.replaceState(
+      window.history.state,
+      '',
+      window.location.pathname,
+    );
 
     if (callback === 'success') {
       this.status.set('success');
@@ -148,7 +156,9 @@ export class VerifyPage {
 
     this.auth.verifyMagicLink(token).subscribe({
       next: (response) => {
-        this.status.set(response.status === 'sent' ? 'invalid' : response.status);
+        this.status.set(
+          response.status === 'sent' ? 'invalid' : response.status,
+        );
         this.message.set(response.message);
 
         if (response.status === 'success') {
@@ -199,7 +209,9 @@ export class VerifyPage {
   }
 
   title(): string {
-    return this.status() === 'success' ? 'Login berhasil' : 'Verifikasi magic link';
+    return this.status() === 'success'
+      ? 'Login berhasil'
+      : 'Verifikasi magic link';
   }
 
   description(): string {
