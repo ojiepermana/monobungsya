@@ -15,6 +15,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 4   | MCP server for ERP tool access      | Foundation | in-progress |
 | 5   | Auth passkey login                  | Foundation | in-progress |
 | 6   | Log subsystem                       | Foundation | in-progress |
+| 7   | User lifecycle management           | Domain     | done        |
 
 ## Foundations
 
@@ -111,6 +112,25 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
 
 Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 
+## Domain
+
+### 7. User lifecycle management · done
+
+Full user management owned by the user service: create and update users, suspend, block, soft delete with restore, client generated UUIDv7 ids, and web pages for the user list and a detail view showing the user's logs.
+**Done when:** An admin can create a user who receives an invitation email and can log in, update the user's name and role, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
+
+- [x] Design it (spec): `/architect user lifecycle management`
+- [x] Build it: `/develop user lifecycle management`
+  - [x] Migration and read only tracer: status columns, list and detail from service through gateway to the /users page (AC-8, AC-9, AC-11)
+  - [x] Create and update with client generated UUIDv7, audit writes, and the create dialog (AC-1, AC-3, AC-7)
+  - [x] Status lifecycle: suspend, block, soft delete, restore, guards, and extended auth login checks (AC-4, AC-5, AC-6, AC-7)
+  - [x] Invitation event and the auth magic link handler (AC-2)
+  - [x] Detail page log tabs, actorUserId filter, and cutover off the auth users endpoint (AC-9, AC-10, AC-11)
+- [x] Verify it: `/check verify user lifecycle management`
+- [x] Test it: `/test user lifecycle management`
+
+Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/user`, `apps/services/auth`, `apps/services/logs`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
+
 ## Deferred
 
 - Gateway inventory stock endpoint (`/api/v1/stock`) · from spec 0005
@@ -118,3 +138,5 @@ Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/data
 - Service registry endpoint so the console renders service cards from real data instead of a static list · from spec 0001
 - Conditional UI autofill (passkey suggestions in the login email field) · from spec 0006
 - Passkey support in the Tauri desktop shell when webview WebAuthn support matures · from spec 0006
+- Resend invitation action for failed or expired invitation emails · from spec 0007
+- Manager level read access to the user pages · from spec 0007
