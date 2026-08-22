@@ -13,13 +13,14 @@
     "#project/messaging": "./packages/messaging/src/index.ts"
   },
   "scripts": {
-    "dev": "bun run --parallel dev:web dev:gateway dev:auth dev:user",
+    "dev": "bun run kill:dev-ports && bun run --parallel dev:web dev:gateway dev:auth dev:user",
     "dev:web": "cd apps/web && ../../node_modules/.bin/ng serve --port 4200 --watch",
     "dev:tauri": "bunx tauri dev --config apps/tauri/src/tauri.conf.json",
     "dev:gateway": "PORT=3000 bun --watch apps/gateway/erp/src/main.ts",
     "dev:auth": "PORT=3101 bun --watch apps/services/auth/src/main.ts",
     "dev:user": "PORT=3102 bun --watch apps/services/user/src/main.ts",
     "dev:mcp": "bun --watch apps/mcp/src/index.ts",
+    "kill:dev-ports": "bun run scripts/kill-dev-ports.ts",
     "test": "bun test apps/gateway/erp/src apps/services packages/database/src packages/elysia/src packages/logger/src packages/contracts/src apps/mcp/src/tests",
     "test:mcp": "bun test apps/mcp/src/tests",
     "test:database": "bun test packages/database/src",
