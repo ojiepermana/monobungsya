@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import type { AppEnvironment } from '#project/config';
 import { loadEnv } from '#project/config';
+import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
@@ -8,10 +9,18 @@ import {
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
+import type { Publisher } from '#project/messaging';
 import { createUsersRoute } from './modules/users/users.route';
-import { createAuthIdentityPlugin } from './shared/plugins/auth-identity.plugin';
 
-export function createApp(environment: AppEnvironment = loadEnv('user')) {
+export interface UserAppDependencies {
+  database?: DatabaseClient;
+  messaging?: Publisher;
+}
+
+export function createApp(
+  environment: AppEnvironment = loadEnv('user'),
+  dependencies: UserAppDependencies = {},
+) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
 
   return new Elysia({ name: environment.serviceName })
@@ -42,10 +51,12 @@ export function createApp(environment: AppEnvironment = loadEnv('user')) {
       },
     )
     .use(
-      createAuthIdentityPlugin(
-        environment.INTERNAL_AUTH_SIGNING_SECRET,
-        environment.AUTH_CLOCK_SKEW_SECONDS,
-      ),
-    )
-    .use(createUsersRoute(environment.serviceName));
+      createUsersRoute(environment.serviceName, {
+        database: dependencies.database,
+        messaging: dependencies.messaging,
+        logger,
+        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
+    );
 }

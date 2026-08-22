@@ -1,6 +1,6 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
 import { ActivityLog } from '#project/logger';
-import { connectMessaging } from '#project/messaging';
+import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
 import { env } from './config/env';
 
@@ -8,10 +8,17 @@ const database = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.DATABASE_URL)
   : undefined;
 ActivityLog.configure(database);
+// A missing broker degrades this service, it does not stop it: a create still
+// commits and the invitation is logged as skipped (spec 0007, AC-2).
 const messaging = env.ENABLE_INFRASTRUCTURE
-  ? await connectMessaging(env.NATS_URL, env.serviceName)
+  ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
+      console.warn(
+        `${env.serviceName} could not reach NATS at ${env.NATS_URL}; events will be skipped:`,
+        error instanceof Error ? error.message : error,
+      );
+    })
   : undefined;
-const app = createApp(env);
+const app = createApp(env, { database, messaging });
 const server = app.listen(env.PORT);
 
 console.log(

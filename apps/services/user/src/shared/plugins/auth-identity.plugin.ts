@@ -1,25 +1,35 @@
 import { Elysia } from 'elysia';
 import {
   type AuthCapability,
+  type AuthIdentity,
   canAccessAuthCapability,
   readAndVerifyAuthIdentity,
 } from '#project/contracts';
-import {
-  ForbiddenError,
-  toErrorResponse,
-  UnauthorizedError,
-} from '#project/errors';
+import { ForbiddenError, UnauthorizedError } from '#project/errors';
 
+/**
+ * Verifies the signed identity the gateway forwards and hands it to the routes
+ * as `identity`, because every mutation in the users module needs the actor for
+ * its audit trail (spec docs/specs/0007-user-management, AC-7).
+ *
+ * The default capability is 'user-management', which is admin only: the whole
+ * user domain sits behind the admin role (AC-8). The gateway checks the same
+ * capability before it signs, so a non admin never reaches this service; the
+ * check here is the second, independent one.
+ *
+ * Errors are thrown, not returned, so the shared error handler shapes them into
+ * the same JSON envelope every other failure uses.
+ */
 export function createAuthIdentityPlugin(
   secret: string,
   clockSkewSeconds: number,
-  capability: AuthCapability = 'read',
+  capability: AuthCapability = 'user-management',
 ) {
-  return new Elysia({ name: 'user-auth-identity' }).onBeforeHandle(
+  return new Elysia({ name: 'user-auth-identity' }).resolve(
     { as: 'scoped' },
-    ({ request, set }) => {
+    ({ request }): { identity: AuthIdentity | null } => {
       if (!secret) {
-        return;
+        return { identity: null };
       }
 
       const identity = readAndVerifyAuthIdentity(
@@ -32,22 +42,14 @@ export function createAuthIdentityPlugin(
       );
 
       if (!identity) {
-        const mapped = toErrorResponse(
-          new UnauthorizedError('A valid signed identity is required'),
-          request.headers.get('x-request-id') ?? undefined,
-        );
-        set.status = mapped.status;
-        return mapped.body;
+        throw new UnauthorizedError('A valid signed identity is required');
       }
 
       if (!canAccessAuthCapability(identity.role, capability)) {
-        const mapped = toErrorResponse(
-          new ForbiddenError('The current role cannot access this resource'),
-          request.headers.get('x-request-id') ?? undefined,
-        );
-        set.status = mapped.status;
-        return mapped.body;
+        throw new ForbiddenError('The current role cannot manage users');
       }
+
+      return { identity };
     },
   );
 }
