@@ -27,13 +27,17 @@ export function appNavigationFor(
       link: '/setting/passkeys',
     },
   ];
+
+  // users.manage is admin only (spec 0007, AC-8), so a manager never sees a
+  // menu entry the gateway would refuse.
+  const userItems: NavigationItem[] = [];
   if (permissions.includes('users.manage')) {
-    settingsItems.push({
+    userItems.push({
       id: 'users',
       type: 'item',
-      title: 'User Access',
+      title: 'User Management',
       icon: 'admin_panel_settings',
-      link: '/setting/users',
+      link: '/users',
     });
   }
 
@@ -75,6 +79,7 @@ export function appNavigationFor(
 
   return [
     group('Overview', overviewItems),
+    ...(userItems.length > 0 ? [group('Users', userItems)] : []),
     ...(settingsItems.length > 0 ? [group('Settings', settingsItems)] : []),
     ...(logItems.length > 0 ? [group('Logs', logItems)] : []),
   ];

@@ -50,13 +50,26 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'setting/users',
-    title: 'MONOBUNGSYA · User Access',
+    path: 'users',
+    title: 'MONOBUNGSYA · User Management',
     canActivate: [authGuard, permissionGuard('users.manage')],
     loadComponent: () =>
-      import(
-        '../pages/settings/user-access-settings/user-access-settings.page'
-      ).then((m) => m.UserAccessSettingsPage),
+      import('../pages/users/list/users.page').then((m) => m.UsersPage),
+  },
+  {
+    path: 'users/:id',
+    title: 'MONOBUNGSYA · User Detail',
+    canActivate: [authGuard, permissionGuard('users.manage')],
+    loadComponent: () =>
+      import('../pages/users/detail/user-detail.page').then(
+        (m) => m.UserDetailPage,
+      ),
+  },
+  {
+    // The old settings path kept as a redirect, so a bookmark still lands.
+    path: 'setting/users',
+    redirectTo: 'users',
+    pathMatch: 'full',
   },
   {
     path: 'logs',

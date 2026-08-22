@@ -8,38 +8,59 @@ export interface HealthResponse {
   status: string;
 }
 
-export interface AuthUserAdmin {
+/** Derived from the three status timestamps by the user service. */
+export type UserStatus = 'active' | 'suspended' | 'blocked' | 'deleted';
+
+/** The empty value is the default list view, which hides deleted users. */
+export type UserStatusFilter = '' | UserStatus | 'all';
+
+/** The six status actions, each one needing a reason. */
+export type UserStatusAction =
+  | 'suspend'
+  | 'unsuspend'
+  | 'block'
+  | 'unblock'
+  | 'delete'
+  | 'restore';
+
+export interface UserRecord {
   id: string;
   name: string;
   email: string;
   role: AuthRole;
+  status: UserStatus;
+  emailVerifiedAt: string | null;
   suspendedAt: string | null;
+  blockedAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
-export interface AuthUsersResponse {
-  data: AuthUserAdmin[];
-}
-
-export interface AuthUsersFilters {
+export interface UsersFilters {
   search: string;
+  status: UserStatusFilter;
+  page: number;
 }
 
-export interface SaveAuthUserPayload {
-  id?: string;
+export interface UsersResponse {
+  data: UserRecord[];
+  meta: LogsMeta;
+  filters: Omit<UsersFilters, 'page'>;
+  options: { roles: AuthRole[]; statuses: UserStatus[] };
+}
+
+export interface CreateUserPayload {
+  /** A UUIDv7 the client generates, so the caller knows the id up front. */
+  id: string;
   name: string;
   email: string;
   role: AuthRole;
 }
 
-export interface SuspendAuthUserPayload {
-  suspended: boolean;
-}
-
-export interface AdminMagicLinkResponse {
-  status: 'sent';
-  message: string;
-  magicLink?: string;
-  expiresAt: string;
+export interface UpdateUserPayload {
+  name?: string;
+  role?: AuthRole;
 }
 
 export interface LogsMeta {
@@ -54,6 +75,11 @@ export interface AuditTrailFilters {
   module: string;
   action: string;
   page: number;
+}
+
+/** Narrows a log list to one actor, for the user detail page tabs. */
+export interface ActorScope {
+  actorUserId?: string;
 }
 
 export interface AuditTrailItem {
@@ -142,6 +168,11 @@ export interface ApplicationLogsResponse {
   };
 }
 
+/** The gateway validates actorUserId as a uuid, so an empty value is omitted. */
+function withActor(params: HttpParams, actorUserId?: string): HttpParams {
+  return actorUserId ? params.set('actorUserId', actorUserId) : params;
+}
+
 @Service()
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -151,75 +182,104 @@ export class ApiService {
     return this.http.get<HealthResponse>(`${this.base}/health`);
   }
 
-  authUsers(filters: AuthUsersFilters): Observable<AuthUsersResponse> {
-    return this.http.get<AuthUsersResponse>(`${this.base}/api/v1/auth/users`, {
-      params: new HttpParams().set('search', filters.search),
+  users(filters: UsersFilters): Observable<UsersResponse> {
+    return this.http.get<UsersResponse>(`${this.base}/api/v1/users`, {
+      params: new HttpParams()
+        .set('search', filters.search)
+        .set('status', filters.status)
+        .set('page', String(filters.page)),
     });
   }
 
-  saveAuthUser(payload: SaveAuthUserPayload): Observable<AuthUserAdmin> {
-    return this.http.post<AuthUserAdmin>(
-      `${this.base}/api/v1/auth/users`,
-      payload,
-    );
+  user(id: string): Observable<UserRecord> {
+    return this.http.get<UserRecord>(`${this.userUrl(id)}`);
   }
 
-  suspendAuthUser(
+  createUser(payload: CreateUserPayload): Observable<UserRecord> {
+    return this.http.post<UserRecord>(`${this.base}/api/v1/users`, payload);
+  }
+
+  updateUser(id: string, payload: UpdateUserPayload): Observable<UserRecord> {
+    return this.http.patch<UserRecord>(this.userUrl(id), payload);
+  }
+
+  /**
+   * Every status action carries a mandatory reason, which lands in the audit
+   * trail. Soft delete is the only one that is an HTTP DELETE, and it still
+   * sends the reason in the body.
+   */
+  runUserStatusAction(
     id: string,
-    payload: SuspendAuthUserPayload,
-  ): Observable<AuthUserAdmin> {
-    return this.http.patch<AuthUserAdmin>(
-      `${this.base}/api/v1/auth/users/${encodeURIComponent(id)}/suspension`,
-      payload,
-    );
+    action: UserStatusAction,
+    reason: string,
+  ): Observable<UserRecord> {
+    if (action === 'delete') {
+      return this.http.delete<UserRecord>(this.userUrl(id), {
+        body: { reason },
+      });
+    }
+
+    return this.http.post<UserRecord>(`${this.userUrl(id)}/${action}`, {
+      reason,
+    });
   }
 
-  generateAuthUserMagicLink(id: string): Observable<AdminMagicLinkResponse> {
-    return this.http.post<AdminMagicLinkResponse>(
-      `${this.base}/api/v1/auth/users/${encodeURIComponent(id)}/magic-link`,
-      {},
-    );
-  }
-
-  auditTrails(filters: AuditTrailFilters): Observable<AuditTrailsResponse> {
+  auditTrails(
+    filters: AuditTrailFilters & ActorScope,
+  ): Observable<AuditTrailsResponse> {
     return this.http.get<AuditTrailsResponse>(
       `${this.base}/api/v1/logs/audit-trails`,
       {
-        params: new HttpParams()
-          .set('search', filters.search)
-          .set('module', filters.module)
-          .set('action', filters.action)
-          .set('page', String(filters.page)),
+        params: withActor(
+          new HttpParams()
+            .set('search', filters.search)
+            .set('module', filters.module)
+            .set('action', filters.action)
+            .set('page', String(filters.page)),
+          filters.actorUserId,
+        ),
       },
     );
   }
 
-  accessLogs(filters: AccessLogFilters): Observable<AccessLogsResponse> {
+  accessLogs(
+    filters: AccessLogFilters & ActorScope,
+  ): Observable<AccessLogsResponse> {
     return this.http.get<AccessLogsResponse>(
       `${this.base}/api/v1/logs/access-logs`,
       {
-        params: new HttpParams()
-          .set('search', filters.search)
-          .set('event', filters.event)
-          .set('outcome', filters.outcome)
-          .set('page', String(filters.page)),
+        params: withActor(
+          new HttpParams()
+            .set('search', filters.search)
+            .set('event', filters.event)
+            .set('outcome', filters.outcome)
+            .set('page', String(filters.page)),
+          filters.actorUserId,
+        ),
       },
     );
   }
 
   applicationLogs(
-    filters: ApplicationLogFilters,
+    filters: ApplicationLogFilters & ActorScope,
   ): Observable<ApplicationLogsResponse> {
     return this.http.get<ApplicationLogsResponse>(
       `${this.base}/api/v1/logs/application-logs`,
       {
-        params: new HttpParams()
-          .set('search', filters.search)
-          .set('level', filters.level)
-          .set('module', filters.module)
-          .set('event', filters.event)
-          .set('page', String(filters.page)),
+        params: withActor(
+          new HttpParams()
+            .set('search', filters.search)
+            .set('level', filters.level)
+            .set('module', filters.module)
+            .set('event', filters.event)
+            .set('page', String(filters.page)),
+          filters.actorUserId,
+        ),
       },
     );
+  }
+
+  private userUrl(id: string): string {
+    return `${this.base}/api/v1/users/${encodeURIComponent(id)}`;
   }
 }
