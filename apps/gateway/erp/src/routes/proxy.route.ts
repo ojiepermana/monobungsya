@@ -1,6 +1,12 @@
 import { Elysia, t } from 'elysia';
-import { type AuthIdentity, signAuthIdentity } from '#project/contracts';
 import {
+  type AuthCapability,
+  type AuthIdentity,
+  canAccessAuthCapability,
+  signAuthIdentity,
+} from '#project/contracts';
+import {
+  ForbiddenError,
   ServiceUnavailableError,
   toErrorResponse,
   UnauthorizedError,
@@ -15,6 +21,7 @@ async function forwardRequest(
   environment: GatewayEnvironment,
   requiresIdentity = false,
   requestBody?: unknown,
+  capability?: AuthCapability,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
   const suffix = incomingUrl.pathname.slice(publicPrefix.length);
@@ -44,6 +51,7 @@ async function forwardRequest(
       headers,
       upstreamUrl.pathname,
       environment,
+      capability,
     );
 
     if (identityError) {
@@ -83,6 +91,7 @@ async function addIdentityHeaders(
   headers: Headers,
   normalizedPath: string,
   environment: GatewayEnvironment,
+  capability?: AuthCapability,
 ): Promise<Response | undefined> {
   if (!environment.INTERNAL_AUTH_SIGNING_SECRET) {
     return undefined;
@@ -153,6 +162,16 @@ async function addIdentityHeaders(
     role: session.user.role,
     expiresAt,
   };
+
+  // Checked here as well as inside the service, so a role that may not reach a
+  // domain never gets a signed identity for it in the first place.
+  if (capability && !canAccessAuthCapability(identity.role, capability)) {
+    return mappedGatewayError(
+      new ForbiddenError('The current role cannot access this resource'),
+      requestId,
+    );
+  }
+
   const signature = signAuthIdentity(
     request.method,
     normalizedPath,
@@ -187,7 +206,34 @@ const webAuthnResponse = t.Object(
   { additionalProperties: true },
 );
 
+const userIdParams = t.Object({ id: t.String({ format: 'uuid' }) });
+
+/** Every status action takes the same mandatory reason. */
+function statusActionRoute(summary: string) {
+  return {
+    params: userIdParams,
+    body: t.Object({ reason: t.String({ minLength: 3, maxLength: 500 }) }),
+    detail: { tags: ['Users'], summary },
+  };
+}
+
 export function createProxyRoute(environment: GatewayEnvironment) {
+  /**
+   * The whole user domain is admin only (spec docs/specs/0007-user-management,
+   * AC-8): a non admin is refused here, before an identity is ever signed.
+   */
+  const forwardUser = (request: Request, body?: unknown) =>
+    forwardRequest(
+      request,
+      environment.serviceUrls.user,
+      '/api/v1/users',
+      '/internal/users',
+      environment,
+      true,
+      body,
+      'user-management',
+    );
+
   return new Elysia({ name: 'gateway-proxy-routes' })
     .all('/api/v1/auth/identity', () => new Response(null, { status: 404 }), {
       detail: { hide: true },
@@ -221,25 +267,6 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
         }),
         detail: { tags: ['Auth'], summary: 'Request an auth magic link' },
-      },
-    )
-    .get(
-      '/api/v1/auth/users',
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.auth,
-          '/api/v1/auth',
-          '/internal/auth',
-          environment,
-          true,
-        ),
-      {
-        query: t.Object({ search: t.Optional(t.String()) }),
-        detail: {
-          tags: ['Auth'],
-          summary: 'List users for authorized operators',
-        },
       },
     )
     .get(
@@ -418,18 +445,80 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         },
       },
     )
-    .get(
-      '/api/v1/users/status',
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.user,
-          '/api/v1/users',
-          '/internal/users',
-          environment,
-          true,
-        ),
-      { detail: { tags: ['Users'], summary: 'Forward users status request' } },
+    .get('/api/v1/users/status', ({ request }) => forwardUser(request), {
+      detail: { tags: ['Users'], summary: 'Forward users status request' },
+    })
+    .get('/api/v1/users', ({ request }) => forwardUser(request), {
+      query: t.Object({
+        search: t.Optional(t.String()),
+        status: t.Optional(t.String()),
+        page: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Users'],
+        summary: 'List users (requires the admin role)',
+      },
+    })
+    .post('/api/v1/users', ({ body, request }) => forwardUser(request, body), {
+      body: t.Object({
+        id: t.String({ format: 'uuid' }),
+        name: t.String({ minLength: 1, maxLength: 255 }),
+        email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
+        role: t.String({ minLength: 1, maxLength: 50 }),
+      }),
+      detail: {
+        tags: ['Users'],
+        summary: 'Create a user with a client generated UUIDv7 id',
+      },
+    })
+    .get('/api/v1/users/:id', ({ request }) => forwardUser(request), {
+      params: userIdParams,
+      detail: { tags: ['Users'], summary: 'Read one user' },
+    })
+    .patch(
+      '/api/v1/users/:id',
+      ({ body, request }) => forwardUser(request, body),
+      {
+        params: userIdParams,
+        body: t.Object({
+          name: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
+          role: t.Optional(t.String({ minLength: 1, maxLength: 50 })),
+        }),
+        detail: {
+          tags: ['Users'],
+          summary: "Update a user's name and role",
+        },
+      },
+    )
+    .post(
+      '/api/v1/users/:id/suspend',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Suspend a user'),
+    )
+    .post(
+      '/api/v1/users/:id/unsuspend',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Unsuspend a user'),
+    )
+    .post(
+      '/api/v1/users/:id/block',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Block a user'),
+    )
+    .post(
+      '/api/v1/users/:id/unblock',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Unblock a user'),
+    )
+    .post(
+      '/api/v1/users/:id/restore',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Restore a soft deleted user'),
+    )
+    .delete(
+      '/api/v1/users/:id',
+      ({ body, request }) => forwardUser(request, body),
+      statusActionRoute('Soft delete a user'),
     )
     .get(
       '/api/v1/logs/audit-trails',
@@ -447,6 +536,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           search: t.Optional(t.String()),
           module: t.Optional(t.String()),
           action: t.Optional(t.String()),
+          actorUserId: t.Optional(t.String({ format: 'uuid' })),
           page: t.Optional(t.String()),
         }),
         detail: {
@@ -471,6 +561,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           search: t.Optional(t.String()),
           event: t.Optional(t.String()),
           outcome: t.Optional(t.String()),
+          actorUserId: t.Optional(t.String({ format: 'uuid' })),
           page: t.Optional(t.String()),
         }),
         detail: {
@@ -496,6 +587,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           level: t.Optional(t.String()),
           module: t.Optional(t.String()),
           event: t.Optional(t.String()),
+          actorUserId: t.Optional(t.String({ format: 'uuid' })),
           page: t.Optional(t.String()),
         }),
         detail: {
@@ -518,19 +610,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         detail: { hide: true },
       },
     )
-    .all(
-      '/api/v1/users/*',
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.user,
-          '/api/v1/users',
-          '/internal/users',
-          environment,
-          true,
-        ),
-      {
-        detail: { hide: true },
-      },
-    );
+    .all('/api/v1/users/*', ({ request }) => forwardUser(request), {
+      detail: { hide: true },
+    });
 }
