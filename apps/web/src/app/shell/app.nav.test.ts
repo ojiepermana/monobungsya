@@ -3,13 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { appNavigationFor } from './app.nav';
 
 describe('application navigation authorization', () => {
-  it('keeps user access and logs available to authorized users', () => {
+  it('keeps user management and logs available to authorized users', () => {
+    // User management is its own group above Settings: it is a domain area,
+    // not a preference (spec docs/specs/0007-user-management).
     expect(
       navigationIds(appNavigationFor(['users.manage', 'logs.read'])),
     ).toEqual([
       'logs-overview',
-      'passkeys',
       'users',
+      'passkeys',
       'logs-audit',
       'logs-access',
       'logs-application',
