@@ -1,4 +1,4 @@
-import { type AppEnvironment, loadEnv } from "#project/config";
+import { type AppEnvironment, loadEnv } from '#project/config';
 
 export type GatewayEnvironment = AppEnvironment & {
   INTERNAL_AUTH_SIGNING_SECRET: string;
@@ -6,25 +6,27 @@ export type GatewayEnvironment = AppEnvironment & {
   serviceUrls: {
     auth: string;
     user: string;
+    logs: string;
   };
 };
 
 export function loadGatewayEnv(
   source: Record<string, string | undefined> = Bun.env,
 ): GatewayEnvironment {
-  const environment = loadEnv("api-gateway", source);
+  const environment = loadEnv('api-gateway', source);
 
   return {
     ...environment,
-    INTERNAL_AUTH_SIGNING_SECRET: source.INTERNAL_AUTH_SIGNING_SECRET ?? "",
+    INTERNAL_AUTH_SIGNING_SECRET: source.INTERNAL_AUTH_SIGNING_SECRET ?? '',
     AUTH_CLOCK_SKEW_SECONDS: parseNumber(
       source.AUTH_CLOCK_SKEW_SECONDS,
       30,
-      "AUTH_CLOCK_SKEW_SECONDS",
+      'AUTH_CLOCK_SKEW_SECONDS',
     ),
     serviceUrls: {
-      auth: source.AUTH_SERVICE_URL ?? "http://localhost:3101",
-      user: source.USER_SERVICE_URL ?? "http://localhost:3102",
+      auth: source.AUTH_SERVICE_URL ?? 'http://localhost:3101',
+      user: source.USER_SERVICE_URL ?? 'http://localhost:3102',
+      logs: source.LOGS_SERVICE_URL ?? 'http://localhost:3103',
     },
   };
 }

@@ -1,8 +1,8 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { SQL } from "bun";
-import type { DatabaseToolConfig } from "./config";
-import { parseCsv } from "./csv";
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { SQL } from 'bun';
+import type { DatabaseToolConfig } from './config';
+import { parseCsv } from './csv';
 import {
   assertPositiveInteger,
   DATABASE_SCHEMAS,
@@ -12,16 +12,16 @@ import {
   quoteIdentifier,
   schemaForScope,
   sha256Hex,
-} from "./tooling";
+} from './tooling';
 
 const TRACKING_TABLES = {
-  migrations: "schema_migrations",
-  seeds: "seed_migrations",
+  migrations: 'schema_migrations',
+  seeds: 'seed_migrations',
 } as const;
-const SEED_SETS = ["reference", "fixtures"] as const;
+const SEED_SETS = ['reference', 'fixtures'] as const;
 const CSV_ROWS_PER_INSERT = 1000;
-const LOCK_KEY = "project:database-tooling:v1";
-const LEGACY_SCHEMAS = ["users", "log", "partition"] as const;
+const LOCK_KEY = 'project:database-tooling:v1';
+const LEGACY_SCHEMAS = ['users', 'log'] as const;
 const SEED_FILE_PATTERN =
   /^(?<number>\d{4})_(?<target>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)\.(?<extension>sql|csv)$/;
 const IDEMPOTENT_SQL_PATTERN = /ON\s+CONFLICT|DO\s+\$\$|WHERE\s+NOT\s+EXISTS/i;
@@ -40,7 +40,7 @@ export interface SeedFile {
   set: (typeof SEED_SETS)[number];
   scope: DatabaseScope;
   path: string;
-  extension: "sql" | "csv";
+  extension: 'sql' | 'csv';
   targetSchema?: string;
   targetTable?: string;
 }
@@ -49,7 +49,7 @@ export interface FileStatus {
   name: string;
   scope: DatabaseScope;
   checksum: string;
-  status: "pending" | "applied" | "checksum-mismatch";
+  status: 'pending' | 'applied' | 'checksum-mismatch';
 }
 
 export interface RunResult {
@@ -85,7 +85,7 @@ export class DatabaseRunner {
 
     if (filter.dryRun) {
       return await this.dryRunTracking(
-        "migrations",
+        'migrations',
         migrations
           .filter(
             (migration) =>
@@ -112,15 +112,15 @@ export class DatabaseRunner {
     const seeds = discoverSeeds(this.config.seedsDir);
 
     if (
-      filter.set === "fixtures" &&
-      this.config.nodeEnvironment === "production"
+      filter.set === 'fixtures' &&
+      this.config.nodeEnvironment === 'production'
     ) {
-      throw new Error("fixture seeds are disabled in production");
+      throw new Error('fixture seeds are disabled in production');
     }
 
     if (filter.dryRun) {
       return await this.dryRunTracking(
-        "seeds",
+        'seeds',
         seeds
           .filter((seed) => filter.set === undefined || seed.set === filter.set)
           .filter(
@@ -149,21 +149,22 @@ export class DatabaseRunner {
   ): Promise<RunResult> {
     await this.assertDatabaseCompatibility();
 
-    if (this.config.nodeEnvironment === "production") {
-      throw new Error("db:reset is disabled in production");
+    if (this.config.nodeEnvironment === 'production') {
+      throw new Error('db:reset is disabled in production');
     }
 
     if (!options.confirm) {
-      throw new Error("db:reset requires explicit confirmation");
+      throw new Error('db:reset requires explicit confirmation');
     }
 
     if (!this.config.resetAllowed) {
-      throw new Error("DATABASE_RESET_ALLOWED=true is required for db:reset");
+      throw new Error('DATABASE_RESET_ALLOWED=true is required for db:reset');
     }
 
     return await this.withLock(async (database) => {
       await database.unsafe(
-        `${DATABASE_SCHEMAS.map((schema) => `DROP SCHEMA IF EXISTS ${quoteIdentifier(schema)} CASCADE`).join("; ")}; ` +
+        `${DATABASE_SCHEMAS.map((schema) => `DROP SCHEMA IF EXISTS ${quoteIdentifier(schema)} CASCADE`).join('; ')}; ` +
+          'DROP SCHEMA IF EXISTS "partition" CASCADE; ' +
           'DROP TABLE IF EXISTS "public"."schema_migrations", "public"."seed_migrations" CASCADE',
       );
 
@@ -191,10 +192,10 @@ export class DatabaseRunner {
   }
 
   async migrateDown(steps = 1, scope?: DatabaseScope): Promise<DownResult> {
-    assertPositiveInteger(steps, "steps");
+    assertPositiveInteger(steps, 'steps');
 
-    if (this.config.nodeEnvironment === "production") {
-      throw new Error("db:migrate:down is disabled in production");
+    if (this.config.nodeEnvironment === 'production') {
+      throw new Error('db:migrate:down is disabled in production');
     }
 
     await this.assertDatabaseCompatibility();
@@ -226,7 +227,7 @@ export class DatabaseRunner {
         }
 
         await database.begin(async (transaction) => {
-          await transaction.unsafe(readFileSync(migration.downPath, "utf8"));
+          await transaction.unsafe(readFileSync(migration.downPath, 'utf8'));
           await transaction`
             DELETE FROM "public"."schema_migrations"
             WHERE name = ${migration.name}
@@ -296,7 +297,7 @@ export class DatabaseRunner {
         : null;
 
     for (const migration of pending) {
-      const source = readFileSync(migration.path, "utf8");
+      const source = readFileSync(migration.path, 'utf8');
 
       await database.begin(async (transaction) => {
         await transaction.unsafe(source);
@@ -337,10 +338,10 @@ export class DatabaseRunner {
         : null;
 
     for (const seed of pending) {
-      const source = readFileSync(seed.path, "utf8");
+      const source = readFileSync(seed.path, 'utf8');
 
       await database.begin(async (transaction) => {
-        if (seed.extension === "csv") {
+        if (seed.extension === 'csv') {
           await applyCsvSeed(transaction, seed, source);
         } else {
           assertIdempotentSqlSeed(source, seed.name);
@@ -360,7 +361,7 @@ export class DatabaseRunner {
   }
 
   private async dryRunTracking(
-    table: "migrations" | "seeds",
+    table: 'migrations' | 'seeds',
     files: Array<{ name: string; scope: DatabaseScope; path: string }>,
   ): Promise<FileStatus[]> {
     const trackingTable = TRACKING_TABLES[table];
@@ -377,7 +378,7 @@ export class DatabaseRunner {
     const applied = new Map(rows.map((row) => [row.name, row]));
 
     return files.map((file) => {
-      const checksum = sha256Hex(readFileSync(file.path, "utf8"));
+      const checksum = sha256Hex(readFileSync(file.path, 'utf8'));
       const tracked = applied.get(file.name);
 
       return {
@@ -386,10 +387,10 @@ export class DatabaseRunner {
         checksum,
         status:
           tracked === undefined
-            ? "pending"
+            ? 'pending'
             : tracked.checksum === checksum
-              ? "applied"
-              : "checksum-mismatch",
+              ? 'applied'
+              : 'checksum-mismatch',
       };
     });
   }
@@ -422,12 +423,12 @@ export class DatabaseRunner {
         columns.map((row: Record<string, unknown>) => String(row.column_name)),
       );
       const required = [
-        "id",
-        "name",
-        "scope",
-        "checksum",
-        "batch",
-        "applied_at",
+        'id',
+        'name',
+        'scope',
+        'checksum',
+        'batch',
+        'applied_at',
       ];
 
       if (required.some((column) => !present.has(column))) {
@@ -444,7 +445,7 @@ export class DatabaseRunner {
   ): Promise<AppliedRow[]> {
     const rows = await database.unsafe(
       `SELECT name, scope, checksum, batch, applied_at, id FROM "public"."${table}" ` +
-        "ORDER BY applied_at DESC, id DESC",
+        'ORDER BY applied_at DESC, id DESC',
     );
 
     return rows.map((row: Record<string, unknown>) => ({
@@ -494,9 +495,9 @@ export class DatabaseRunner {
 
       assertChecksumMatches(
         row.name,
-        readFileSync(migration.path, "utf8"),
+        readFileSync(migration.path, 'utf8'),
         row.checksum,
-        "migration",
+        'migration',
       );
     }
   }
@@ -517,9 +518,9 @@ export class DatabaseRunner {
 
       assertChecksumMatches(
         row.name,
-        readFileSync(seed.path, "utf8"),
+        readFileSync(seed.path, 'utf8'),
         row.checksum,
-        "seed",
+        'seed',
       );
     }
   }
@@ -539,7 +540,7 @@ export class DatabaseRunner {
 
     if (missing.length > 0) {
       throw new Error(
-        `schema migration is incomplete; run db:migrate first: ${missing.map((migration) => migration.name).join(", ")}`,
+        `schema migration is incomplete; run db:migrate first: ${missing.map((migration) => migration.name).join(', ')}`,
       );
     }
   }
@@ -548,12 +549,12 @@ export class DatabaseRunner {
     const legacyRows = await database`
       SELECT nspname
       FROM pg_namespace
-      WHERE nspname = ANY(${database.array([...LEGACY_SCHEMAS], "text")})
+      WHERE nspname = ANY(${database.array([...LEGACY_SCHEMAS], 'text')})
     `;
 
     if (legacyRows.length > 0) {
       throw new Error(
-        `legacy schemas are not canonical: ${legacyRows.map((row: Record<string, unknown>) => String(row.nspname)).join(", ")}`,
+        `legacy schemas are not canonical: ${legacyRows.map((row: Record<string, unknown>) => String(row.nspname)).join(', ')}`,
       );
     }
 
@@ -579,7 +580,7 @@ export class DatabaseRunner {
             ON attribute.attrelid = relation.oid AND attribute.attname = 'id'
           WHERE index_record.indrelid = relation.oid
             AND index_record.indisprimary
-            AND index_record.indnkeyatts = 1
+            AND (index_record.indnkeyatts = 1 OR relation.relkind = 'p')
             AND index_record.indkey[0] = attribute.attnum
         ) AS has_uuid_primary_key,
         EXISTS (
@@ -601,10 +602,10 @@ export class DatabaseRunner {
       FROM pg_class AS relation
       JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
         WHERE (
-          namespace.nspname = ANY(${database.array(DATABASE_SCHEMAS, "text")})
+          namespace.nspname = ANY(${database.array(DATABASE_SCHEMAS, 'text')})
           OR (
             namespace.nspname = 'public'
-            AND relation.relname = ANY(${database.array(Object.values(TRACKING_TABLES), "text")})
+            AND relation.relname = ANY(${database.array(Object.values(TRACKING_TABLES), 'text')})
           )
         )
         AND relation.relkind IN ('r', 'p')
@@ -693,7 +694,7 @@ interface AppliedRow {
 }
 
 export function discoverMigrations(directory: string): MigrationFile[] {
-  assertDirectory(directory, "migration");
+  assertDirectory(directory, 'migration');
   const files: MigrationFile[] = [];
   const scopes = readdirSync(directory, { withFileTypes: true });
 
@@ -709,12 +710,12 @@ export function discoverMigrations(directory: string): MigrationFile[] {
     const scopeDirectory = join(directory, entry.name);
 
     for (const file of readdirSync(scopeDirectory)) {
-      if (file.endsWith(".down.sql")) {
+      if (file.endsWith('.down.sql')) {
         continue;
       }
 
-      if (!file.endsWith(".up.sql")) {
-        if (file.endsWith(".sql")) {
+      if (!file.endsWith('.up.sql')) {
+        if (file.endsWith('.sql')) {
           throw new Error(
             `migration file "${file}" must use .up.sql or .down.sql`,
           );
@@ -723,7 +724,7 @@ export function discoverMigrations(directory: string): MigrationFile[] {
         continue;
       }
 
-      const name = file.slice(0, -".up.sql".length);
+      const name = file.slice(0, -'.up.sql'.length);
       const parsed = parseMigrationName(name);
       const downPath = join(scopeDirectory, `${name}.down.sql`);
 
@@ -746,7 +747,7 @@ export function discoverMigrations(directory: string): MigrationFile[] {
 }
 
 export function discoverSeeds(directory: string): SeedFile[] {
-  assertDirectory(directory, "seed");
+  assertDirectory(directory, 'seed');
   const files: SeedFile[] = [];
 
   for (const setEntry of readdirSync(directory, { withFileTypes: true })) {
@@ -776,7 +777,7 @@ export function discoverSeeds(directory: string): SeedFile[] {
       const scopeDirectory = join(setDirectory, scope);
 
       for (const file of readdirSync(scopeDirectory)) {
-        if (!file.endsWith(".sql") && !file.endsWith(".csv")) {
+        if (!file.endsWith('.sql') && !file.endsWith('.csv')) {
           continue;
         }
 
@@ -789,8 +790,8 @@ export function discoverSeeds(directory: string): SeedFile[] {
         }
 
         const number = Number(match.groups.number);
-        const extension = match.groups.extension as "sql" | "csv";
-        const target = match.groups.target?.split(".") ?? [];
+        const extension = match.groups.extension as 'sql' | 'csv';
+        const target = match.groups.target?.split('.') ?? [];
         const name = `${set}/${scope}/${file}`;
         const seed: SeedFile = {
           name,
@@ -801,7 +802,7 @@ export function discoverSeeds(directory: string): SeedFile[] {
           extension,
         };
 
-        if (extension === "csv") {
+        if (extension === 'csv') {
           if (target.length !== 2) {
             throw new Error(`CSV seed "${file}" must include schema and table`);
           }
@@ -844,7 +845,7 @@ export function assertChecksumMatches(
   name: string,
   source: string,
   expected: string,
-  kind: "migration" | "seed",
+  kind: 'migration' | 'seed',
 ): void {
   const actual = sha256Hex(source);
 
@@ -915,7 +916,7 @@ function assertScopeDependencies(
 
   if (missing.size > 0) {
     throw new Error(
-      `scope ${scope} has unapplied global migration dependencies: ${[...missing].join(", ")}`,
+      `scope ${scope} has unapplied global migration dependencies: ${[...missing].join(', ')}`,
     );
   }
 }
@@ -951,20 +952,20 @@ async function applyCsvSeed(
 
   const columns = Object.keys(firstRow);
   const table = `${quoteIdentifier(seed.targetSchema)}.${quoteIdentifier(seed.targetTable)}`;
-  const columnList = columns.map(quoteIdentifier).join(", ");
+  const columnList = columns.map(quoteIdentifier).join(', ');
 
   for (let offset = 0; offset < rows.length; offset += CSV_ROWS_PER_INSERT) {
     const chunk = rows.slice(offset, offset + CSV_ROWS_PER_INSERT);
     const placeholders = chunk
       .map(
         (_, rowIndex) =>
-          `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(", ")})`,
+          `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(', ')})`,
       )
-      .join(", ");
+      .join(', ');
     const parameters = chunk.flatMap((row) =>
       columns.map((column) => {
-        const value = row[column] ?? "";
-        return value === "" ? null : value;
+        const value = row[column] ?? '';
+        return value === '' ? null : value;
       }),
     );
 
@@ -977,10 +978,10 @@ async function applyCsvSeed(
 
 function isUndefinedTableError(error: unknown): boolean {
   return (
-    typeof error === "object" &&
+    typeof error === 'object' &&
     error !== null &&
-    "code" in error &&
-    error.code === "42P01"
+    'code' in error &&
+    error.code === '42P01'
   );
 }
 

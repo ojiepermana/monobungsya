@@ -1,4 +1,4 @@
-import { loadEnv } from "#project/config";
+import { loadEnv } from '#project/config';
 
-export const env = loadEnv("user");
+export const env = loadEnv('user');
 export { loadEnv };

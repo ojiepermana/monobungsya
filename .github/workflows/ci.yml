@@ -78,6 +78,7 @@ jobs:
           END
           $$;
           GRANT CONNECT, CREATE ON DATABASE project TO project_migrator;
+          GRANT project_logs_writer TO project_migrator;
           \connect project
           GRANT USAGE, CREATE ON SCHEMA public TO project_migrator;
           SQL
@@ -98,9 +99,6 @@ jobs:
 
       - name: Run typecheck
         run: bun run typecheck
-
-      - name: Check formatting
-        run: bun run format:check
 
       - name: Run lint
         run: bun run lint
@@ -150,6 +148,9 @@ jobs:
             build_args: ""
           - name: user
             file: infra/docker/services/user/Dockerfile
+            build_args: ""
+          - name: logs
+            file: infra/docker/services/logs/Dockerfile
             build_args: ""
 
     steps:

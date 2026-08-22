@@ -1,12 +1,11 @@
 import type { NavigationItem } from '@ojiepermana/angular/navigation';
-import type { AuthPermission, AuthRole } from '../auth/auth.service';
+import type { AuthPermission } from '../auth/auth.service';
 
 export const APP_BRAND_ICON = 'payments' as const;
 
 /** Application navigation grouped by the main areas of the payroll app. */
 export function appNavigationFor(
   permissions: readonly AuthPermission[],
-  role?: AuthRole,
 ): readonly NavigationItem[] {
   const overviewItems: NavigationItem[] = [
     {
@@ -65,7 +64,10 @@ export function appNavigationFor(
     );
   }
 
-  const group = (title: string, children: readonly NavigationItem[]): NavigationItem => ({
+  const group = (
+    title: string,
+    children: readonly NavigationItem[],
+  ): NavigationItem => ({
     type: 'group',
     title,
     children,

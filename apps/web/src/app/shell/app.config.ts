@@ -1,11 +1,34 @@
 import {
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+} from '@angular/common/http';
+import type { ApplicationConfig } from '@angular/core';
+import {
   inject,
   provideEnvironmentInitializer,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import type { ApplicationConfig } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { provideMaterialSymbols } from '@ojiepermana/angular/component/icon';
+import { THEME_SETTINGS_ADAPTER } from '@ojiepermana/angular/theme/component/settings';
+import {
+  LayoutService,
+  layoutLoadingInterceptor,
+} from '@ojiepermana/angular/theme/layout/services';
+import type {
+  LayoutAppearance,
+  LayoutSurface,
+  LayoutType,
+  LayoutWidth,
+} from '@ojiepermana/angular/theme/layout/types';
+import {
+  createTauriShellWindowBridge,
+  isTauriRuntime,
+  provideShellWindowBridge,
+  ShellService,
+  WEB_SHELL_WINDOW_BRIDGE,
+} from '@ojiepermana/angular/theme/shell';
 import {
   provideUiTheme,
   type ThemeColor,
@@ -14,25 +37,9 @@ import {
   type ThemeRadius,
   type ThemeSpace,
 } from '@ojiepermana/angular/theme/styles';
-import { THEME_SETTINGS_ADAPTER } from '@ojiepermana/angular/theme/component/settings';
-import { provideMaterialSymbols } from '@ojiepermana/angular/component/icon';
-import {
-  WEB_SHELL_WINDOW_BRIDGE,
-  createTauriShellWindowBridge,
-  isTauriRuntime,
-  provideShellWindowBridge,
-  ShellService,
-} from '@ojiepermana/angular/theme/shell';
-import { LayoutService, layoutLoadingInterceptor } from '@ojiepermana/angular/theme/layout/services';
-import type {
-  LayoutAppearance,
-  LayoutSurface,
-  LayoutType,
-  LayoutWidth,
-} from '@ojiepermana/angular/theme/layout/types';
-import { routes } from './app.routes';
-import { environment } from '../../environments/environment';
 import { provideApiConfiguration } from '../../api/shared/api-configuration';
+import { environment } from '../../environments/environment';
+import { routes } from './app.routes';
 import { ThemeSettingsAdapterService } from './theme-settings-adapter';
 
 /**
@@ -96,7 +103,9 @@ function shellWindowBridge() {
     // onFocusChanged, which is what keeps the titlebar's maximize/restore label
     // and focus dimming in step with the real window.
     currentWindow: () =>
-      import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow()),
+      import('@tauri-apps/api/window').then(({ getCurrentWindow }) =>
+        getCurrentWindow(),
+      ),
     platform: () => navigator.platform,
   });
 }
@@ -107,7 +116,10 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     // layoutLoadingInterceptor drives the layout's top progress bar while
     // HTTP requests are in flight.
-    provideHttpClient(withFetch(), withInterceptors([layoutLoadingInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([layoutLoadingInterceptor]),
+    ),
     provideApiConfiguration(environment.apiUrl),
     provideShellWindowBridge(shellWindowBridge),
     // @ojiepermana/angular design-system theme defaults (each axis persists, so a

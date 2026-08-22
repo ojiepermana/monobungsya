@@ -1,0 +1,86 @@
+export interface LogsMeta {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AuditTrailFilters {
+  search: string;
+  module: string;
+  action: string;
+}
+
+export interface AuditTrailItem {
+  id: string;
+  action: string;
+  module: string;
+  entityType: string;
+  entityId: string;
+  entityLabel: string | null;
+  actorEmail: string | null;
+  actorRole: string | null;
+  changeSummary: string | null;
+  auditedAt: string;
+}
+
+export interface AuditTrailsResult {
+  data: AuditTrailItem[];
+  meta: LogsMeta;
+  filters: AuditTrailFilters;
+  options: { modules: string[]; actions: string[] };
+}
+
+export interface AccessLogFilters {
+  search: string;
+  event: string;
+  outcome: string;
+}
+
+export interface AccessLogItem {
+  event: string;
+  outcome: string;
+  actorEmail: string | null;
+  failureReason: string | null;
+  createdAt: string;
+}
+
+export interface AccessLogsResult {
+  data: AccessLogItem[];
+  meta: LogsMeta;
+  filters: AccessLogFilters;
+  options: { events: string[]; outcomes: string[] };
+}
+
+export interface ApplicationLogFilters {
+  search: string;
+  level: string;
+  module: string;
+  event: string;
+}
+
+export interface ApplicationLogItem {
+  id: string;
+  level: string;
+  channel: string;
+  category: string;
+  event: string | null;
+  module: string | null;
+  message: string;
+  context: unknown;
+  exceptionClass: string | null;
+  exceptionMessage: string | null;
+  stackTrace: string | null;
+  actorUserId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  occurredAt: string;
+  createdAt: string;
+}
+
+export interface ApplicationLogsResult {
+  data: ApplicationLogItem[];
+  meta: LogsMeta;
+  filters: ApplicationLogFilters;
+  options: { levels: string[]; modules: string[]; events: string[] };
+}

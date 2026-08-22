@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: Logs Service API
+  description: Internal HTTP contract for the read only logs service.
+  version: 0.1.0
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Logs
+    description: Log viewer module
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check service health
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    const: ok
+                    type: string
+                  service:
+                    type: string
+      operationId: getHealth
+  /internal/logs/audit-trails:
+    get:
+      tags:
+        - Logs
+      summary: List audit trails with filters and paging
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: module
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - action
+                        - module
+                        - entityType
+                        - entityId
+                        - entityLabel
+                        - actorEmail
+                        - actorRole
+                        - changeSummary
+                        - auditedAt
+                      properties:
+                        id:
+                          type: string
+                        action:
+                          type: string
+                        module:
+                          type: string
+                        entityType:
+                          type: string
+                        entityId:
+                          type: string
+                        entityLabel:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorRole:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        changeSummary:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        auditedAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - module
+                      - action
+                    properties:
+                      search:
+                        type: string
+                      module:
+                        type: string
+                      action:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - modules
+                      - actions
+                    properties:
+                      modules:
+                        type: array
+                        items:
+                          type: string
+                      actions:
+                        type: array
+                        items:
+                          type: string
+      operationId: getInternalLogsAudit-trails
+  /internal/logs/access-logs:
+    get:
+      tags:
+        - Logs
+      summary: List access logs with filters and paging
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: event
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: outcome
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - event
+                        - outcome
+                        - actorEmail
+                        - failureReason
+                        - createdAt
+                      properties:
+                        event:
+                          type: string
+                        outcome:
+                          type: string
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        failureReason:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - event
+                      - outcome
+                    properties:
+                      search:
+                        type: string
+                      event:
+                        type: string
+                      outcome:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - events
+                      - outcomes
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          type: string
+                      outcomes:
+                        type: array
+                        items:
+                          type: string
+      operationId: getInternalLogsAccess-logs
+  /internal/logs/application-logs:
+    get:
+      tags:
+        - Logs
+      summary: List application logs with filters and paging
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: module
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: event
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - level
+                        - channel
+                        - category
+                        - event
+                        - module
+                        - message
+                        - context
+                        - exceptionClass
+                        - exceptionMessage
+                        - stackTrace
+                        - actorUserId
+                        - actorName
+                        - actorEmail
+                        - occurredAt
+                        - createdAt
+                      properties:
+                        id:
+                          type: string
+                        level:
+                          type: string
+                        channel:
+                          type: string
+                        category:
+                          type: string
+                        event:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        module:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        message:
+                          type: string
+                        context: {}
+                        exceptionClass:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        exceptionMessage:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        stackTrace:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorUserId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorName:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        occurredAt:
+                          type: string
+                        createdAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - level
+                      - module
+                      - event
+                    properties:
+                      search:
+                        type: string
+                      level:
+                        type: string
+                      module:
+                        type: string
+                      event:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - levels
+                      - modules
+                      - events
+                    properties:
+                      levels:
+                        type: array
+                        items:
+                          type: string
+                      modules:
+                        type: array
+                        items:
+                          type: string
+                      events:
+                        type: array
+                        items:
+                          type: string
+      operationId: getInternalLogsApplication-logs
+components:
+  schemas: {}

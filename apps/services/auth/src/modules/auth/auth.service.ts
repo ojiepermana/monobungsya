@@ -3,10 +3,15 @@ import {
   ServiceUnavailableError,
   UnauthorizedError,
   ValidationError,
-} from "#project/errors";
-import { createSecret, hashSecret, normalizeEmail } from "./auth.crypto";
-import { AuthRepository } from "./auth.repository";
-import type { AuthMailer, SessionIdentity } from "./auth.types";
+} from '#project/errors';
+import { createSecret, hashSecret, normalizeEmail } from './auth.crypto';
+import { AuthRepository } from './auth.repository';
+import type {
+  AuthMailer,
+  AuthPermission,
+  AuthRole,
+  SessionIdentity,
+} from './auth.types';
 
 export interface MagicLinkRequestResult {
   accepted: true;
@@ -20,6 +25,7 @@ export interface SessionResult {
     email: string;
     name: string;
     role: string;
+    permissions: AuthPermission[];
   };
   session?: {
     id: string;
@@ -28,12 +34,22 @@ export interface SessionResult {
   };
 }
 
+/**
+ * Permissions derived from the global role. Log rows carry PII, so only the
+ * admin and manager roles hold logs.read; the same pair manages users.
+ */
+export function permissionsForRole(role: AuthRole): AuthPermission[] {
+  return role === 'admin' || role === 'manager'
+    ? ['users.manage', 'logs.read']
+    : [];
+}
+
 export class AuthService {
   constructor(
     private readonly serviceName: string,
     private readonly repository = new AuthRepository(),
     private readonly mailer?: AuthMailer,
-    private readonly webAppUrl = "http://localhost:4200",
+    private readonly webAppUrl = 'http://localhost:4200',
   ) {}
 
   getStatus() {
@@ -49,14 +65,14 @@ export class AuthService {
   ): Promise<MagicLinkRequestResult> {
     if (!this.mailer) {
       throw new ServiceUnavailableError(
-        "Auth email delivery is not configured",
+        'Auth email delivery is not configured',
       );
     }
 
     const normalizedEmail = normalizeEmail(email);
 
-    if (!normalizedEmail.includes("@")) {
-      throw new ValidationError("A valid email address is required");
+    if (!normalizedEmail.includes('@')) {
+      throw new ValidationError('A valid email address is required');
     }
 
     const token = createSecret();
@@ -82,7 +98,7 @@ export class AuthService {
           expiresAt,
         });
       } catch {
-        throw new ServiceUnavailableError("Auth email delivery failed");
+        throw new ServiceUnavailableError('Auth email delivery failed');
       }
     }
 
@@ -93,7 +109,7 @@ export class AuthService {
     token: string,
   ): Promise<SessionIdentity & { sessionToken: string }> {
     if (!token || token.length < 20) {
-      throw new UnauthorizedError("Magic link is invalid or expired");
+      throw new UnauthorizedError('Magic link is invalid or expired');
     }
 
     const sessionToken = createSecret();
@@ -103,7 +119,7 @@ export class AuthService {
     );
 
     if (!session) {
-      throw new UnauthorizedError("Magic link is invalid or expired");
+      throw new UnauthorizedError('Magic link is invalid or expired');
     }
 
     return {
@@ -116,11 +132,11 @@ export class AuthService {
   }
 
   createVerifyRedirect(): string {
-    return new URL("/auth/callback-complete", this.webAppUrl).toString();
+    return new URL('/auth/callback-complete', this.webAppUrl).toString();
   }
 
   createVerifyErrorRedirect(): string {
-    return new URL("/auth/callback-error", this.webAppUrl).toString();
+    return new URL('/auth/callback-error', this.webAppUrl).toString();
   }
 
   async getSession(sessionToken: string | undefined): Promise<SessionResult> {
@@ -143,6 +159,7 @@ export class AuthService {
         email: identity.email,
         name: identity.name,
         role: identity.role,
+        permissions: permissionsForRole(identity.role),
       },
       session: {
         id: identity.sessionId,

@@ -8,3 +8,5 @@ coverage/
 apps/web/.angular/
 apps/tauri/src/target/
 graphify-out/
+.angular/
+.claude/

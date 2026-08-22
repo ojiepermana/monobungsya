@@ -1,13 +1,13 @@
-import { t } from "elysia";
+import { t } from 'elysia';
 
 export const authStatusResponse = t.Object({
   service: t.String(),
-  status: t.Literal("ok"),
-  module: t.Literal("auth"),
+  status: t.Literal('ok'),
+  module: t.Literal('auth'),
 });
 
 export const magicLinkRequestBody = t.Object({
-  email: t.String({ format: "email", minLength: 3, maxLength: 255 }),
+  email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
 });
 
 export const magicLinkQuery = t.Object({
@@ -26,6 +26,7 @@ export const sessionResponse = t.Object({
       email: t.String(),
       name: t.String(),
       role: t.String(),
+      permissions: t.Array(t.String()),
     }),
   ),
   session: t.Optional(

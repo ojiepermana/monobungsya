@@ -152,6 +152,7 @@ paths:
                       - email
                       - name
                       - role
+                      - permissions
                     properties:
                       id:
                         type: string
@@ -161,6 +162,10 @@ paths:
                         type: string
                       role:
                         type: string
+                      permissions:
+                        type: array
+                        items:
+                          type: string
                   session:
                     type: object
                     required:

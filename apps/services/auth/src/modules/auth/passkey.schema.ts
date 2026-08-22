@@ -1,4 +1,4 @@
-import { t } from "elysia";
+import { t } from 'elysia';
 
 /**
  * The ceremony payloads are passed through to the WebAuthn library, which does
@@ -33,7 +33,7 @@ export const passkeyRenameBody = t.Object({
 });
 
 export const passkeyIdParams = t.Object({
-  id: t.String({ format: "uuid" }),
+  id: t.String({ format: 'uuid' }),
 });
 
 /** Ceremony options come straight from the WebAuthn library. */

@@ -1,48 +1,205 @@
-import { Component, inject, signal } from '@angular/core';
-import { ApiService, type AuditTrailItem } from '../../../services/api.service';
+import { Component, computed, inject, signal } from '@angular/core';
+import { BadgeComponent } from '@ojiepermana/angular/component/badge';
+import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { InputComponent } from '@ojiepermana/angular/component/input';
+import {
+  NativeSelectComponent,
+  NativeSelectOptionDirective,
+} from '@ojiepermana/angular/component/native-select';
+import {
+  ApiService,
+  type AuditTrailItem,
+  type LogsMeta,
+} from '../../../services/api.service';
+
+const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
 @Component({
   selector: 'app-audit-logs-page',
   host: { class: 'block h-full min-h-0' },
+  imports: [
+    BadgeComponent,
+    ButtonComponent,
+    InputComponent,
+    NativeSelectComponent,
+    NativeSelectOptionDirective,
+  ],
   template: `
     <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
       <header>
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
         <h1 class="mt-2 text-2xl font-semibold text-foreground">Audit Logs</h1>
       </header>
+
+      <section class="grid gap-3 md:flex md:flex-wrap md:items-center">
+        <input
+          Input
+          type="search"
+          placeholder="Cari audit log..."
+          class="md:max-w-xs"
+          [value]="search()"
+          (input)="updateSearch($event)"
+        />
+        <select NativeSelect class="md:w-44" [value]="module()" (change)="updateModule($event)">
+          <option NativeSelectOption value="">Semua module</option>
+          @for (option of modules(); track option) {
+            <option NativeSelectOption [value]="option" [selected]="option === module()">{{ option }}</option>
+          }
+        </select>
+        <select NativeSelect class="md:w-44" [value]="action()" (change)="updateAction($event)">
+          <option NativeSelectOption value="">Semua action</option>
+          @for (option of actions(); track option) {
+            <option NativeSelectOption [value]="option" [selected]="option === action()">{{ option }}</option>
+          }
+        </select>
+        <button Button variant="outline" size="xs" type="button" [disabled]="!hasFilters()" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      </section>
+
+      @if (error()) {
+        <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{{ error() }}</p>
+      }
+
       @if (loading()) {
         <p class="text-sm text-muted-foreground">Memuat audit log...</p>
-      } @else if (items().length === 0) {
+      } @else if (rows().length === 0) {
         <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada audit log.</p>
       } @else {
         <div class="overflow-auto border border-border bg-card">
           <table class="min-w-full text-left text-sm">
             <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-              <tr><th class="px-4 py-3">Action</th><th class="px-4 py-3">Actor</th><th class="px-4 py-3">Time</th></tr>
+              <tr>
+                <th class="px-4 py-3">Time</th>
+                <th class="px-4 py-3">Action</th>
+                <th class="px-4 py-3">Entity</th>
+                <th class="px-4 py-3">Actor</th>
+                <th class="px-4 py-3">Change Summary</th>
+              </tr>
             </thead>
             <tbody>
-              @for (item of items(); track item.id) {
-                <tr class="border-b border-border last:border-0"><td class="px-4 py-3">{{ item.action }}</td><td class="px-4 py-3">{{ item.actorEmail ?? '-' }}</td><td class="px-4 py-3">{{ item.auditedAt }}</td></tr>
+              @for (row of rows(); track row.id) {
+                <tr class="border-b border-border align-top last:border-0">
+                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.auditedAt) }}</td>
+                  <td class="px-4 py-3">
+                    <span Badge [variant]="actionVariant(row.action)">{{ row.action }}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-foreground">{{ row.module }}</p>
+                    <p class="text-xs text-muted-foreground">{{ row.entityLabel ?? row.entityId }}</p>
+                  </td>
+                  <td class="px-4 py-3">
+                    <p>{{ row.actorEmail ?? '-' }}</p>
+                    @if (row.actorRole) {
+                      <p class="text-xs text-muted-foreground">{{ row.actorRole }}</p>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">{{ row.changeSummary ?? '-' }}</td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
       }
+
+      <footer class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
+        <div class="flex items-center gap-2">
+          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)">First</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)">Previous</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)">Next</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)">Last</button>
+        </div>
+      </footer>
     </main>
   `,
 })
 export class AuditLogsPage {
   private readonly api = inject(ApiService);
-  protected readonly items = signal<AuditTrailItem[]>([]);
+
   protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly rows = signal<AuditTrailItem[]>([]);
+  protected readonly meta = signal<LogsMeta>(EMPTY_META);
+  protected readonly search = signal('');
+  protected readonly module = signal('');
+  protected readonly action = signal('');
+  protected readonly modules = signal<string[]>([]);
+  protected readonly actions = signal<string[]>([]);
+
+  protected readonly pageLabel = computed(() => {
+    const meta = this.meta();
+    return `Page ${meta.page} of ${Math.max(meta.totalPages, 1)} · ${meta.total} records`;
+  });
+  protected readonly hasFilters = computed(
+    () => this.search() !== '' || this.module() !== '' || this.action() !== '',
+  );
 
   constructor() {
-    this.api.auditTrails({ search: '', module: '', action: '', page: 1 }).subscribe({
-      next: (response) => {
-        this.items.set(response.data);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.load(1);
+  }
+
+  protected load(page: number): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.api
+      .auditTrails({
+        search: this.search(),
+        module: this.module(),
+        action: this.action(),
+        page,
+      })
+      .subscribe({
+        next: (response) => {
+          this.rows.set(response.data);
+          this.meta.set(response.meta);
+          this.modules.set(response.options.modules);
+          this.actions.set(response.options.actions);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Gagal memuat audit log.');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  protected updateSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+    this.load(1);
+  }
+
+  protected updateModule(event: Event): void {
+    this.module.set((event.target as HTMLSelectElement).value);
+    this.load(1);
+  }
+
+  protected updateAction(event: Event): void {
+    this.action.set((event.target as HTMLSelectElement).value);
+    this.load(1);
+  }
+
+  protected clearFilters(): void {
+    this.search.set('');
+    this.module.set('');
+    this.action.set('');
+    this.load(1);
+  }
+
+  protected goTo(page: number): void {
+    this.load(page);
+  }
+
+  protected formatDate(iso: string): string {
+    return DATE_FORMAT.format(new Date(iso));
+  }
+
+  protected actionVariant(action: string): 'destructive' | 'secondary' {
+    return action === 'delete' ? 'destructive' : 'secondary';
   }
 }

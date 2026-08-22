@@ -1,13 +1,11 @@
-import { inject, signal, Service } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { inject, Service, signal } from '@angular/core';
+import { map, Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export type AuthRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
 
-export type AuthPermission =
-  | 'users.manage'
-  | 'logs.read';
+export type AuthPermission = 'users.manage' | 'logs.read';
 
 export interface AuthUser {
   id: string;
@@ -51,10 +49,13 @@ export class AuthService {
     email: string,
     options: RequestMagicLinkOptions = {},
   ): Observable<RequestMagicLinkResponse> {
-    return this.http.post<RequestMagicLinkResponse>(`${this.base}/api/v1/auth/magic-link`, {
-      email,
-      ...(options.desktop ? { desktop: true } : {}),
-    });
+    return this.http.post<RequestMagicLinkResponse>(
+      `${this.base}/api/v1/auth/magic-link`,
+      {
+        email,
+        ...(options.desktop ? { desktop: true } : {}),
+      },
+    );
   }
 
   verifyMagicLink(token: string | null): Observable<VerifyMagicLinkResponse> {
@@ -84,7 +85,9 @@ export class AuthService {
 
   loadCurrentUser(): Observable<AuthUser | null> {
     return this.http.get<MeResponse>(`${this.base}/api/v1/auth/session`).pipe(
-      map((response) => (response.authenticated ? (response.user ?? null) : null)),
+      map((response) =>
+        response.authenticated ? (response.user ?? null) : null,
+      ),
       tap((user) => {
         this.user.set(user);
         this.loaded.set(true);
@@ -93,13 +96,15 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.http.post<{ success: boolean }>(`${this.base}/api/v1/auth/logout`, {}).pipe(
-      tap(() => {
-        this.user.set(null);
-        this.loaded.set(true);
-      }),
-      map(() => undefined),
-    );
+    return this.http
+      .post<{ success: boolean }>(`${this.base}/api/v1/auth/logout`, {})
+      .pipe(
+        tap(() => {
+          this.user.set(null);
+          this.loaded.set(true);
+        }),
+        map(() => undefined),
+      );
   }
 
   hasPermission(permission: AuthPermission): boolean {

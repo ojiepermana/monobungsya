@@ -1,4 +1,4 @@
-import { signal, Service } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
 declare global {
   interface Window {
@@ -54,13 +54,17 @@ export class TauriService {
     return true;
   }
 
-  async saveTextFile(input: NativeSaveTextInput): Promise<NativeSaveTextResult> {
+  async saveTextFile(
+    input: NativeSaveTextInput,
+  ): Promise<NativeSaveTextResult> {
     if (!this.isAvailable()) {
       return { status: 'unavailable', path: null };
     }
 
     const { invoke } = await import('@tauri-apps/api/core');
-    const filePath = await invoke<string | null>('save_text_file', { ...input });
+    const filePath = await invoke<string | null>('save_text_file', {
+      ...input,
+    });
 
     if (!filePath) {
       return { status: 'cancelled', path: null };
@@ -69,7 +73,9 @@ export class TauriService {
     return { status: 'saved', path: filePath };
   }
 
-  async saveBinaryFile(input: NativeSaveBinaryInput): Promise<NativeSaveTextResult> {
+  async saveBinaryFile(
+    input: NativeSaveBinaryInput,
+  ): Promise<NativeSaveTextResult> {
     if (!this.isAvailable()) {
       return { status: 'unavailable', path: null };
     }
@@ -87,37 +93,11 @@ export class TauriService {
     return { status: 'saved', path: filePath };
   }
 
-  private async notify(input: { title: string; body: string }): Promise<boolean> {
-    if (!this.isAvailable()) {
-      return false;
-    }
-
-    try {
-      const { isPermissionGranted, requestPermission, sendNotification } = await import(
-        '@tauri-apps/plugin-notification'
-      );
-      let permissionGranted = await isPermissionGranted();
-
-      if (!permissionGranted) {
-        permissionGranted = (await requestPermission()) === 'granted';
-      }
-
-      if (!permissionGranted) {
-        return false;
-      }
-
-      sendNotification(input);
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   private detectTauri(): boolean {
     return (
       typeof window !== 'undefined' &&
-      (typeof window.__TAURI_INTERNALS__ !== 'undefined' || typeof window.__TAURI__ !== 'undefined')
+      (typeof window.__TAURI_INTERNALS__ !== 'undefined' ||
+        typeof window.__TAURI__ !== 'undefined')
     );
   }
 }

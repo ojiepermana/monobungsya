@@ -7,7 +7,11 @@ import {
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
-import { MAX_PASSKEYS, PasskeyService, type Passkey } from '../../../auth/passkey.service';
+import {
+  MAX_PASSKEYS,
+  type Passkey,
+  PasskeyService,
+} from '../../../auth/passkey.service';
 
 @Component({
   selector: 'app-passkeys-settings-page',
@@ -181,12 +185,16 @@ export class PasskeysSettingsPage {
   protected readonly failed = signal(false);
   protected readonly editingId = signal<string | null>(null);
   protected readonly draftLabel = signal('');
-  protected readonly full = computed(() => this.passkeys().length >= MAX_PASSKEYS);
+  protected readonly full = computed(
+    () => this.passkeys().length >= MAX_PASSKEYS,
+  );
 
   constructor() {
     void this.passkey
       .load()
-      .catch((error: unknown) => this.report(error, 'Daftar passkey gagal dimuat.'))
+      .catch((error: unknown) =>
+        this.report(error, 'Daftar passkey gagal dimuat.'),
+      )
       .finally(() => this.loading.set(false));
   }
 
@@ -196,8 +204,12 @@ export class PasskeysSettingsPage {
 
     void this.passkey
       .register()
-      .then((created) => this.note(`Passkey "${created.label}" berhasil didaftarkan.`))
-      .catch((error: unknown) => this.report(error, 'Passkey gagal didaftarkan.'))
+      .then((created) =>
+        this.note(`Passkey "${created.label}" berhasil didaftarkan.`),
+      )
+      .catch((error: unknown) =>
+        this.report(error, 'Passkey gagal didaftarkan.'),
+      )
       .finally(() => this.busy.set(false));
   }
 
@@ -238,7 +250,9 @@ export class PasskeysSettingsPage {
         this.cancelEdit();
         this.note(`Nama passkey diubah menjadi "${updated.label}".`);
       })
-      .catch((error: unknown) => this.report(error, 'Nama passkey gagal diubah.'))
+      .catch((error: unknown) =>
+        this.report(error, 'Nama passkey gagal diubah.'),
+      )
       .finally(() => this.busy.set(false));
   }
 

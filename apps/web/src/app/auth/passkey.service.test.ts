@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TauriService } from '../desktop/tauri.service';
 import { PasskeyService } from './passkey.service';
 
@@ -13,7 +13,9 @@ function serviceWith(tauriAvailable: boolean): PasskeyService {
       provideHttpClientTesting(),
       {
         provide: TauriService,
-        useValue: { isAvailable: () => tauriAvailable } as Partial<TauriService>,
+        useValue: {
+          isAvailable: () => tauriAvailable,
+        } as Partial<TauriService>,
       },
     ],
   });
@@ -68,9 +70,9 @@ describe('PasskeyService error messages', () => {
   it('reads a plain text error body', () => {
     const service = serviceWith(false);
 
-    expect(service.messageFrom({ error: 'Passkey sign in failed' }, 'fallback')).toBe(
-      'Passkey sign in failed',
-    );
+    expect(
+      service.messageFrom({ error: 'Passkey sign in failed' }, 'fallback'),
+    ).toBe('Passkey sign in failed');
   });
 
   it('reads a json error envelope', () => {

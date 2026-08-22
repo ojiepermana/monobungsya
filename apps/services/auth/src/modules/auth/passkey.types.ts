@@ -1,4 +1,4 @@
-export type ChallengeType = "registration" | "authentication";
+export type ChallengeType = 'registration' | 'authentication';
 
 /** A stored credential, in the shape SimpleWebAuthn needs to verify an assertion. */
 export interface StoredCredential {
@@ -40,8 +40,8 @@ export interface ExcludedCredential {
  * The repository routes on it and never verifies anything itself.
  */
 export type AttestationCheck =
-  | { status: "ok"; credential: NewCredential }
-  | { status: "verification_failed"; reason: string };
+  | { status: 'ok'; credential: NewCredential }
+  | { status: 'verification_failed'; reason: string };
 
 /**
  * What the service reports back after running the WebAuthn assertion check.
@@ -49,6 +49,6 @@ export type AttestationCheck =
  * backwards, which can mean a cloned authenticator.
  */
 export type AssertionCheck =
-  | { status: "ok"; newCounter: number }
-  | { status: "counter_regression"; newCounter: number }
-  | { status: "verification_failed"; reason: string };
+  | { status: 'ok'; newCounter: number }
+  | { status: 'counter_regression'; newCounter: number }
+  | { status: 'verification_failed'; reason: string };

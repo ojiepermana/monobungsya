@@ -20,6 +20,14 @@ const SUSPENDED_EMAIL = 'passkey-suspended@integration.local';
 
 let database: DatabaseClient | undefined;
 
+function db(): DatabaseClient {
+  if (!database) {
+    throw new Error('the integration database client is not initialized');
+  }
+
+  return database;
+}
+
 function app(mailer?: AuthMailer) {
   return createApp(
     loadAuthEnv({
@@ -55,7 +63,7 @@ async function magicLinkSession(email: string): Promise<{
 
   // Magic link allows five requests per email per window. These tests sign in
   // far more often than that, so the counter for this email is cleared first.
-  await database!`
+  await db()`
     DELETE FROM "auth"."auth_rate_limits"
     WHERE key_type = 'email' AND key_hash = ${hashSecret(email)}
   `;
@@ -173,7 +181,7 @@ async function signIn(
 }
 
 async function userId(email: string): Promise<string> {
-  const [row] = await database!`
+  const [row] = await db()`
     SELECT id FROM "user"."users" WHERE email = ${email}
   `;
 

@@ -1,9 +1,10 @@
-import { stringify } from "yaml";
-import { loadEnv } from "#project/config";
-import { createApp as createGatewayApp } from "../apps/gateway/erp/src/app";
-import { loadGatewayEnv } from "../apps/gateway/erp/src/config/env";
-import { createApp as createAuthApp } from "../apps/services/auth/src/app";
-import { createApp as createUserApp } from "../apps/services/user/src/app";
+import { stringify } from 'yaml';
+import { loadEnv } from '#project/config';
+import { createApp as createGatewayApp } from '../apps/gateway/erp/src/app';
+import { loadGatewayEnv } from '../apps/gateway/erp/src/config/env';
+import { createApp as createAuthApp } from '../apps/services/auth/src/app';
+import { createApp as createLogsApp } from '../apps/services/logs/src/app';
+import { createApp as createUserApp } from '../apps/services/user/src/app';
 
 type SpecTarget = {
   name: string;
@@ -14,32 +15,39 @@ type SpecTarget = {
 
 const targets: SpecTarget[] = [
   {
-    name: "api-gateway",
-    output: "apps/gateway/erp/openapi.yaml",
-    fragment: "packages/contracts/openapi/generated/public-api.openapi.yaml",
+    name: 'api-gateway',
+    output: 'apps/gateway/erp/openapi.yaml',
+    fragment: 'packages/contracts/openapi/generated/public-api.openapi.yaml',
     createApp: () =>
-      createGatewayApp(loadGatewayEnv({ NODE_ENV: "test", PORT: "3000" })),
+      createGatewayApp(loadGatewayEnv({ NODE_ENV: 'test', PORT: '3000' })),
   },
   {
-    name: "auth",
-    output: "apps/services/auth/openapi.yaml",
-    fragment: "packages/contracts/openapi/fragments/auth.yaml",
+    name: 'auth',
+    output: 'apps/services/auth/openapi.yaml',
+    fragment: 'packages/contracts/openapi/fragments/auth.yaml',
     createApp: () =>
-      createAuthApp(loadEnv("auth", { NODE_ENV: "test", PORT: "3101" })),
+      createAuthApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' })),
   },
   {
-    name: "user",
-    output: "apps/services/user/openapi.yaml",
-    fragment: "packages/contracts/openapi/fragments/user.yaml",
+    name: 'user',
+    output: 'apps/services/user/openapi.yaml',
+    fragment: 'packages/contracts/openapi/fragments/user.yaml',
     createApp: () =>
-      createUserApp(loadEnv("user", { NODE_ENV: "test", PORT: "3102" })),
+      createUserApp(loadEnv('user', { NODE_ENV: 'test', PORT: '3102' })),
+  },
+  {
+    name: 'logs',
+    output: 'apps/services/logs/openapi.yaml',
+    fragment: 'packages/contracts/openapi/fragments/logs.yaml',
+    createApp: () =>
+      createLogsApp(loadEnv('logs', { NODE_ENV: 'test', PORT: '3103' })),
   },
 ];
 
 for (const target of targets) {
   const app = target.createApp();
   const response = await app.handle(
-    new Request("http://localhost/openapi/json"),
+    new Request('http://localhost/openapi/json'),
   );
 
   if (!response.ok) {

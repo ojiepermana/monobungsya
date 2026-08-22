@@ -1,4 +1,4 @@
 export type UsersModuleStatus = {
-  status: "ok";
-  module: "users";
+  status: 'ok';
+  module: 'users';
 };

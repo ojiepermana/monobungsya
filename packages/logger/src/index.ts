@@ -1,8 +1,30 @@
-export type LogLevel = "debug" | "info" | "warn" | "error";
+export {
+  type AccessLogRecord,
+  type ActivityActor,
+  ActivityLog,
+  type ApplicationLogRecord,
+  type AuditTrailRecord,
+  type WriteAccessInput,
+  type WriteAuditInput,
+  type WriteLogInput,
+} from './activity-log';
+export { isoFromDbTimestamp } from './db-timestamp';
+export {
+  ensureLogPartition,
+  isMissingLogPartitionError,
+  jakartaYear,
+  jakartaYearBoundaryUtc,
+  LOG_TABLES,
+  type LogTable,
+  logPartitionName,
+  withLogPartitionRecovery,
+} from './partition';
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export type LogContext = Record<string, unknown>;
 
-const SENSITIVE_QUERY_KEYS = new Set(["token", "session", "code", "secret"]);
+const SENSITIVE_QUERY_KEYS = new Set(['token', 'session', 'code', 'secret']);
 
 export function redactRequestUrl(value: string): string {
   try {
@@ -10,13 +32,13 @@ export function redactRequestUrl(value: string): string {
 
     for (const key of SENSITIVE_QUERY_KEYS) {
       if (url.searchParams.has(key)) {
-        url.searchParams.set(key, "[REDACTED]");
+        url.searchParams.set(key, '[REDACTED]');
       }
     }
 
     return url.toString();
   } catch {
-    return "[REDACTED_URL]";
+    return '[REDACTED_URL]';
   }
 }
 
@@ -30,23 +52,23 @@ const levelRank: Record<LogLevel, number> = {
 export class Logger {
   constructor(
     private readonly serviceName: string,
-    private readonly minimumLevel: LogLevel = "info",
+    private readonly minimumLevel: LogLevel = 'info',
   ) {}
 
   debug(message: string, context: LogContext = {}): void {
-    this.write("debug", message, context);
+    this.write('debug', message, context);
   }
 
   info(message: string, context: LogContext = {}): void {
-    this.write("info", message, context);
+    this.write('info', message, context);
   }
 
   warn(message: string, context: LogContext = {}): void {
-    this.write("warn", message, context);
+    this.write('warn', message, context);
   }
 
   error(message: string, context: LogContext = {}): void {
-    this.write("error", message, context);
+    this.write('error', message, context);
   }
 
   private write(level: LogLevel, message: string, context: LogContext): void {

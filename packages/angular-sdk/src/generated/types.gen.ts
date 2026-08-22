@@ -152,3 +152,40 @@ export type GetApiV1UsersStatusData = {
     query?: never;
     url: '/api/v1/users/status';
 };
+
+export type GetApiV1LogsAuditTrailsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        module?: string;
+        action?: string;
+        page?: string;
+    };
+    url: '/api/v1/logs/audit-trails';
+};
+
+export type GetApiV1LogsAccessLogsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        event?: string;
+        outcome?: string;
+        page?: string;
+    };
+    url: '/api/v1/logs/access-logs';
+};
+
+export type GetApiV1LogsApplicationLogsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        level?: string;
+        module?: string;
+        event?: string;
+        page?: string;
+    };
+    url: '/api/v1/logs/application-logs';
+};

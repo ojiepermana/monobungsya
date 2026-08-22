@@ -1,11 +1,11 @@
-import { type DatabaseClient, withTransaction } from "#project/database";
+import { type DatabaseClient, withTransaction } from '#project/database';
 import {
   incrementRateLimit,
   insertSession,
   mapUser,
   type SessionRecord,
-} from "./auth.repository";
-import type { AuthRepositoryDependencies, AuthUser } from "./auth.types";
+} from './auth.repository';
+import type { AuthRepositoryDependencies, AuthUser } from './auth.types';
 import type {
   AssertionCheck,
   AttestationCheck,
@@ -13,23 +13,27 @@ import type {
   ExcludedCredential,
   PasskeySummary,
   StoredCredential,
-} from "./passkey.types";
+} from './passkey.types';
 
 const PASSKEY_RATE_LIMIT_ATTEMPTS = 10;
 
 export type RegisterCredentialOutcome =
-  | { status: "created"; credential: PasskeySummary }
-  | { status: "challenge_invalid" }
-  | { status: "limit_reached" }
-  | { status: "duplicate" }
-  | { status: "verification_failed"; reason: string };
+  | { status: 'created'; credential: PasskeySummary }
+  | { status: 'challenge_invalid' }
+  | { status: 'limit_reached' }
+  | { status: 'duplicate' }
+  | { status: 'verification_failed'; reason: string };
 
 export type AuthenticateOutcome =
-  | { status: "authenticated"; user: AuthUser; session: SessionRecord }
-  | { status: "challenge_invalid" }
-  | { status: "unknown_credential" }
-  | { status: "counter_regression"; credentialDatabaseId: string; userId: string }
-  | { status: "verification_failed"; reason: string };
+  | { status: 'authenticated'; user: AuthUser; session: SessionRecord }
+  | { status: 'challenge_invalid' }
+  | { status: 'unknown_credential' }
+  | {
+      status: 'counter_regression';
+      credentialDatabaseId: string;
+      userId: string;
+    }
+  | { status: 'verification_failed'; reason: string };
 
 export interface RegisterCredentialInput {
   userId: string;
@@ -90,9 +94,7 @@ export class PasskeyRepository {
     return Number(row?.count ?? 0);
   }
 
-  async listExcludedCredentials(
-    userId: string,
-  ): Promise<ExcludedCredential[]> {
+  async listExcludedCredentials(userId: string): Promise<ExcludedCredential[]> {
     const database = this.requireDatabase();
     const rows = await database`
       SELECT credential_id, transports
@@ -142,7 +144,7 @@ export class PasskeyRepository {
       `;
 
       if (!challengeRow) {
-        return { status: "challenge_invalid" as const };
+        return { status: 'challenge_invalid' as const };
       }
 
       // Serializes concurrent registrations for this user so the cap holds.
@@ -155,7 +157,7 @@ export class PasskeyRepository {
       `;
 
       if (!userRow) {
-        return { status: "challenge_invalid" as const };
+        return { status: 'challenge_invalid' as const };
       }
 
       const [countRow] = await transaction`
@@ -165,12 +167,12 @@ export class PasskeyRepository {
       `;
 
       if (Number(countRow?.count ?? 0) >= input.maxCredentials) {
-        return { status: "limit_reached" as const };
+        return { status: 'limit_reached' as const };
       }
 
       const checked = await input.check();
 
-      if (checked.status !== "ok") {
+      if (checked.status !== 'ok') {
         return checked;
       }
 
@@ -194,7 +196,7 @@ export class PasskeyRepository {
           ${credential.counter},
           ${
             credential.transports
-              ? transaction.array(credential.transports, "text")
+              ? transaction.array(credential.transports, 'text')
               : null
           },
           ${credential.aaguid},
@@ -207,10 +209,10 @@ export class PasskeyRepository {
       `;
 
       if (!inserted) {
-        return { status: "duplicate" as const };
+        return { status: 'duplicate' as const };
       }
 
-      return { status: "created" as const, credential: mapSummary(inserted) };
+      return { status: 'created' as const, credential: mapSummary(inserted) };
     });
   }
 
@@ -234,7 +236,7 @@ export class PasskeyRepository {
       `;
 
       if (!challengeRow) {
-        return { status: "challenge_invalid" as const };
+        return { status: 'challenge_invalid' as const };
       }
 
       const [credentialRow] = await transaction`
@@ -254,7 +256,7 @@ export class PasskeyRepository {
       `;
 
       if (!credentialRow) {
-        return { status: "unknown_credential" as const };
+        return { status: 'unknown_credential' as const };
       }
 
       const credential: StoredCredential = {
@@ -267,15 +269,15 @@ export class PasskeyRepository {
       };
       const checked = await input.check(credential);
 
-      if (checked.status === "counter_regression") {
+      if (checked.status === 'counter_regression') {
         return {
-          status: "counter_regression" as const,
+          status: 'counter_regression' as const,
           credentialDatabaseId: credential.id,
           userId: credential.userId,
         };
       }
 
-      if (checked.status !== "ok") {
+      if (checked.status !== 'ok') {
         return checked;
       }
 
@@ -297,11 +299,11 @@ export class PasskeyRepository {
       `;
 
       if (!session || !userRow) {
-        return { status: "unknown_credential" as const };
+        return { status: 'unknown_credential' as const };
       }
 
       return {
-        status: "authenticated" as const,
+        status: 'authenticated' as const,
         user: mapUser(userRow),
         session,
       };
@@ -345,7 +347,7 @@ export class PasskeyRepository {
 
     return incrementRateLimit(
       database,
-      "passkey_ip",
+      'passkey_ip',
       ipHash,
       PASSKEY_RATE_LIMIT_ATTEMPTS,
     );
@@ -353,7 +355,7 @@ export class PasskeyRepository {
 
   private requireDatabase(): DatabaseClient {
     if (!this.database) {
-      throw new Error("auth database is not configured");
+      throw new Error('auth database is not configured');
     }
 
     return this.database;
@@ -389,9 +391,9 @@ function toUint8Array(value: unknown): Uint8Array<ArrayBuffer> {
   }
 
   // A bytea column read back as text arrives in Postgres hex format.
-  if (typeof value === "string") {
-    return Uint8Array.from(Buffer.from(value.replace(/^\\x/, ""), "hex"));
+  if (typeof value === 'string') {
+    return Uint8Array.from(Buffer.from(value.replace(/^\\x/, ''), 'hex'));
   }
 
-  throw new Error("stored passkey public key is not readable");
+  throw new Error('stored passkey public key is not readable');
 }

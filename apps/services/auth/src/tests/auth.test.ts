@@ -1,69 +1,69 @@
-import { describe, expect, it } from "bun:test";
-import { createServer, type AddressInfo } from "node:net";
-import { loadEnv } from "#project/config";
-import { createApp } from "../app";
-import { SmtpAuthMailer } from "../modules/auth/auth.mailer";
+import { describe, expect, it } from 'bun:test';
+import { type AddressInfo, createServer } from 'node:net';
+import { loadEnv } from '#project/config';
+import { createApp } from '../app';
+import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
 
-describe("auth service", () => {
-  it("exposes health and module status endpoints", async () => {
-    const app = createApp(loadEnv("auth", { NODE_ENV: "test", PORT: "3101" }));
+describe('auth service', () => {
+  it('exposes health and module status endpoints', async () => {
+    const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }));
 
-    const health = await app.handle(new Request("http://localhost/health"));
+    const health = await app.handle(new Request('http://localhost/health'));
     const moduleStatus = await app.handle(
-      new Request("http://localhost/internal/auth/status"),
+      new Request('http://localhost/internal/auth/status'),
     );
 
     expect(health.status).toBe(200);
-    expect(await health.json()).toEqual({ status: "ok", service: "auth" });
+    expect(await health.json()).toEqual({ status: 'ok', service: 'auth' });
     expect(moduleStatus.status).toBe(200);
     expect(await moduleStatus.json()).toEqual({
-      service: "auth",
-      status: "ok",
-      module: "auth",
+      service: 'auth',
+      status: 'ok',
+      module: 'auth',
     });
   });
 
-  it("returns the shared error envelope for unsigned internal identity", async () => {
-    const app = createApp(loadEnv("auth", { NODE_ENV: "test", PORT: "3101" }));
+  it('returns the shared error envelope for unsigned internal identity', async () => {
+    const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }));
 
     const response = await app.handle(
-      new Request("http://localhost/internal/auth/identity", {
-        headers: { "x-request-id": "request-123" },
+      new Request('http://localhost/internal/auth/identity', {
+        headers: { 'x-request-id': 'request-123' },
       }),
     );
 
     expect(response.status).toBe(401);
-    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get('content-type')).toContain('application/json');
     expect(await response.json()).toEqual({
       error: {
-        code: "UNAUTHORIZED",
-        message: "A valid signed identity is required",
-        requestId: "request-123",
+        code: 'UNAUTHORIZED',
+        message: 'A valid signed identity is required',
+        requestId: 'request-123',
       },
     });
   });
 
-  it("sends magic links through SMTP without local credentials", async () => {
+  it('sends magic links through SMTP without local credentials', async () => {
     const commands: string[] = [];
     const server = createServer((socket) => {
-      socket.setEncoding("utf8");
-      socket.write("220 localhost ESMTP\r\n");
+      socket.setEncoding('utf8');
+      socket.write('220 localhost ESMTP\r\n');
 
-      let buffer = "";
+      let buffer = '';
       let readingMessage = false;
 
-      socket.on("data", (chunk) => {
+      socket.on('data', (chunk) => {
         buffer += chunk;
-        const lines = buffer.split("\r\n");
-        buffer = lines.pop() ?? "";
+        const lines = buffer.split('\r\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           if (!line) continue;
 
           if (readingMessage) {
-            if (line === ".") {
+            if (line === '.') {
               readingMessage = false;
-              socket.write("250 2.0.0 Queued\r\n");
+              socket.write('250 2.0.0 Queued\r\n');
             }
             continue;
           }
@@ -71,46 +71,46 @@ describe("auth service", () => {
           commands.push(line);
 
           if (/^(EHLO|HELO)/.test(line)) {
-            socket.write("250-localhost\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n");
-          } else if (line === "DATA") {
+            socket.write('250-localhost\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n');
+          } else if (line === 'DATA') {
             readingMessage = true;
-            socket.write("354 End data with <CR><LF>.<CR><LF>\r\n");
-          } else if (line === "QUIT") {
-            socket.write("221 2.0.0 Bye\r\n");
+            socket.write('354 End data with <CR><LF>.<CR><LF>\r\n');
+          } else if (line === 'QUIT') {
+            socket.write('221 2.0.0 Bye\r\n');
             socket.end();
           } else {
-            socket.write("250 2.0.0 OK\r\n");
+            socket.write('250 2.0.0 OK\r\n');
           }
         }
       });
     });
 
     await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(0, "127.0.0.1", resolve);
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
     });
 
     const address = server.address() as AddressInfo;
 
     try {
       const mailer = new SmtpAuthMailer({
-        host: "127.0.0.1",
+        host: '127.0.0.1',
         port: address.port,
-        username: "monobungsia",
-        password: "",
-        from: "no-reply@localhost",
-        publicApiUrl: "http://localhost:3000",
-        webAppUrl: "http://localhost:4200",
+        username: 'monobungsia',
+        password: '',
+        from: 'no-reply@localhost',
+        publicApiUrl: 'http://localhost:3000',
+        webAppUrl: 'http://localhost:4200',
       });
 
       await mailer.sendMagicLink({
-        recipient: "system@project.local",
-        recipientName: "System User",
-        token: "token-with-more-than-twenty-characters",
-        expiresAt: new Date("2026-08-21T03:00:00.000Z"),
+        recipient: 'system@project.local',
+        recipientName: 'System User',
+        token: 'token-with-more-than-twenty-characters',
+        expiresAt: new Date('2026-08-21T03:00:00.000Z'),
       });
 
-      expect(commands.some((command) => command.startsWith("AUTH"))).toBe(
+      expect(commands.some((command) => command.startsWith('AUTH'))).toBe(
         false,
       );
     } finally {

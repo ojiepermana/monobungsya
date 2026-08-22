@@ -1,4 +1,4 @@
-import { SQL } from "bun";
+import { SQL } from 'bun';
 
 export type DatabaseClient = SQL;
 
@@ -22,14 +22,14 @@ export async function closeDatabaseClient(
   await database.close({ timeout: 5 });
 }
 
-export { loadDatabaseToolConfig } from "./config";
-export { parseCsv } from "./csv";
+export { loadDatabaseToolConfig } from './config';
+export { parseCsv } from './csv';
 export {
   assertChecksumMatches,
   DatabaseRunner,
   discoverMigrations,
   discoverSeeds,
-} from "./runner";
+} from './runner';
 export {
   DATABASE_SCHEMAS,
   DATABASE_SCOPES,
@@ -38,4 +38,4 @@ export {
   quoteIdentifier,
   schemaForScope,
   sha256Hex,
-} from "./tooling";
+} from './tooling';

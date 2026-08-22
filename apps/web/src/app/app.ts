@@ -1,22 +1,28 @@
-import { afterNextRender, Component, DestroyRef, computed, inject } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
 import {
-  LayoutWrapperDefault,
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+} from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
+import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
+import {
   type BrandIdentity,
+  LayoutWrapperDefault,
   type UserIdentity,
 } from '@ojiepermana/angular/theme/layout/wrapper';
-import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
-  ShellComponent,
-  ShellService,
   isTauriRuntime,
+  ShellComponent,
   type ShellMode,
+  ShellService,
 } from '@ojiepermana/angular/theme/shell';
-import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
-import { APP_BRAND_ICON, appNavigationFor } from './shell/app.nav';
 import { AuthService } from './auth/auth.service';
-import { UiLabelLocalizationService } from './shell/ui-label-localization.service';
+import { APP_BRAND_ICON, appNavigationFor } from './shell/app.nav';
 import { ThemeSettingsAdapterService } from './shell/theme-settings-adapter';
+import { UiLabelLocalizationService } from './shell/ui-label-localization.service';
 
 @Component({
   selector: 'app-root',
@@ -87,7 +93,9 @@ export class App {
    * decoration-less window with no titlebar and no way to close it. In a
    * browser tab `null` hands the decision back to the stored/derived mode.
    */
-  protected readonly shellMode: ShellMode | null = isTauriRuntime() ? 'desktop' : null;
+  protected readonly shellMode: ShellMode | null = isTauriRuntime()
+    ? 'desktop'
+    : null;
 
   /** Brand shown in the layout's sidebar header. */
   protected readonly brand: BrandIdentity = {
@@ -111,7 +119,7 @@ export class App {
 
   /** Sidebar navigation registered in app.config.ts. */
   protected readonly nav = computed(() =>
-    appNavigationFor(this.auth.user()?.permissions ?? [], this.auth.user()?.role),
+    appNavigationFor(this.auth.user()?.permissions ?? []),
   );
 
   protected isGuestRoute(): boolean {
@@ -145,7 +153,9 @@ export class App {
         return;
       }
 
-      const button = target.closest('button[title="Logout"], button[title="Keluar"]');
+      const button = target.closest(
+        'button[title="Logout"], button[title="Keluar"]',
+      );
 
       if (!button || this.isGuestRoute()) {
         return;
@@ -181,7 +191,10 @@ export class App {
         return;
       }
 
-      if (!(target instanceof Element) || !target.matches('[data-tauri-drag-region]')) {
+      if (
+        !(target instanceof Element) ||
+        !target.matches('[data-tauri-drag-region]')
+      ) {
         return;
       }
 
@@ -198,7 +211,9 @@ export class App {
   }
 
   private moveThemeSettingsToNavigationHeaders(): void {
-    const themeSettings = document.querySelectorAll<HTMLElement>('app-root ThemeSettings');
+    const themeSettings = document.querySelectorAll<HTMLElement>(
+      'app-root ThemeSettings',
+    );
 
     for (const themeSetting of themeSettings) {
       const navigation = themeSetting.closest('Navigation');

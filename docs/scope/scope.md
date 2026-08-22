@@ -14,6 +14,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
 | 4   | MCP server for ERP tool access      | Foundation | in-progress |
 | 5   | Auth passkey login                  | Foundation | in-progress |
+| 6   | Log subsystem                       | Foundation | in-progress |
 
 ## Foundations
 
@@ -92,6 +93,23 @@ Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the
 - [ ] Test it: `/test auth passkey login`
 
 Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/errors`
+
+### 6. Log subsystem · in-progress
+
+Partitioned log storage in PostgreSQL (application logging, audit trails, access logs), a shared `ActivityLog` writer every service can use, a read only logs service behind the gateway, and three Angular viewer pages.
+**Done when:** Log rows land in yearly partitions automatically, audit writes fail visibly while application log writes never block a request, and an admin or manager can browse, search, filter, and page all three log types in the web UI.
+
+- [x] Design it (spec): imported reference design, adapted to this repo
+- [x] Build it: `/develop log subsystem`
+  - [x] Partitioned migration and grants (AC-3, AC-7)
+  - [x] Shared partition helpers and ActivityLog writer (AC-1, AC-2, AC-3, AC-8)
+  - [x] Logs service, gateway wiring, and session permissions (AC-4, AC-5, AC-6)
+  - [x] Web viewer pages with search, filters, and paging (AC-9)
+  - [x] Tests and regenerated OpenAPI artifacts
+- [x] Verify it: `/check verify log subsystem`
+- [ ] Test it: `/test log subsystem`
+
+Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 
 ## Deferred
 

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1AuthPasskeysByIdData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData } from './types.gen';
+import type { DeleteApiV1AuthPasskeysByIdData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -115,3 +115,18 @@ export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>
  * Forward users status request
  */
 export const getApiV1UsersStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users/status', ...options });
+
+/**
+ * List audit trails (requires logs.read)
+ */
+export const getApiV1LogsAuditTrails = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAuditTrailsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/audit-trails', ...options });
+
+/**
+ * List access logs (requires logs.read)
+ */
+export const getApiV1LogsAccessLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAccessLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/access-logs', ...options });
+
+/**
+ * List application logs (requires logs.read)
+ */
+export const getApiV1LogsApplicationLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsApplicationLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/application-logs', ...options });

@@ -14,41 +14,45 @@ const LABELS_ID: Readonly<Record<string, string>> = {
   'Audit Logs': 'Log Audit',
   'Access Logs': 'Log Akses',
   'Application Logs': 'Log Aplikasi',
-  'Filters': 'Filter',
-  'Search': 'Cari',
-  'Clear': 'Bersihkan',
-  'Create': 'Buat',
-  'Edit': 'Ubah',
-  'Delete': 'Hapus',
-  'Save': 'Simpan',
-  'Cancel': 'Batal',
-  'Retry': 'Coba lagi',
-  'First': 'Pertama',
-  'Previous': 'Sebelumnya',
-  'Next': 'Berikutnya',
-  'Last': 'Terakhir',
-  'Time': 'Waktu',
-  'Action': 'Tindakan',
-  'Entity': 'Entitas',
-  'Actor': 'Pelaku',
+  Filters: 'Filter',
+  Search: 'Cari',
+  Clear: 'Bersihkan',
+  Create: 'Buat',
+  Edit: 'Ubah',
+  Delete: 'Hapus',
+  Save: 'Simpan',
+  Cancel: 'Batal',
+  Retry: 'Coba lagi',
+  First: 'Pertama',
+  Previous: 'Sebelumnya',
+  Next: 'Berikutnya',
+  Last: 'Terakhir',
+  Time: 'Waktu',
+  Action: 'Tindakan',
+  Entity: 'Entitas',
+  Actor: 'Pelaku',
   'Change Summary': 'Ringkasan Perubahan',
-  'Event': 'Peristiwa',
-  'Message': 'Pesan',
-  'Reason': 'Alasan',
-  'Role': 'Peran',
-  'Outcome': 'Hasil',
-  'Level': 'Level',
-  'Module': 'Modul',
-  'Name': 'Nama',
-  'Email': 'Email',
-  'Status': 'Status',
-  'Active': 'Aktif',
-  'Suspended': 'Ditangguhkan',
+  Event: 'Peristiwa',
+  Message: 'Pesan',
+  Reason: 'Alasan',
+  Role: 'Peran',
+  Outcome: 'Hasil',
+  Level: 'Level',
+  Module: 'Modul',
+  Name: 'Nama',
+  Email: 'Email',
+  Status: 'Status',
+  Active: 'Aktif',
+  Suspended: 'Ditangguhkan',
   'Loading...': 'Memuat...',
-  'No user data matches the current filters.': 'Tidak ada pengguna yang cocok dengan filter saat ini.',
-  'No audit records match the current filters.': 'Tidak ada catatan audit yang cocok dengan filter saat ini.',
-  'No access events match the current filters.': 'Tidak ada peristiwa akses yang cocok dengan filter saat ini.',
-  'No application events match the current filters.': 'Tidak ada peristiwa aplikasi yang cocok dengan filter saat ini.',
+  'No user data matches the current filters.':
+    'Tidak ada pengguna yang cocok dengan filter saat ini.',
+  'No audit records match the current filters.':
+    'Tidak ada catatan audit yang cocok dengan filter saat ini.',
+  'No access events match the current filters.':
+    'Tidak ada peristiwa akses yang cocok dengan filter saat ini.',
+  'No application events match the current filters.':
+    'Tidak ada peristiwa aplikasi yang cocok dengan filter saat ini.',
 };
 
 @Service()
@@ -72,19 +76,26 @@ export class UiLabelLocalizationService {
   }
 
   private localize(): void {
-    const walker = this.document.createTreeWalker(this.document.documentElement, NodeFilter.SHOW_TEXT);
-    let node: Text | null;
+    const walker = this.document.createTreeWalker(
+      this.document.documentElement,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node = walker.nextNode() as Text | null;
 
-    while ((node = walker.nextNode() as Text | null)) {
+    while (node) {
       const translated = this.translate(node.data);
       if (translated !== node.data) node.data = translated;
+      node = walker.nextNode() as Text | null;
     }
 
-    for (const element of this.document.querySelectorAll<HTMLElement>('[aria-label], [placeholder], [title]')) {
+    for (const element of this.document.querySelectorAll<HTMLElement>(
+      '[aria-label], [placeholder], [title]',
+    )) {
       for (const name of ['aria-label', 'placeholder', 'title']) {
         const value = element.getAttribute(name);
         const translated = value === null ? null : this.translate(value);
-        if (translated !== null && translated !== value) element.setAttribute(name, translated);
+        if (translated !== null && translated !== value)
+          element.setAttribute(name, translated);
       }
     }
   }
