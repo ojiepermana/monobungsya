@@ -1,34 +1,45 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
 import { ActivityLog, Logger } from '#project/logger';
-import { connectMessaging } from '#project/messaging';
+import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
 import { env } from './config/env';
 import { startAuthCleanupWorker } from './jobs/workers/auth-cleanup.worker';
+import { subscribeUserInvited } from './modules/auth/auth.events';
 import { SmtpAuthMailer } from './modules/auth/auth.mailer';
 import { AuthRepository } from './modules/auth/auth.repository';
+import { AuthService } from './modules/auth/auth.service';
 
 const database = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.DATABASE_URL)
   : undefined;
 ActivityLog.configure(database);
+// Login must not depend on the broker. Without messaging the service still
+// signs people in; only the invitation subscriber below is skipped.
 const messaging = env.ENABLE_INFRASTRUCTURE
-  ? await connectMessaging(env.NATS_URL, env.serviceName)
+  ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
+      console.warn(
+        `${env.serviceName} could not reach NATS at ${env.NATS_URL}; invitation emails will not be delivered:`,
+        error instanceof Error ? error.message : error,
+      );
+    })
+  : undefined;
+const logger = new Logger(env.serviceName, env.LOG_LEVEL);
+const mailer = env.ENABLE_INFRASTRUCTURE
+  ? new SmtpAuthMailer({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      username: env.SMTP_USERNAME,
+      password: env.SMTP_PASSWORD,
+      from: env.SMTP_FROM,
+      publicApiUrl: env.PUBLIC_API_URL,
+      webAppUrl: env.WEB_APP_URL,
+    })
   : undefined;
 const app = createApp(
   env,
   {
     database,
-    mailer: env.ENABLE_INFRASTRUCTURE
-      ? new SmtpAuthMailer({
-          host: env.SMTP_HOST,
-          port: env.SMTP_PORT,
-          username: env.SMTP_USERNAME,
-          password: env.SMTP_PASSWORD,
-          from: env.SMTP_FROM,
-          publicApiUrl: env.PUBLIC_API_URL,
-          webAppUrl: env.WEB_APP_URL,
-        })
-      : undefined,
+    mailer,
     webAppUrl: env.WEB_APP_URL,
     cookieName: env.AUTH_SESSION_COOKIE_NAME,
     cookieSecure: env.AUTH_COOKIE_SECURE,
@@ -41,11 +52,22 @@ const app = createApp(
   },
 );
 const stopCleanupWorker = database
-  ? startAuthCleanupWorker(
-      new AuthRepository({ database }),
-      new Logger(env.serviceName, env.LOG_LEVEL),
-    )
+  ? startAuthCleanupWorker(new AuthRepository({ database }), logger)
   : () => undefined;
+
+// Invitation emails for users the user service creates (spec 0007, AC-2).
+if (database && messaging) {
+  subscribeUserInvited(
+    messaging,
+    new AuthService(
+      env.serviceName,
+      new AuthRepository({ database }),
+      mailer,
+      env.WEB_APP_URL,
+    ),
+    logger,
+  );
+}
 const server = app.listen(env.PORT);
 
 console.log(

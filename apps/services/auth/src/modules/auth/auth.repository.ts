@@ -46,19 +46,6 @@ export class AuthRepository {
     return { status: 'ok', module: 'auth' };
   }
 
-  async listUsers(search: string): Promise<AuthUser[]> {
-    const database = this.requireDatabase();
-    const rows = (await database.unsafe(
-      `SELECT id, email, name, role, suspended_at
-       FROM "user"."users"
-       WHERE concat_ws(' ', name, email, role) ILIKE $1 ESCAPE '\\'
-       ORDER BY name, email`,
-      [`%${escapeLikePattern(search)}%`] as never[],
-    )) as Array<Record<string, unknown>>;
-
-    return rows.map(mapUser);
-  }
-
   async issueMagicLink(
     email: string,
     emailHash: string,
@@ -85,6 +72,8 @@ export class AuthRepository {
         FROM "user"."users"
         WHERE lower(email) = ${email}
           AND suspended_at IS NULL
+          AND blocked_at IS NULL
+          AND deleted_at IS NULL
       `;
 
       if (!userRow) {
@@ -97,6 +86,42 @@ export class AuthRepository {
       `;
 
       return { user: mapUser(userRow), rateLimited: false };
+    });
+  }
+
+  /**
+   * Issues a login token for an invitation, bypassing the rate limits the
+   * public magic link route enforces: the caller is an admin creating a user
+   * (spec docs/specs/0007-user-management, AC-2), not an anonymous request, so
+   * no email or ip budget applies. The user must exist and be active.
+   */
+  async issueInvitationLink(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<AuthUser | null> {
+    const database = this.requireDatabase();
+
+    return withTransaction(database, async (transaction) => {
+      const [userRow] = await transaction`
+        SELECT id, email, name, role, suspended_at
+        FROM "user"."users"
+        WHERE id = ${userId}
+          AND suspended_at IS NULL
+          AND blocked_at IS NULL
+          AND deleted_at IS NULL
+      `;
+
+      if (!userRow) {
+        return null;
+      }
+
+      await transaction`
+        INSERT INTO "auth"."login_tokens" (user_id, token_hash, expires_at)
+        VALUES (${userRow.id}, ${tokenHash}, ${expiresAt})
+      `;
+
+      return mapUser(userRow);
     });
   }
 
@@ -116,6 +141,8 @@ export class AuthRepository {
           AND token.expires_at > now()
           AND token.user_id = user_record.id
           AND user_record.suspended_at IS NULL
+          AND user_record.blocked_at IS NULL
+          AND user_record.deleted_at IS NULL
         RETURNING token.id, token.user_id
       `;
 
@@ -157,6 +184,8 @@ export class AuthRepository {
         AND session.absolute_expires_at > now()
         AND session.user_id = user_record.id
         AND user_record.suspended_at IS NULL
+        AND user_record.blocked_at IS NULL
+        AND user_record.deleted_at IS NULL
       RETURNING
         session.id AS session_id,
         session.idle_expires_at,
@@ -244,10 +273,6 @@ export class AuthRepository {
 
     return this.database;
   }
-}
-
-function escapeLikePattern(value: string): string {
-  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 export async function incrementRateLimit(

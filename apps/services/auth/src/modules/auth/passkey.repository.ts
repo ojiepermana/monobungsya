@@ -65,6 +65,8 @@ export class PasskeyRepository {
       FROM "user"."users"
       WHERE id = ${userId}
         AND suspended_at IS NULL
+        AND blocked_at IS NULL
+        AND deleted_at IS NULL
     `;
 
     return row ? mapUser(row) : null;
@@ -153,6 +155,8 @@ export class PasskeyRepository {
         FROM "user"."users"
         WHERE id = ${input.userId}
           AND suspended_at IS NULL
+          AND blocked_at IS NULL
+          AND deleted_at IS NULL
         FOR UPDATE
       `;
 
@@ -252,6 +256,8 @@ export class PasskeyRepository {
           ON user_record.id = credential.user_id
         WHERE credential.credential_id = ${input.credentialId}
           AND user_record.suspended_at IS NULL
+          AND user_record.blocked_at IS NULL
+          AND user_record.deleted_at IS NULL
         FOR UPDATE OF credential
       `;
 

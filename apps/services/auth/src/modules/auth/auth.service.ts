@@ -10,7 +10,6 @@ import type {
   AuthMailer,
   AuthPermission,
   AuthRole,
-  AuthUserAdmin,
   SessionIdentity,
 } from './auth.types';
 
@@ -36,13 +35,18 @@ export interface SessionResult {
 }
 
 /**
- * Permissions derived from the global role. Log rows carry PII, so only the
- * admin and manager roles hold logs.read; the same pair manages users.
+ * Permissions derived from the global role. Log rows carry PII, so the admin
+ * and manager roles hold logs.read. User management is admin only
+ * (spec docs/specs/0007-user-management, AC-8), so the web menu and route guard
+ * agree with the gateway instead of showing a manager a page every call would
+ * refuse. Manager level read access to the user pages is a follow up.
  */
 export function permissionsForRole(role: AuthRole): AuthPermission[] {
-  return role === 'admin' || role === 'manager'
-    ? ['users.manage', 'logs.read']
-    : [];
+  if (role === 'admin') {
+    return ['users.manage', 'logs.read'];
+  }
+
+  return role === 'manager' ? ['logs.read'] : [];
 }
 
 export class AuthService {
@@ -58,18 +62,6 @@ export class AuthService {
       service: this.serviceName,
       ...this.repository.getModuleStatus(),
     };
-  }
-
-  async listUsers(search: string): Promise<AuthUserAdmin[]> {
-    const users = await this.repository.listUsers(search);
-
-    return users.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      suspendedAt: user.suspendedAt?.toISOString() ?? null,
-    }));
   }
 
   async requestMagicLink(
@@ -116,6 +108,42 @@ export class AuthService {
     }
 
     return { accepted: true, rateLimited: result.rateLimited };
+  }
+
+  /**
+   * Sends the invitation magic link for a newly created user, driven by the
+   * `user.invited` event the user service publishes
+   * (spec docs/specs/0007-user-management, AC-2). It reuses the same token
+   * shape and lifetime as a self requested link, so consuming it goes through
+   * the ordinary verify route and produces an ordinary session.
+   */
+  async sendInvitation(userId: string): Promise<boolean> {
+    if (!this.mailer) {
+      throw new ServiceUnavailableError(
+        'Auth email delivery is not configured',
+      );
+    }
+
+    const token = createSecret();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const user = await this.repository.issueInvitationLink(
+      userId,
+      hashSecret(token),
+      expiresAt,
+    );
+
+    if (!user) {
+      return false;
+    }
+
+    await this.mailer.sendMagicLink({
+      recipient: user.email,
+      recipientName: user.name,
+      token,
+      expiresAt,
+    });
+
+    return true;
   }
 
   async verifyMagicLink(
