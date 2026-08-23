@@ -269,4 +269,86 @@ describe('api gateway', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('records validated client context and denial status without query or identity leakage', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+    globalThis.fetch = Object.assign(fetchFor([]), {
+      preconnect: originalFetch.preconnect,
+    });
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/users?email=private@example.com', {
+          headers: {
+            'x-request-id': 'request-456',
+            'x-correlation-id': 'trace-456',
+            'x-client-route': '/users?search=email#section',
+            'x-forwarded-for': '198.51.100.10',
+            cookie: 'project_session=session-value',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const record = writeAccess.mock.calls[0]?.[0];
+      expect(writeAccess).toHaveBeenCalledTimes(1);
+      expect(record).toMatchObject({
+        event: 'permission_denied',
+        outcome: 'failure',
+        requestId: 'request-456',
+        traceId: 'trace-456',
+        path: '/api/v1/users',
+        httpStatus: 403,
+        actor: null,
+        forwardedIp: '198.51.100.10',
+        metadata: {
+          schemaVersion: 1,
+          correlationSource: 'client_header',
+          client: { route: '/users', source: 'client_header' },
+        },
+      });
+      expect(JSON.stringify(record)).not.toContain('private@example.com');
+      expect(JSON.stringify(record)).not.toContain('session-value');
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('does not write an access row for CORS preflight', async () => {
+    const app = createApp(loadGatewayEnv({ NODE_ENV: 'test', PORT: '3000' }));
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+
+    const response = await app.handle(
+      new Request('http://localhost/api/v1/users', {
+        method: 'OPTIONS',
+        headers: {
+          origin: 'http://localhost:4200',
+          'access-control-request-method': 'GET',
+          'access-control-request-headers': 'x-correlation-id,x-client-route',
+        },
+      }),
+    );
+
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(response.status).toBeGreaterThanOrEqual(200);
+    expect(writeAccess).not.toHaveBeenCalled();
+    writeAccess.mockRestore();
+  });
 });

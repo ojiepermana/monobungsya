@@ -1,7 +1,17 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Service } from '@angular/core';
-import type { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { Service } from '@angular/core';
+import { defer, type Observable } from 'rxjs';
+import {
+  getApiV1Auth2FaStatus,
+  getApiV1AuthAdminUsersById2Fa,
+  postApiV1Auth2FaDisable,
+  postApiV1Auth2FaEnroll,
+  postApiV1Auth2FaEnrollConfirm,
+  postApiV1Auth2FaRecoveryCodes,
+  postApiV1Auth2FaVerify,
+  postApiV1AuthAdminUsersById2FaReset,
+  putApiV1UsersById2FaRequirement,
+} from '#project/angular-sdk';
+import { sdkRequest } from '../../api/generated-client';
 
 export interface TotpStatus {
   enabled: boolean;
@@ -21,24 +31,27 @@ export interface TotpRecoveryCodes {
 
 @Service()
 export class TotpService {
-  private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl;
-
   status(): Observable<TotpStatus> {
-    return this.http.get<TotpStatus>(`${this.base}/api/v1/auth/2fa/status`);
+    return defer(() =>
+      sdkRequest<TotpStatus>(() =>
+        getApiV1Auth2FaStatus({ throwOnError: true }),
+      ),
+    );
   }
 
   enroll(): Observable<TotpEnrollment> {
-    return this.http.post<TotpEnrollment>(
-      `${this.base}/api/v1/auth/2fa/enroll`,
-      {},
+    return defer(() =>
+      sdkRequest<TotpEnrollment>(() =>
+        postApiV1Auth2FaEnroll({ throwOnError: true }),
+      ),
     );
   }
 
   confirm(code: string): Observable<TotpRecoveryCodes> {
-    return this.http.post<TotpRecoveryCodes>(
-      `${this.base}/api/v1/auth/2fa/enroll/confirm`,
-      { code },
+    return defer(() =>
+      sdkRequest<TotpRecoveryCodes>(() =>
+        postApiV1Auth2FaEnrollConfirm({ body: { code }, throwOnError: true }),
+      ),
     );
   }
 
@@ -46,36 +59,61 @@ export class TotpService {
     code?: string,
     recoveryCode?: string,
   ): Observable<{ authenticated: true; redirectTo: string }> {
-    return this.http.post<{ authenticated: true; redirectTo: string }>(
-      `${this.base}/api/v1/auth/2fa/verify`,
-      { ...(code ? { code } : {}), ...(recoveryCode ? { recoveryCode } : {}) },
+    return defer(() =>
+      sdkRequest<{ authenticated: true; redirectTo: string }>(() =>
+        postApiV1Auth2FaVerify({
+          body: {
+            ...(code ? { code } : {}),
+            ...(recoveryCode ? { recoveryCode } : {}),
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   disable(code?: string, recoveryCode?: string): Observable<{ ok: true }> {
-    return this.http.post<{ ok: true }>(
-      `${this.base}/api/v1/auth/2fa/disable`,
-      { ...(code ? { code } : {}), ...(recoveryCode ? { recoveryCode } : {}) },
+    return defer(() =>
+      sdkRequest<{ ok: true }>(() =>
+        postApiV1Auth2FaDisable({
+          body: {
+            ...(code ? { code } : {}),
+            ...(recoveryCode ? { recoveryCode } : {}),
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   regenerateRecoveryCodes(code: string): Observable<TotpRecoveryCodes> {
-    return this.http.post<TotpRecoveryCodes>(
-      `${this.base}/api/v1/auth/2fa/recovery-codes`,
-      { code },
+    return defer(() =>
+      sdkRequest<TotpRecoveryCodes>(() =>
+        postApiV1Auth2FaRecoveryCodes({ body: { code }, throwOnError: true }),
+      ),
     );
   }
 
   adminStatus(userId: string): Observable<TotpStatus> {
-    return this.http.get<TotpStatus>(
-      `${this.base}/api/v1/auth/admin/users/${encodeURIComponent(userId)}/2fa`,
+    return defer(() =>
+      sdkRequest<TotpStatus>(() =>
+        getApiV1AuthAdminUsersById2Fa({
+          path: { id: userId },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   adminReset(userId: string, reason: string): Observable<{ ok: true }> {
-    return this.http.post<{ ok: true }>(
-      `${this.base}/api/v1/auth/admin/users/${encodeURIComponent(userId)}/2fa/reset`,
-      { reason },
+    return defer(() =>
+      sdkRequest<{ ok: true }>(() =>
+        postApiV1AuthAdminUsersById2FaReset({
+          path: { id: userId },
+          body: { reason },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -84,9 +122,14 @@ export class TotpService {
     required: boolean,
     reason: string,
   ): Observable<{ ok: true }> {
-    return this.http.put<{ ok: true }>(
-      `${this.base}/api/v1/users/${encodeURIComponent(userId)}/2fa-requirement`,
-      { required, reason },
+    return defer(() =>
+      sdkRequest<{ ok: true }>(() =>
+        putApiV1UsersById2FaRequirement({
+          path: { id: userId },
+          body: { required, reason },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 }

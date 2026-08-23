@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-23
 
-**Status**: Proposed
+**Status**: In Progress
 
 **Type**: Umbrella enhancement
 

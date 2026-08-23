@@ -73,12 +73,12 @@ Use the public gateway OpenAPI contract to generate a typed SDK in `packages/ang
 **Done when:** The complete public gateway contract generates cleanly, all gateway requests in `apps/web` use the generated SDK except browser magic link navigation, response types are useful, and OpenAPI validation, web typecheck, tests, lint, and generated diff checks pass.
 
 - [x] Design it (spec)
-- [ ] Build it: `/develop generated gateway SDK integration`
-  - [ ] Public Elysia response schemas, `desktop` magic link input, and regenerated OpenAPI and SDK artifacts (AC-1, AC-2, AC-3)
-  - [ ] Bootstrap client configuration, cookie credentials, Hey API middleware, and health or session tracer thread (AC-4, AC-7, AC-8, AC-11)
-  - [ ] Auth, passkey, and TOTP facade migration with preserved browser verification behavior (AC-5, AC-7, AC-9, AC-12)
-  - [ ] Users, logs, and access facade migration with generated types and explicit UI mappings (AC-5, AC-6, AC-7, AC-10)
-  - [ ] Transport tests, sensitive data checks, clean regeneration, and repository validation gate (AC-8, AC-9, AC-10, AC-13, AC-14)
+- [x] Build it: `/develop generated gateway SDK integration`
+  - [x] Public Elysia response schemas, `desktop` magic link input, and regenerated OpenAPI and SDK artifacts (AC-1, AC-2, AC-3)
+  - [x] Bootstrap client configuration, cookie credentials, Hey API middleware, and health or session tracer thread (AC-4, AC-7, AC-8, AC-11)
+  - [x] Auth, passkey, and TOTP facade migration with preserved browser verification behavior (AC-5, AC-7, AC-9, AC-12)
+  - [x] Users, logs, and access facade migration with generated types and explicit UI mappings (AC-5, AC-6, AC-7, AC-10)
+  - [x] Transport tests, sensitive data checks, clean regeneration, and repository validation gate (AC-8, AC-9, AC-10, AC-13, AC-14)
 - [ ] Verify it: `/check verify generated gateway SDK integration`
 - [ ] Test it: `/test generated gateway SDK integration`
 
@@ -195,7 +195,7 @@ Full user management owned by the user service: create and update users, suspend
 **Done when:** An admin can create a user who receives an invitation email and can log in, update the user's name and role, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
 
 - [x] Design it (spec): `/architect user lifecycle management`
-- [ ] Build it: `/develop user lifecycle management`
+- [x] Build it: `/develop user lifecycle management`
   - [x] Migration and read only tracer: status columns, list and detail from service through gateway to the /users page (AC-8, AC-9, AC-11)
   - [x] Create and update with client generated UUIDv7, audit writes, and the create dialog (AC-1, AC-3, AC-7)
   - [x] Status lifecycle: suspend, block, soft delete, restore, guards, and extended auth login checks (AC-4, AC-5, AC-6, AC-7)

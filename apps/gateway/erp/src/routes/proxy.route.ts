@@ -20,6 +20,39 @@ import {
 } from '#project/errors';
 import type { AuthSessionDetail } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
+import {
+  grantMutationResponse,
+  grantsResponse,
+  permissionListResponse,
+  permissionResponse,
+} from '../../../../services/access/src/modules/access/access.schema';
+import {
+  authStatusResponse,
+  magicLinkAcceptedResponse,
+  sessionResponse,
+  totpEnrollmentResponse,
+  totpOkResponse,
+  totpRecoveryCodesResponse,
+  totpStatusResponse,
+  totpVerifyResponse,
+} from '../../../../services/auth/src/modules/auth/auth.schema';
+import {
+  passkeyCeremonyOptionsResponse,
+  passkeyListResponse,
+  passkeyLoginResponse,
+  passkeySummaryResponse,
+} from '../../../../services/auth/src/modules/auth/passkey.schema';
+import {
+  accessLogsResponse,
+  applicationLogsResponse,
+  auditTrailsResponse,
+} from '../../../../services/logs/src/modules/logs/logs.schema';
+import {
+  totpRequirementResponse,
+  userResponse,
+  usersListResponse,
+  usersStatusResponse,
+} from '../../../../services/user/src/modules/users/users.schema';
 import type { GatewayEnvironment } from '../config/env';
 import { GatewayPermissionCache } from '../shared/permission-cache';
 
@@ -460,7 +493,10 @@ export function createProxyRoute(
           '/internal/auth',
           environment,
         ),
-      { detail: { tags: ['Auth'], summary: 'Forward auth status request' } },
+      {
+        response: { 200: authStatusResponse },
+        detail: { tags: ['Auth'], summary: 'Forward auth status request' },
+      },
     )
     .post(
       '/api/v1/auth/magic-link',
@@ -477,7 +513,9 @@ export function createProxyRoute(
       {
         body: t.Object({
           email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
+          desktop: t.Optional(t.Literal(true)),
         }),
+        response: { 200: magicLinkAcceptedResponse },
         detail: { tags: ['Auth'], summary: 'Request an auth magic link' },
       },
     )
@@ -513,6 +551,7 @@ export function createProxyRoute(
             mapPublicSessionResponse(request, response, permissionCache),
         ),
       {
+        response: { 200: sessionResponse },
         detail: { tags: ['Auth'], summary: 'Read the current auth session' },
       },
     )
@@ -527,6 +566,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 204: t.Void() },
         detail: { tags: ['Auth'], summary: 'Logout the current auth session' },
       },
     )
@@ -541,6 +581,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 200: passkeyCeremonyOptionsResponse },
         detail: {
           tags: ['Passkey'],
           summary: 'Start passkey registration',
@@ -560,6 +601,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: passkeySummaryResponse },
         body: t.Object({
           response: webAuthnResponse,
           label: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
@@ -581,6 +623,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 200: passkeyCeremonyOptionsResponse },
         detail: {
           tags: ['Passkey'],
           summary: 'Start passkey sign in',
@@ -600,6 +643,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: passkeyLoginResponse },
         body: t.Object({ response: webAuthnResponse }),
         detail: {
           tags: ['Passkey'],
@@ -618,6 +662,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 200: passkeyListResponse },
         detail: {
           tags: ['Passkey'],
           summary: "List the current user's passkeys",
@@ -637,6 +682,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: passkeySummaryResponse },
         params: t.Object({ id: t.String({ format: 'uuid' }) }),
         body: t.Object({ label: t.String({ minLength: 1, maxLength: 100 }) }),
         detail: {
@@ -656,6 +702,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 204: t.Void() },
         params: t.Object({ id: t.String({ format: 'uuid' }) }),
         detail: {
           tags: ['Passkey'],
@@ -674,6 +721,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 200: totpEnrollmentResponse },
         detail: { tags: ['Auth'], summary: 'Start TOTP enrollment' },
       },
     )
@@ -690,6 +738,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: totpRecoveryCodesResponse },
         body: t.Object({ code: t.String({ pattern: '^[0-9]{6}$' }) }),
         detail: { tags: ['Auth'], summary: 'Confirm TOTP enrollment' },
       },
@@ -707,6 +756,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: totpVerifyResponse },
         body: t.Object({
           code: t.Optional(t.String({ pattern: '^[0-9]{6}$' })),
           recoveryCode: t.Optional(t.String({ minLength: 8, maxLength: 32 })),
@@ -725,6 +775,7 @@ export function createProxyRoute(
           environment,
         ),
       {
+        response: { 200: totpStatusResponse },
         detail: { tags: ['Auth'], summary: 'Read the current TOTP status' },
       },
     )
@@ -741,6 +792,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: totpOkResponse },
         body: t.Object({
           code: t.Optional(t.String({ pattern: '^[0-9]{6}$' })),
           recoveryCode: t.Optional(t.String({ minLength: 8, maxLength: 32 })),
@@ -761,6 +813,7 @@ export function createProxyRoute(
           body,
         ),
       {
+        response: { 200: totpRecoveryCodesResponse },
         body: t.Object({ code: t.String({ pattern: '^[0-9]{6}$' }) }),
         detail: { tags: ['Auth'], summary: 'Regenerate TOTP recovery codes' },
       },
@@ -780,6 +833,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: totpStatusResponse },
         params: userIdParams,
         detail: { tags: ['Auth'], summary: 'Read a user TOTP status' },
       },
@@ -799,6 +853,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: totpOkResponse },
         params: userIdParams,
         body: t.Object({ reason: t.String({ minLength: 3, maxLength: 500 }) }),
         detail: { tags: ['Auth'], summary: 'Reset a user TOTP credential' },
@@ -809,6 +864,7 @@ export function createProxyRoute(
       ({ request }) =>
         forwardUser(request, undefined, PERMISSIONS.userUserRead),
       {
+        response: { 200: usersStatusResponse },
         detail: { tags: ['Users'], summary: 'Forward users status request' },
       },
     )
@@ -817,6 +873,7 @@ export function createProxyRoute(
       ({ request }) =>
         forwardUser(request, undefined, PERMISSIONS.userUserList),
       {
+        response: { 200: usersListResponse },
         query: t.Object({
           search: t.Optional(t.String()),
           status: t.Optional(t.String()),
@@ -833,6 +890,7 @@ export function createProxyRoute(
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserCreate),
       {
+        response: { 200: userResponse },
         body: t.Object({
           id: t.String({ format: 'uuid' }),
           name: t.String({ minLength: 1, maxLength: 255 }),
@@ -849,6 +907,7 @@ export function createProxyRoute(
       ({ request }) =>
         forwardUser(request, undefined, PERMISSIONS.userUserRead),
       {
+        response: { 200: userResponse },
         params: userIdParams,
         detail: { tags: ['Users'], summary: 'Read one user' },
       },
@@ -858,6 +917,7 @@ export function createProxyRoute(
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserUpdate),
       {
+        response: { 200: userResponse },
         params: userIdParams,
         body: t.Object({
           name: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
@@ -872,43 +932,59 @@ export function createProxyRoute(
       '/api/v1/users/:id/suspend',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserSuspend),
-      statusActionRoute('Suspend a user'),
+      {
+        ...statusActionRoute('Suspend a user'),
+        response: { 200: userResponse },
+      },
     )
     .post(
       '/api/v1/users/:id/unsuspend',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserSuspend),
-      statusActionRoute('Unsuspend a user'),
+      {
+        ...statusActionRoute('Unsuspend a user'),
+        response: { 200: userResponse },
+      },
     )
     .post(
       '/api/v1/users/:id/block',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserBlock),
-      statusActionRoute('Block a user'),
+      { ...statusActionRoute('Block a user'), response: { 200: userResponse } },
     )
     .post(
       '/api/v1/users/:id/unblock',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserBlock),
-      statusActionRoute('Unblock a user'),
+      {
+        ...statusActionRoute('Unblock a user'),
+        response: { 200: userResponse },
+      },
     )
     .post(
       '/api/v1/users/:id/restore',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserRestore),
-      statusActionRoute('Restore a soft deleted user'),
+      {
+        ...statusActionRoute('Restore a soft deleted user'),
+        response: { 200: userResponse },
+      },
     )
     .delete(
       '/api/v1/users/:id',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserDelete),
-      statusActionRoute('Soft delete a user'),
+      {
+        ...statusActionRoute('Soft delete a user'),
+        response: { 200: userResponse },
+      },
     )
     .put(
       '/api/v1/users/:id/2fa-requirement',
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserManage),
       {
+        response: { 200: totpRequirementResponse },
         params: userIdParams,
         body: t.Object({
           required: t.Boolean(),
@@ -935,6 +1011,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: auditTrailsResponse },
         query: t.Object({
           search: t.Optional(t.String()),
           module: t.Optional(t.String()),
@@ -963,10 +1040,12 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: accessLogsResponse },
         query: t.Object({
           search: t.Optional(t.String()),
           event: t.Optional(t.String()),
           outcome: t.Optional(t.String()),
+          traceId: t.Optional(t.String()),
           actorUserId: t.Optional(t.String({ format: 'uuid' })),
           page: t.Optional(t.String()),
         }),
@@ -991,6 +1070,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: applicationLogsResponse },
         query: t.Object({
           search: t.Optional(t.String()),
           level: t.Optional(t.String()),
@@ -1020,6 +1100,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: permissionListResponse },
         query: t.Object({
           page: t.Optional(t.String()),
           pageSize: t.Optional(t.String()),
@@ -1044,6 +1125,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: permissionResponse },
         body: t.Object({
           name: t.String({ minLength: 5, maxLength: 100 }),
           description: t.Optional(
@@ -1068,6 +1150,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: permissionResponse },
         params: t.Object({ id: t.String({ format: 'uuid' }) }),
         detail: { tags: ['Access'], summary: 'Read a permission' },
       },
@@ -1087,6 +1170,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: permissionResponse },
         params: t.Object({ id: t.String({ format: 'uuid' }) }),
         body: t.Object({
           description: t.Union([t.String({ maxLength: 2000 }), t.Null()]),
@@ -1112,6 +1196,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 204: t.Void() },
         params: t.Object({ id: t.String({ format: 'uuid' }) }),
         detail: { tags: ['Access'], summary: 'Delete a permission' },
       },
@@ -1131,6 +1216,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: grantsResponse },
         params: t.Object({ userId: t.String({ format: 'uuid' }) }),
         detail: { tags: ['Access'], summary: 'List a user permissions' },
       },
@@ -1150,6 +1236,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: grantMutationResponse },
         params: t.Object({ userId: t.String({ format: 'uuid' }) }),
         body: t.Object({
           permissionIds: t.Array(t.String({ format: 'uuid' }), {
@@ -1175,6 +1262,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 200: grantMutationResponse },
         params: t.Object({ userId: t.String({ format: 'uuid' }) }),
         body: t.Object({ sourceUserId: t.String({ format: 'uuid' }) }),
         detail: {
@@ -1198,6 +1286,7 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
+        response: { 204: t.Void() },
         params: t.Object({
           userId: t.String({ format: 'uuid' }),
           permissionId: t.String({ format: 'uuid' }),

@@ -80,6 +80,9 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -91,6 +94,9 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
           multipart/form-data:
             schema:
               type: object
@@ -102,6 +108,9 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
       responses:
         "200":
           description: Response for status 200

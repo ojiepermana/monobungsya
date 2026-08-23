@@ -5,6 +5,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TauriService } from '../desktop/tauri.service';
 import { PasskeyService } from './passkey.service';
 
+function installStorage(): void {
+  const values = new Map<string, string>();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    },
+  });
+}
+
+beforeEach(() => installStorage());
+
 function serviceWith(tauriAvailable: boolean): PasskeyService {
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
@@ -26,7 +45,7 @@ function serviceWith(tauriAvailable: boolean): PasskeyService {
 describe('PasskeyService gating', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    window.localStorage.clear();
+    window.localStorage?.clear();
   });
 
   it('offers passkeys in a browser that implements WebAuthn', () => {
@@ -50,7 +69,7 @@ describe('PasskeyService gating', () => {
 
 describe('PasskeyService prompt dismissal', () => {
   afterEach(() => {
-    window.localStorage.clear();
+    window.localStorage?.clear();
   });
 
   it('remembers a dismissal for this browser', () => {

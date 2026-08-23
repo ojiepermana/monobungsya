@@ -1,7 +1,7 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { inject, Service } from '@angular/core';
-import type { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { Service } from '@angular/core';
+import { defer, type Observable } from 'rxjs';
+import * as sdk from '#project/angular-sdk';
+import { sdkRequest } from '../../api/generated-client';
 import type { AuthPermission } from '../auth/auth.service';
 
 export interface HealthResponse {
@@ -217,38 +217,55 @@ export interface ApplicationLogsResponse {
 }
 
 /** The gateway validates actorUserId as a uuid, so an empty value is omitted. */
-function withActor(params: HttpParams, actorUserId?: string): HttpParams {
-  return actorUserId ? params.set('actorUserId', actorUserId) : params;
-}
-
 @Service()
 export class ApiService {
-  private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl;
-
   health(): Observable<HealthResponse> {
-    return this.http.get<HealthResponse>(`${this.base}/health`);
+    return defer(() =>
+      sdkRequest<HealthResponse>(() => sdk.getHealth({ throwOnError: true })),
+    );
   }
 
   users(filters: UsersFilters): Observable<UsersResponse> {
-    return this.http.get<UsersResponse>(`${this.base}/api/v1/users`, {
-      params: new HttpParams()
-        .set('search', filters.search)
-        .set('status', filters.status)
-        .set('page', String(filters.page)),
-    });
+    return defer(() =>
+      sdkRequest<UsersResponse>(() =>
+        sdk.getApiV1Users({
+          query: {
+            search: filters.search,
+            status: filters.status,
+            page: String(filters.page),
+          },
+          throwOnError: true,
+        }),
+      ),
+    );
   }
 
   user(id: string): Observable<UserRecord> {
-    return this.http.get<UserRecord>(`${this.userUrl(id)}`);
+    return defer(() =>
+      sdkRequest<UserRecord>(() =>
+        sdk.getApiV1UsersById({ path: { id }, throwOnError: true }),
+      ),
+    );
   }
 
   createUser(payload: CreateUserPayload): Observable<UserRecord> {
-    return this.http.post<UserRecord>(`${this.base}/api/v1/users`, payload);
+    return defer(() =>
+      sdkRequest<UserRecord>(() =>
+        sdk.postApiV1Users({ body: payload, throwOnError: true }),
+      ),
+    );
   }
 
   updateUser(id: string, payload: UpdateUserPayload): Observable<UserRecord> {
-    return this.http.patch<UserRecord>(this.userUrl(id), payload);
+    return defer(() =>
+      sdkRequest<UserRecord>(() =>
+        sdk.patchApiV1UsersById({
+          path: { id },
+          body: payload,
+          throwOnError: true,
+        }),
+      ),
+    );
   }
 
   /**
@@ -262,69 +279,87 @@ export class ApiService {
     reason: string,
   ): Observable<UserRecord> {
     if (action === 'delete') {
-      return this.http.delete<UserRecord>(this.userUrl(id), {
-        body: { reason },
-      });
+      return defer(() =>
+        sdkRequest<UserRecord>(() =>
+          sdk.deleteApiV1UsersById({
+            path: { id },
+            body: { reason },
+            throwOnError: true,
+          }),
+        ),
+      );
     }
 
-    return this.http.post<UserRecord>(`${this.userUrl(id)}/${action}`, {
-      reason,
-    });
+    const operation = {
+      suspend: sdk.postApiV1UsersByIdSuspend,
+      unsuspend: sdk.postApiV1UsersByIdUnsuspend,
+      block: sdk.postApiV1UsersByIdBlock,
+      unblock: sdk.postApiV1UsersByIdUnblock,
+      restore: sdk.postApiV1UsersByIdRestore,
+    }[action];
+    return defer(() =>
+      sdkRequest<UserRecord>(() =>
+        operation({ path: { id }, body: { reason }, throwOnError: true }),
+      ),
+    );
   }
 
   auditTrails(
     filters: AuditTrailFilters & ActorScope,
   ): Observable<AuditTrailsResponse> {
-    return this.http.get<AuditTrailsResponse>(
-      `${this.base}/api/v1/logs/audit-trails`,
-      {
-        params: withActor(
-          new HttpParams()
-            .set('search', filters.search)
-            .set('module', filters.module)
-            .set('action', filters.action)
-            .set('page', String(filters.page)),
-          filters.actorUserId,
-        ),
-      },
+    return defer(() =>
+      sdkRequest<AuditTrailsResponse>(() =>
+        sdk.getApiV1LogsAuditTrails({
+          query: {
+            search: filters.search,
+            module: filters.module,
+            action: filters.action,
+            page: String(filters.page),
+            actorUserId: filters.actorUserId,
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   accessLogs(
     filters: AccessLogFilters & ActorScope,
   ): Observable<AccessLogsResponse> {
-    return this.http.get<AccessLogsResponse>(
-      `${this.base}/api/v1/logs/access-logs`,
-      {
-        params: withActor(
-          new HttpParams()
-            .set('search', filters.search)
-            .set('event', filters.event)
-            .set('outcome', filters.outcome)
-            .set('traceId', filters.traceId)
-            .set('page', String(filters.page)),
-          filters.actorUserId,
-        ),
-      },
+    return defer(() =>
+      sdkRequest<AccessLogsResponse>(() =>
+        sdk.getApiV1LogsAccessLogs({
+          query: {
+            search: filters.search,
+            event: filters.event,
+            outcome: filters.outcome,
+            traceId: filters.traceId,
+            page: String(filters.page),
+            actorUserId: filters.actorUserId,
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   applicationLogs(
     filters: ApplicationLogFilters & ActorScope,
   ): Observable<ApplicationLogsResponse> {
-    return this.http.get<ApplicationLogsResponse>(
-      `${this.base}/api/v1/logs/application-logs`,
-      {
-        params: withActor(
-          new HttpParams()
-            .set('search', filters.search)
-            .set('level', filters.level)
-            .set('module', filters.module)
-            .set('event', filters.event)
-            .set('page', String(filters.page)),
-          filters.actorUserId,
-        ),
-      },
+    return defer(() =>
+      sdkRequest<ApplicationLogsResponse>(() =>
+        sdk.getApiV1LogsApplicationLogs({
+          query: {
+            search: filters.search,
+            level: filters.level,
+            module: filters.module,
+            event: filters.event,
+            page: String(filters.page),
+            actorUserId: filters.actorUserId,
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -333,14 +368,17 @@ export class ApiService {
     namespace: string;
     page: number;
   }): Observable<PermissionsResponse> {
-    return this.http.get<PermissionsResponse>(
-      `${this.base}/api/v1/access/permissions`,
-      {
-        params: new HttpParams()
-          .set('search', filters.search)
-          .set('namespace', filters.namespace)
-          .set('page', String(filters.page)),
-      },
+    return defer(() =>
+      sdkRequest<PermissionsResponse>(() =>
+        sdk.getApiV1AccessPermissions({
+          query: {
+            search: filters.search,
+            namespace: filters.namespace,
+            page: String(filters.page),
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -348,9 +386,10 @@ export class ApiService {
     name: string;
     description: string;
   }): Observable<PermissionRecord> {
-    return this.http.post<PermissionRecord>(
-      `${this.base}/api/v1/access/permissions`,
-      payload,
+    return defer(() =>
+      sdkRequest<PermissionRecord>(() =>
+        sdk.postApiV1AccessPermissions({ body: payload, throwOnError: true }),
+      ),
     );
   }
 
@@ -358,21 +397,36 @@ export class ApiService {
     id: string,
     description: string,
   ): Observable<PermissionRecord> {
-    return this.http.put<PermissionRecord>(
-      `${this.base}/api/v1/access/permissions/${encodeURIComponent(id)}`,
-      { description },
+    return defer(() =>
+      sdkRequest<PermissionRecord>(() =>
+        sdk.putApiV1AccessPermissionsById({
+          path: { id },
+          body: { description },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   deletePermission(id: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.base}/api/v1/access/permissions/${encodeURIComponent(id)}`,
+    return defer(() =>
+      sdkRequest<void>(() =>
+        sdk.deleteApiV1AccessPermissionsById({
+          path: { id },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   userPermissions(userId: string): Observable<PermissionGrantResponse> {
-    return this.http.get<PermissionGrantResponse>(
-      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions`,
+    return defer(() =>
+      sdkRequest<PermissionGrantResponse>(() =>
+        sdk.getApiV1AccessUsersByUserIdPermissions({
+          path: { userId },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -380,9 +434,14 @@ export class ApiService {
     userId: string,
     permissionIds: string[],
   ): Observable<PermissionMutationResponse> {
-    return this.http.post<PermissionMutationResponse>(
-      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions`,
-      { permissionIds },
+    return defer(() =>
+      sdkRequest<PermissionMutationResponse>(() =>
+        sdk.postApiV1AccessUsersByUserIdPermissions({
+          path: { userId },
+          body: { permissionIds },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -390,19 +449,25 @@ export class ApiService {
     userId: string,
     sourceUserId: string,
   ): Observable<PermissionMutationResponse> {
-    return this.http.post<PermissionMutationResponse>(
-      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions/copy`,
-      { sourceUserId },
+    return defer(() =>
+      sdkRequest<PermissionMutationResponse>(() =>
+        sdk.postApiV1AccessUsersByUserIdPermissionsCopy({
+          path: { userId },
+          body: { sourceUserId },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
   revokeUserPermission(userId: string, permissionId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions/${encodeURIComponent(permissionId)}`,
+    return defer(() =>
+      sdkRequest<void>(() =>
+        sdk.deleteApiV1AccessUsersByUserIdPermissionsByPermissionId({
+          path: { userId, permissionId },
+          throwOnError: true,
+        }),
+      ),
     );
-  }
-
-  private userUrl(id: string): string {
-    return `${this.base}/api/v1/users/${encodeURIComponent(id)}`;
   }
 }

@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Service, signal } from '@angular/core';
 import type {
   AuthenticationResponseJSON,
@@ -12,7 +11,21 @@ import {
   startRegistration,
 } from '@simplewebauthn/browser';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../environments/environment';
+import {
+  deleteApiV1AuthPasskeysById,
+  type GetApiV1AuthPasskeysResponse,
+  getApiV1AuthPasskeys,
+  type PostApiV1AuthPasskeyLoginOptionsResponse,
+  type PostApiV1AuthPasskeyLoginVerifyResponse,
+  type PostApiV1AuthPasskeyRegisterOptionsResponse,
+  type PostApiV1AuthPasskeyRegisterVerifyResponse,
+  patchApiV1AuthPasskeysById,
+  postApiV1AuthPasskeyLoginOptions,
+  postApiV1AuthPasskeyLoginVerify,
+  postApiV1AuthPasskeyRegisterOptions,
+  postApiV1AuthPasskeyRegisterVerify,
+} from '#project/angular-sdk';
+import { sdkRequest } from '../../api/generated-client';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService, type AuthUser } from './auth.service';
 
@@ -45,8 +58,6 @@ const PROMPT_DISMISSED_KEY = 'monobungsya.passkey-prompt-dismissed';
 
 @Service()
 export class PasskeyService {
-  private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl;
   private readonly tauri = inject(TauriService);
   private readonly auth = inject(AuthService);
 
@@ -65,19 +76,25 @@ export class PasskeyService {
 
   /** Registers a passkey for the signed in user. Returns the stored passkey. */
   async register(label?: string): Promise<Passkey> {
-    const options = await this.post<PublicKeyCredentialCreationOptionsJSON>(
-      '/api/v1/auth/passkey/register/options',
-    );
+    const options =
+      (await sdkRequest<PostApiV1AuthPasskeyRegisterOptionsResponse>(() =>
+        postApiV1AuthPasskeyRegisterOptions({ throwOnError: true }),
+      )) as unknown as PublicKeyCredentialCreationOptionsJSON;
     const attestation = await this.runCeremony(() =>
       startRegistration({ optionsJSON: options }),
     );
-    const created = await this.post<Passkey>(
-      '/api/v1/auth/passkey/register/verify',
-      {
-        response: attestation,
-        ...(label && label.trim().length > 0 ? { label: label.trim() } : {}),
-      },
-    );
+    const created =
+      (await sdkRequest<PostApiV1AuthPasskeyRegisterVerifyResponse>(() =>
+        postApiV1AuthPasskeyRegisterVerify({
+          throwOnError: true,
+          body: {
+            response: attestation as never,
+            ...(label && label.trim().length > 0
+              ? { label: label.trim() }
+              : {}),
+          },
+        }),
+      )) as Passkey;
 
     this.passkeys.update((current) => [...current, created]);
 
@@ -89,16 +106,19 @@ export class PasskeyService {
    * whichever passkey is registered for this site.
    */
   async signIn(): Promise<AuthUser | null> {
-    const options = await this.post<PublicKeyCredentialRequestOptionsJSON>(
-      '/api/v1/auth/passkey/login/options',
-    );
+    const options = (await sdkRequest<PostApiV1AuthPasskeyLoginOptionsResponse>(
+      () => postApiV1AuthPasskeyLoginOptions({ throwOnError: true }),
+    )) as unknown as PublicKeyCredentialRequestOptionsJSON;
     const assertion = await this.runCeremony(() =>
       startAuthentication({ optionsJSON: options }),
     );
-    const result = await this.post<PasskeyLoginResponse>(
-      '/api/v1/auth/passkey/login/verify',
-      { response: assertion },
-    );
+    const result = (await sdkRequest<PostApiV1AuthPasskeyLoginVerifyResponse>(
+      () =>
+        postApiV1AuthPasskeyLoginVerify({
+          throwOnError: true,
+          body: { response: assertion as never },
+        }),
+    )) as PasskeyLoginResponse;
 
     if (result.mfaRequired) {
       return null;
@@ -112,11 +132,9 @@ export class PasskeyService {
   }
 
   async load(): Promise<Passkey[]> {
-    const response = await firstValueFrom(
-      this.http.get<{ passkeys: Passkey[] }>(
-        `${this.base}/api/v1/auth/passkeys`,
-      ),
-    );
+    const response = (await sdkRequest<GetApiV1AuthPasskeysResponse>(() =>
+      getApiV1AuthPasskeys({ throwOnError: true }),
+    )) as { passkeys: Passkey[] };
     this.passkeys.set(response.passkeys);
     this.loaded.set(true);
 
@@ -124,9 +142,11 @@ export class PasskeyService {
   }
 
   async rename(id: string, label: string): Promise<Passkey> {
-    const updated = await firstValueFrom(
-      this.http.patch<Passkey>(`${this.base}/api/v1/auth/passkeys/${id}`, {
-        label,
+    const updated = await sdkRequest<Passkey>(() =>
+      patchApiV1AuthPasskeysById({
+        path: { id },
+        body: { label },
+        throwOnError: true,
       }),
     );
     this.passkeys.update((current) =>
@@ -137,8 +157,8 @@ export class PasskeyService {
   }
 
   async remove(id: string): Promise<void> {
-    await firstValueFrom(
-      this.http.delete<void>(`${this.base}/api/v1/auth/passkeys/${id}`),
+    await sdkRequest<void>(() =>
+      deleteApiV1AuthPasskeysById({ path: { id }, throwOnError: true }),
     );
     this.passkeys.update((current) =>
       current.filter((passkey) => passkey.id !== id),
@@ -189,15 +209,6 @@ export class PasskeyService {
     }
 
     return fallback;
-  }
-
-  private async post<TResponse>(
-    path: string,
-    body?: unknown,
-  ): Promise<TResponse> {
-    return firstValueFrom(
-      this.http.post<TResponse>(`${this.base}${path}`, body ?? {}),
-    );
   }
 
   private async runCeremony<

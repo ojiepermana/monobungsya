@@ -1,6 +1,12 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Service, signal } from '@angular/core';
-import { map, Observable, tap } from 'rxjs';
+import { Service, signal } from '@angular/core';
+import { defer, map, Observable, tap } from 'rxjs';
+import {
+  type GetApiV1AuthSessionResponse,
+  getApiV1AuthSession,
+  postApiV1AuthLogout,
+  postApiV1AuthMagicLink,
+} from '#project/angular-sdk';
+import { sdkRequest } from '../../api/generated-client';
 import { environment } from '../../environments/environment';
 import type { PermissionName } from './permissions';
 import { hasResolvedPermission } from './permissions';
@@ -38,9 +44,6 @@ export interface MeResponse {
 
 @Service()
 export class AuthService {
-  private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl;
-
   readonly user = signal<AuthUser | null>(null);
   readonly loaded = signal(false);
 
@@ -48,12 +51,13 @@ export class AuthService {
     email: string,
     options: RequestMagicLinkOptions = {},
   ): Observable<RequestMagicLinkResponse> {
-    return this.http.post<RequestMagicLinkResponse>(
-      `${this.base}/api/v1/auth/magic-link`,
-      {
-        email,
-        ...(options.desktop ? { desktop: true } : {}),
-      },
+    return defer(() =>
+      sdkRequest<RequestMagicLinkResponse>(() =>
+        postApiV1AuthMagicLink({
+          body: { email, ...(options.desktop ? { desktop: true } : {}) },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -76,16 +80,25 @@ export class AuthService {
     }
 
     window.location.assign(
-      `${this.base}/api/v1/auth/verify?token=${encodeURIComponent(token)}`,
+      `${environment.apiUrl}/api/v1/auth/verify?token=${encodeURIComponent(token)}`,
     );
 
     return new Observable<VerifyMagicLinkResponse>();
   }
 
   loadCurrentUser(): Observable<AuthUser | null> {
-    return this.http.get<MeResponse>(`${this.base}/api/v1/auth/session`).pipe(
+    return defer(() =>
+      sdkRequest<GetApiV1AuthSessionResponse>(() =>
+        getApiV1AuthSession({ throwOnError: true }),
+      ),
+    ).pipe(
       map((response) =>
-        response.authenticated ? (response.user ?? null) : null,
+        response.authenticated && response.user
+          ? {
+              ...response.user,
+              permissions: response.user.permissions as AuthPermission[],
+            }
+          : null,
       ),
       tap((user) => {
         this.user.set(user);
@@ -95,15 +108,15 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.http
-      .post<{ success: boolean }>(`${this.base}/api/v1/auth/logout`, {})
-      .pipe(
-        tap(() => {
-          this.user.set(null);
-          this.loaded.set(true);
-        }),
-        map(() => undefined),
-      );
+    return defer(() =>
+      sdkRequest<void>(() => postApiV1AuthLogout({ throwOnError: true })),
+    ).pipe(
+      tap(() => {
+        this.user.set(null);
+        this.loaded.set(true);
+      }),
+      map(() => undefined),
+    );
   }
 
   hasPermission(permission: AuthPermission): boolean {

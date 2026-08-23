@@ -44,6 +44,26 @@ paths:
       tags:
         - Auth
       summary: Forward auth status request
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - service
+                  - status
+                  - module
+                properties:
+                  service:
+                    type: string
+                  status:
+                    const: ok
+                    type: string
+                  module:
+                    const: auth
+                    type: string
       operationId: getApiV1AuthStatus
   /api/v1/auth/magic-link:
     post:
@@ -64,6 +84,9 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -75,6 +98,9 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
           multipart/form-data:
             schema:
               type: object
@@ -86,6 +112,22 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+                desktop:
+                  const: true
+                  type: boolean
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accepted
+                properties:
+                  accepted:
+                    const: true
+                    type: boolean
       operationId: postApiV1AuthMagic-link
   /api/v1/auth/verify:
     get:
@@ -106,18 +148,115 @@ paths:
       tags:
         - Auth
       summary: Read the current auth session
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                properties:
+                  authenticated:
+                    type: boolean
+                  sessionObservation:
+                    type: object
+                    required:
+                      - state
+                      - reason
+                      - permissionCount
+                    properties:
+                      state:
+                        type: string
+                        enum:
+                          - authenticated
+                          - anonymous
+                          - invalid
+                      reason:
+                        anyOf:
+                          - const: missing_cookie
+                            type: string
+                          - const: unknown_session
+                            type: string
+                          - const: revoked
+                            type: string
+                          - const: absolute_expired
+                            type: string
+                          - const: idle_expired
+                            type: string
+                          - const: user_missing
+                            type: string
+                          - const: user_deleted
+                            type: string
+                          - const: user_blocked
+                            type: string
+                          - const: user_suspended
+                            type: string
+                          - type: "null"
+                      permissionCount:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - email
+                      - name
+                      - permissions
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      name:
+                        type: string
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+                  session:
+                    type: object
+                    required:
+                      - id
+                      - idleExpiresAt
+                      - absoluteExpiresAt
+                    properties:
+                      id:
+                        type: string
+                      idleExpiresAt:
+                        type: string
+                      absoluteExpiresAt:
+                        type: string
       operationId: getApiV1AuthSession
   /api/v1/auth/logout:
     post:
       tags:
         - Auth
       summary: Logout the current auth session
+      responses:
+        "204":
+          description: Response for status 204
+          content:
+            type: void
       operationId: postApiV1AuthLogout
   /api/v1/auth/passkey/register/options:
     post:
       tags:
         - Passkey
       summary: Start passkey registration
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                patternProperties:
+                  ^(.*)$: {}
       operationId: postApiV1AuthPasskeyRegisterOptions
   /api/v1/auth/passkey/register/verify:
     post:
@@ -253,12 +392,47 @@ paths:
                   minLength: 1
                   maxLength: 100
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - label
+                  - createdAt
+                  - lastUsedAt
+                  - backupState
+                properties:
+                  id:
+                    type: string
+                  label:
+                    type: string
+                  createdAt:
+                    type: string
+                  lastUsedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  backupState:
+                    type: boolean
       operationId: postApiV1AuthPasskeyRegisterVerify
   /api/v1/auth/passkey/login/options:
     post:
       tags:
         - Passkey
       summary: Start passkey sign in
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                patternProperties:
+                  ^(.*)$: {}
       operationId: postApiV1AuthPasskeyLoginOptions
   /api/v1/auth/passkey/login/verify:
     post:
@@ -382,12 +556,90 @@ paths:
                     authenticatorAttachment:
                       maxLength: 32
                       type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                properties:
+                  authenticated:
+                    type: boolean
+                  mfaRequired:
+                    type: boolean
+                  purpose:
+                    type: string
+                    enum:
+                      - login
+                      - enroll
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - email
+                      - name
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      name:
+                        type: string
+                  session:
+                    type: object
+                    required:
+                      - id
+                      - idleExpiresAt
+                      - absoluteExpiresAt
+                    properties:
+                      id:
+                        type: string
+                      idleExpiresAt:
+                        type: string
+                      absoluteExpiresAt:
+                        type: string
       operationId: postApiV1AuthPasskeyLoginVerify
   /api/v1/auth/passkeys:
     get:
       tags:
         - Passkey
       summary: List the current user's passkeys
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - passkeys
+                properties:
+                  passkeys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - label
+                        - createdAt
+                        - lastUsedAt
+                        - backupState
+                      properties:
+                        id:
+                          type: string
+                        label:
+                          type: string
+                        createdAt:
+                          type: string
+                        lastUsedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        backupState:
+                          type: boolean
       operationId: getApiV1AuthPasskeys
   /api/v1/auth/passkeys/{id}:
     patch:
@@ -434,6 +686,32 @@ paths:
                   minLength: 1
                   maxLength: 100
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - label
+                  - createdAt
+                  - lastUsedAt
+                  - backupState
+                properties:
+                  id:
+                    type: string
+                  label:
+                    type: string
+                  createdAt:
+                    type: string
+                  lastUsedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  backupState:
+                    type: boolean
       operationId: patchApiV1AuthPasskeysById
     delete:
       tags:
@@ -446,12 +724,32 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "204":
+          description: Response for status 204
+          content:
+            type: void
       operationId: deleteApiV1AuthPasskeysById
   /api/v1/auth/2fa/enroll:
     post:
       tags:
         - Auth
       summary: Start TOTP enrollment
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - secret
+                  - otpauthUri
+                properties:
+                  secret:
+                    type: string
+                  otpauthUri:
+                    type: string
       operationId: postApiV1Auth2faEnroll
   /api/v1/auth/2fa/enroll/confirm:
     post:
@@ -488,6 +786,20 @@ paths:
                 code:
                   pattern: ^[0-9]{6}$
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - recoveryCodes
+                properties:
+                  recoveryCodes:
+                    type: array
+                    items:
+                      type: string
       operationId: postApiV1Auth2faEnrollConfirm
   /api/v1/auth/2fa/verify:
     post:
@@ -530,12 +842,55 @@ paths:
                   minLength: 8
                   maxLength: 32
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                  - redirectTo
+                properties:
+                  authenticated:
+                    const: true
+                    type: boolean
+                  redirectTo:
+                    type: string
       operationId: postApiV1Auth2faVerify
   /api/v1/auth/2fa/status:
     get:
       tags:
         - Auth
       summary: Read the current TOTP status
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - confirmedAt
+                  - required
+                  - recoveryCodesRemaining
+                properties:
+                  enabled:
+                    type: boolean
+                  confirmedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  required:
+                    type: boolean
+                  recoveryCodesRemaining:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
       operationId: getApiV1Auth2faStatus
   /api/v1/auth/2fa/disable:
     post:
@@ -578,6 +933,19 @@ paths:
                   minLength: 8
                   maxLength: 32
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
       operationId: postApiV1Auth2faDisable
   /api/v1/auth/2fa/recovery-codes:
     post:
@@ -614,6 +982,20 @@ paths:
                 code:
                   pattern: ^[0-9]{6}$
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - recoveryCodes
+                properties:
+                  recoveryCodes:
+                    type: array
+                    items:
+                      type: string
       operationId: postApiV1Auth2faRecovery-codes
   /api/v1/auth/admin/users/{id}/2fa:
     get:
@@ -627,6 +1009,33 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - confirmedAt
+                  - required
+                  - recoveryCodesRemaining
+                properties:
+                  enabled:
+                    type: boolean
+                  confirmedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  required:
+                    type: boolean
+                  recoveryCodesRemaining:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
       operationId: getApiV1AuthAdminUsersById2fa
   /api/v1/auth/admin/users/{id}/2fa/reset:
     post:
@@ -673,12 +1082,45 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
       operationId: postApiV1AuthAdminUsersById2faReset
   /api/v1/users/status:
     get:
       tags:
         - Users
       summary: Forward users status request
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - service
+                  - status
+                  - module
+                properties:
+                  service:
+                    type: string
+                  status:
+                    const: ok
+                    type: string
+                  module:
+                    const: users
+                    type: string
       operationId: getApiV1UsersStatus
   /api/v1/users:
     get:
@@ -701,6 +1143,134 @@ paths:
           required: false
           schema:
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - email
+                        - status
+                        - emailVerifiedAt
+                        - suspendedAt
+                        - blockedAt
+                        - deletedAt
+                        - createdAt
+                        - updatedAt
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - active
+                            - suspended
+                            - blocked
+                            - deleted
+                        emailVerifiedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        suspendedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        blockedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        deletedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - status
+                    properties:
+                      search:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                          - ""
+                          - active
+                          - suspended
+                          - blocked
+                          - deleted
+                          - all
+                  options:
+                    type: object
+                    required:
+                      - statuses
+                    properties:
+                      statuses:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - active
+                            - suspended
+                            - blocked
+                            - deleted
       operationId: getApiV1Users
     post:
       tags:
@@ -769,6 +1339,61 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1Users
   /api/v1/users/{id}:
     get:
@@ -782,6 +1407,61 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: getApiV1UsersById
     patch:
       tags:
@@ -821,6 +1501,61 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: patchApiV1UsersById
     delete:
       tags:
@@ -866,6 +1601,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: deleteApiV1UsersById
   /api/v1/users/{id}/suspend:
     post:
@@ -912,6 +1702,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1UsersByIdSuspend
   /api/v1/users/{id}/unsuspend:
     post:
@@ -958,6 +1803,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1UsersByIdUnsuspend
   /api/v1/users/{id}/block:
     post:
@@ -1004,6 +1904,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1UsersByIdBlock
   /api/v1/users/{id}/unblock:
     post:
@@ -1050,6 +2005,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1UsersByIdUnblock
   /api/v1/users/{id}/restore:
     post:
@@ -1096,6 +2106,61 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - emailVerifiedAt
+                  - suspendedAt
+                  - blockedAt
+                  - deletedAt
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                      - blocked
+                      - deleted
+                  emailVerifiedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  suspendedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  blockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  deletedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
       operationId: postApiV1UsersByIdRestore
   /api/v1/users/{id}/2fa-requirement:
     put:
@@ -1151,6 +2216,19 @@ paths:
                   minLength: 3
                   maxLength: 500
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
       operationId: putApiV1UsersById2fa-requirement
   /api/v1/logs/audit-trails:
     get:
@@ -1184,6 +2262,122 @@ paths:
           required: false
           schema:
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - action
+                        - module
+                        - entityType
+                        - entityId
+                        - entityLabel
+                        - actorEmail
+                        - actorRole
+                        - changeSummary
+                        - auditedAt
+                      properties:
+                        id:
+                          type: string
+                        action:
+                          type: string
+                        module:
+                          type: string
+                        entityType:
+                          type: string
+                        entityId:
+                          type: string
+                        entityLabel:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorRole:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        changeSummary:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        auditedAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - module
+                      - action
+                    properties:
+                      search:
+                        type: string
+                      module:
+                        type: string
+                      action:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - modules
+                      - actions
+                    properties:
+                      modules:
+                        type: array
+                        items:
+                          type: string
+                      actions:
+                        type: array
+                        items:
+                          type: string
       operationId: getApiV1LogsAudit-trails
   /api/v1/logs/access-logs:
     get:
@@ -1206,6 +2400,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: traceId
+          in: query
+          required: false
+          schema:
+            type: string
         - name: actorUserId
           in: query
           required: false
@@ -1217,6 +2416,186 @@ paths:
           required: false
           schema:
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - event
+                        - outcome
+                        - routeName
+                        - path
+                        - method
+                        - httpStatus
+                        - requestId
+                        - traceId
+                        - traceSource
+                        - clientRoute
+                        - sessionId
+                        - sessionSummary
+                        - actorEmail
+                        - failureReason
+                        - accessedAt
+                      properties:
+                        event:
+                          type: string
+                        outcome:
+                          type: string
+                        routeName:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        path:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        method:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        httpStatus:
+                          anyOf:
+                            - anyOf:
+                                - format: integer
+                                  default: 0
+                                  type: string
+                                - type: integer
+                            - type: "null"
+                        requestId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        traceId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        traceSource:
+                          anyOf:
+                            - const: client_header
+                              type: string
+                            - const: request_id
+                              type: string
+                            - type: "null"
+                        clientRoute:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        sessionId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        sessionSummary:
+                          anyOf:
+                            - type: object
+                              required:
+                                - state
+                                - reason
+                                - permissionCount
+                              properties:
+                                state:
+                                  anyOf:
+                                    - const: authenticated
+                                      type: string
+                                    - const: anonymous
+                                      type: string
+                                    - const: invalid
+                                      type: string
+                                reason:
+                                  anyOf:
+                                    - type: string
+                                    - type: "null"
+                                permissionCount:
+                                  anyOf:
+                                    - format: integer
+                                      default: 0
+                                      type: string
+                                    - type: integer
+                            - type: "null"
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        failureReason:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        accessedAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - event
+                      - outcome
+                      - traceId
+                    properties:
+                      search:
+                        type: string
+                      event:
+                        type: string
+                      outcome:
+                        type: string
+                      traceId:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - events
+                      - outcomes
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          type: string
+                      outcomes:
+                        type: array
+                        items:
+                          type: string
       operationId: getApiV1LogsAccess-logs
   /api/v1/logs/application-logs:
     get:
@@ -1255,6 +2634,155 @@ paths:
           required: false
           schema:
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - level
+                        - channel
+                        - category
+                        - event
+                        - module
+                        - message
+                        - context
+                        - exceptionClass
+                        - exceptionMessage
+                        - stackTrace
+                        - actorUserId
+                        - actorName
+                        - actorEmail
+                        - occurredAt
+                        - createdAt
+                      properties:
+                        id:
+                          type: string
+                        level:
+                          type: string
+                        channel:
+                          type: string
+                        category:
+                          type: string
+                        event:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        module:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        message:
+                          type: string
+                        context: {}
+                        exceptionClass:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        exceptionMessage:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        stackTrace:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorUserId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorName:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        actorEmail:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        occurredAt:
+                          type: string
+                        createdAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - level
+                      - module
+                      - event
+                    properties:
+                      search:
+                        type: string
+                      level:
+                        type: string
+                      module:
+                        type: string
+                      event:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - levels
+                      - modules
+                      - events
+                    properties:
+                      levels:
+                        type: array
+                        items:
+                          type: string
+                      modules:
+                        type: array
+                        items:
+                          type: string
+                      events:
+                        type: array
+                        items:
+                          type: string
       operationId: getApiV1LogsApplication-logs
   /api/v1/access/permissions:
     get:
@@ -1282,6 +2810,107 @@ paths:
           required: false
           schema:
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - code
+                        - namespace
+                        - resource
+                        - action
+                        - scope
+                        - description
+                        - createdAt
+                        - updatedAt
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        name:
+                          type: string
+                        code:
+                          type: string
+                        namespace:
+                          type: string
+                        resource:
+                          type: string
+                        action:
+                          type: string
+                        scope:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        description:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        grantCount:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - pageSize
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      pageSize:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - search
+                      - namespace
+                    properties:
+                      search:
+                        type: string
+                      namespace:
+                        type: string
       operationId: getApiV1AccessPermissions
     post:
       tags:
@@ -1335,6 +2964,56 @@ paths:
                     - maxLength: 2000
                       type: string
                     - type: "null"
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - code
+                  - namespace
+                  - resource
+                  - action
+                  - scope
+                  - description
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  code:
+                    type: string
+                  namespace:
+                    type: string
+                  resource:
+                    type: string
+                  action:
+                    type: string
+                  scope:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  description:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  grantCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
       operationId: postApiV1AccessPermissions
   /api/v1/access/permissions/{id}:
     get:
@@ -1348,6 +3027,56 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - code
+                  - namespace
+                  - resource
+                  - action
+                  - scope
+                  - description
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  code:
+                    type: string
+                  namespace:
+                    type: string
+                  resource:
+                    type: string
+                  action:
+                    type: string
+                  scope:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  description:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  grantCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
       operationId: getApiV1AccessPermissionsById
     put:
       tags:
@@ -1396,6 +3125,56 @@ paths:
                     - maxLength: 2000
                       type: string
                     - type: "null"
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - code
+                  - namespace
+                  - resource
+                  - action
+                  - scope
+                  - description
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  name:
+                    type: string
+                  code:
+                    type: string
+                  namespace:
+                    type: string
+                  resource:
+                    type: string
+                  action:
+                    type: string
+                  scope:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  description:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  grantCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
       operationId: putApiV1AccessPermissionsById
     delete:
       tags:
@@ -1408,6 +3187,11 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "204":
+          description: Response for status 204
+          content:
+            type: void
       operationId: deleteApiV1AccessPermissionsById
   /api/v1/access/users/{userId}/permissions:
     get:
@@ -1421,6 +3205,78 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - permissionId
+                    - userId
+                    - permission
+                    - createdAt
+                  properties:
+                    id:
+                      format: uuid
+                      type: string
+                    permissionId:
+                      format: uuid
+                      type: string
+                    userId:
+                      format: uuid
+                      type: string
+                    permission:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - code
+                        - namespace
+                        - resource
+                        - action
+                        - scope
+                        - description
+                        - createdAt
+                        - updatedAt
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        name:
+                          type: string
+                        code:
+                          type: string
+                        namespace:
+                          type: string
+                        resource:
+                          type: string
+                        action:
+                          type: string
+                        scope:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        description:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        grantCount:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          type: string
+                    createdAt:
+                      type: string
       operationId: getApiV1AccessUsersByUserIdPermissions
     post:
       tags:
@@ -1475,6 +3331,27 @@ paths:
                   items:
                     format: uuid
                     type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - granted
+                  - skipped
+                properties:
+                  granted:
+                    type: array
+                    items:
+                      format: uuid
+                      type: string
+                  skipped:
+                    type: array
+                    items:
+                      format: uuid
+                      type: string
       operationId: postApiV1AccessUsersByUserIdPermissions
   /api/v1/access/users/{userId}/permissions/copy:
     post:
@@ -1518,6 +3395,27 @@ paths:
                 sourceUserId:
                   format: uuid
                   type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - granted
+                  - skipped
+                properties:
+                  granted:
+                    type: array
+                    items:
+                      format: uuid
+                      type: string
+                  skipped:
+                    type: array
+                    items:
+                      format: uuid
+                      type: string
       operationId: postApiV1AccessUsersByUserIdPermissionsCopy
   /api/v1/access/users/{userId}/permissions/{permissionId}:
     delete:
@@ -1537,6 +3435,11 @@ paths:
           schema:
             format: uuid
             type: string
+      responses:
+        "204":
+          description: Response for status 204
+          content:
+            type: void
       operationId: deleteApiV1AccessUsersByUserIdPermissionsByPermissionId
 components:
   schemas: {}

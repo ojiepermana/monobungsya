@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1UsersByIdData, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsData, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1Auth2FaStatusData, GetApiV1AuthAdminUsersById2FaData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersByIdData, GetApiV1UsersData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1UsersByIdData, PostApiV1AccessPermissionsData, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1Auth2FaDisableData, PostApiV1Auth2FaEnrollConfirmData, PostApiV1Auth2FaEnrollData, PostApiV1Auth2FaRecoveryCodesData, PostApiV1Auth2FaVerifyData, PostApiV1AuthAdminUsersById2FaResetData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersData, PutApiV1AccessPermissionsByIdData, PutApiV1UsersById2FaRequirementData } from './types.gen';
+import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessPermissionsByIdResponses, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1AuthPasskeysByIdResponses, DeleteApiV1UsersByIdData, DeleteApiV1UsersByIdResponses, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsByIdResponses, GetApiV1AccessPermissionsData, GetApiV1AccessPermissionsResponses, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1AccessUsersByUserIdPermissionsResponses, GetApiV1Auth2FaStatusData, GetApiV1Auth2FaStatusResponses, GetApiV1AuthAdminUsersById2FaData, GetApiV1AuthAdminUsersById2FaResponses, GetApiV1AuthPasskeysData, GetApiV1AuthPasskeysResponses, GetApiV1AuthSessionData, GetApiV1AuthSessionResponses, GetApiV1AuthStatusData, GetApiV1AuthStatusResponses, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsAccessLogsResponses, GetApiV1LogsApplicationLogsData, GetApiV1LogsApplicationLogsResponses, GetApiV1LogsAuditTrailsData, GetApiV1LogsAuditTrailsResponses, GetApiV1UsersByIdData, GetApiV1UsersByIdResponses, GetApiV1UsersData, GetApiV1UsersResponses, GetApiV1UsersStatusData, GetApiV1UsersStatusResponses, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1AuthPasskeysByIdResponses, PatchApiV1UsersByIdData, PatchApiV1UsersByIdResponses, PostApiV1AccessPermissionsData, PostApiV1AccessPermissionsResponses, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsCopyResponses, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1AccessUsersByUserIdPermissionsResponses, PostApiV1Auth2FaDisableData, PostApiV1Auth2FaDisableResponses, PostApiV1Auth2FaEnrollConfirmData, PostApiV1Auth2FaEnrollConfirmResponses, PostApiV1Auth2FaEnrollData, PostApiV1Auth2FaEnrollResponses, PostApiV1Auth2FaRecoveryCodesData, PostApiV1Auth2FaRecoveryCodesResponses, PostApiV1Auth2FaVerifyData, PostApiV1Auth2FaVerifyResponses, PostApiV1AuthAdminUsersById2FaResetData, PostApiV1AuthAdminUsersById2FaResetResponses, PostApiV1AuthLogoutData, PostApiV1AuthLogoutResponses, PostApiV1AuthMagicLinkData, PostApiV1AuthMagicLinkResponses, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginOptionsResponses, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyLoginVerifyResponses, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterOptionsResponses, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1AuthPasskeyRegisterVerifyResponses, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdBlockResponses, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdRestoreResponses, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdSuspendResponses, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnblockResponses, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersByIdUnsuspendResponses, PostApiV1UsersData, PostApiV1UsersResponses, PutApiV1AccessPermissionsByIdData, PutApiV1AccessPermissionsByIdResponses, PutApiV1UsersById2FaRequirementData, PutApiV1UsersById2FaRequirementResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -26,12 +26,12 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
 /**
  * Forward auth status request
  */
-export const getApiV1AuthStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/status', ...options });
+export const getApiV1AuthStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthStatusData, ThrowOnError>): RequestResult<GetApiV1AuthStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1AuthStatusResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/status', ...options });
 
 /**
  * Request an auth magic link
  */
-export const postApiV1AuthMagicLink = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthMagicLinkData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AuthMagicLink = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthMagicLinkData, ThrowOnError>): RequestResult<PostApiV1AuthMagicLinkResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AuthMagicLinkResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/magic-link',
     ...options,
     headers: {
@@ -48,22 +48,22 @@ export const getApiV1AuthVerify = <ThrowOnError extends boolean = false>(options
 /**
  * Read the current auth session
  */
-export const getApiV1AuthSession = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthSessionData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/session', ...options });
+export const getApiV1AuthSession = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthSessionData, ThrowOnError>): RequestResult<GetApiV1AuthSessionResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1AuthSessionResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/session', ...options });
 
 /**
  * Logout the current auth session
  */
-export const postApiV1AuthLogout = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthLogoutData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
+export const postApiV1AuthLogout = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthLogoutData, ThrowOnError>): RequestResult<PostApiV1AuthLogoutResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostApiV1AuthLogoutResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
 
 /**
  * Start passkey registration
  */
-export const postApiV1AuthPasskeyRegisterOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyRegisterOptionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/register/options', ...options });
+export const postApiV1AuthPasskeyRegisterOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyRegisterOptionsData, ThrowOnError>): RequestResult<PostApiV1AuthPasskeyRegisterOptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostApiV1AuthPasskeyRegisterOptionsResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/register/options', ...options });
 
 /**
  * Finish passkey registration
  */
-export const postApiV1AuthPasskeyRegisterVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyRegisterVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AuthPasskeyRegisterVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyRegisterVerifyData, ThrowOnError>): RequestResult<PostApiV1AuthPasskeyRegisterVerifyResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AuthPasskeyRegisterVerifyResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/passkey/register/verify',
     ...options,
     headers: {
@@ -75,12 +75,12 @@ export const postApiV1AuthPasskeyRegisterVerify = <ThrowOnError extends boolean 
 /**
  * Start passkey sign in
  */
-export const postApiV1AuthPasskeyLoginOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyLoginOptionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/login/options', ...options });
+export const postApiV1AuthPasskeyLoginOptions = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1AuthPasskeyLoginOptionsData, ThrowOnError>): RequestResult<PostApiV1AuthPasskeyLoginOptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostApiV1AuthPasskeyLoginOptionsResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/passkey/login/options', ...options });
 
 /**
  * Finish passkey sign in
  */
-export const postApiV1AuthPasskeyLoginVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyLoginVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AuthPasskeyLoginVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthPasskeyLoginVerifyData, ThrowOnError>): RequestResult<PostApiV1AuthPasskeyLoginVerifyResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AuthPasskeyLoginVerifyResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/passkey/login/verify',
     ...options,
     headers: {
@@ -92,17 +92,17 @@ export const postApiV1AuthPasskeyLoginVerify = <ThrowOnError extends boolean = f
 /**
  * List the current user's passkeys
  */
-export const getApiV1AuthPasskeys = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthPasskeysData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys', ...options });
+export const getApiV1AuthPasskeys = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AuthPasskeysData, ThrowOnError>): RequestResult<GetApiV1AuthPasskeysResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1AuthPasskeysResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys', ...options });
 
 /**
  * Delete a passkey
  */
-export const deleteApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys/{id}', ...options });
+export const deleteApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<DeleteApiV1AuthPasskeysByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1AuthPasskeysByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/passkeys/{id}', ...options });
 
 /**
  * Rename a passkey
  */
-export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).patch<unknown, unknown, ThrowOnError>({
+export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<PatchApiV1AuthPasskeysByIdResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PatchApiV1AuthPasskeysByIdResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/passkeys/{id}',
     ...options,
     headers: {
@@ -114,12 +114,12 @@ export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>
 /**
  * Start TOTP enrollment
  */
-export const postApiV1Auth2FaEnroll = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1Auth2FaEnrollData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/enroll', ...options });
+export const postApiV1Auth2FaEnroll = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1Auth2FaEnrollData, ThrowOnError>): RequestResult<PostApiV1Auth2FaEnrollResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostApiV1Auth2FaEnrollResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/enroll', ...options });
 
 /**
  * Confirm TOTP enrollment
  */
-export const postApiV1Auth2FaEnrollConfirm = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaEnrollConfirmData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1Auth2FaEnrollConfirm = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaEnrollConfirmData, ThrowOnError>): RequestResult<PostApiV1Auth2FaEnrollConfirmResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1Auth2FaEnrollConfirmResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/2fa/enroll/confirm',
     ...options,
     headers: {
@@ -131,7 +131,7 @@ export const postApiV1Auth2FaEnrollConfirm = <ThrowOnError extends boolean = fal
 /**
  * Verify a TOTP login challenge
  */
-export const postApiV1Auth2FaVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1Auth2FaVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaVerifyData, ThrowOnError>): RequestResult<PostApiV1Auth2FaVerifyResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1Auth2FaVerifyResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/2fa/verify',
     ...options,
     headers: {
@@ -143,12 +143,12 @@ export const postApiV1Auth2FaVerify = <ThrowOnError extends boolean = false>(opt
 /**
  * Read the current TOTP status
  */
-export const getApiV1Auth2FaStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1Auth2FaStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/status', ...options });
+export const getApiV1Auth2FaStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1Auth2FaStatusData, ThrowOnError>): RequestResult<GetApiV1Auth2FaStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1Auth2FaStatusResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/status', ...options });
 
 /**
  * Disable TOTP
  */
-export const postApiV1Auth2FaDisable = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaDisableData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1Auth2FaDisable = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaDisableData, ThrowOnError>): RequestResult<PostApiV1Auth2FaDisableResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1Auth2FaDisableResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/2fa/disable',
     ...options,
     headers: {
@@ -160,7 +160,7 @@ export const postApiV1Auth2FaDisable = <ThrowOnError extends boolean = false>(op
 /**
  * Regenerate TOTP recovery codes
  */
-export const postApiV1Auth2FaRecoveryCodes = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaRecoveryCodesData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1Auth2FaRecoveryCodes = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaRecoveryCodesData, ThrowOnError>): RequestResult<PostApiV1Auth2FaRecoveryCodesResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1Auth2FaRecoveryCodesResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/2fa/recovery-codes',
     ...options,
     headers: {
@@ -172,12 +172,12 @@ export const postApiV1Auth2FaRecoveryCodes = <ThrowOnError extends boolean = fal
 /**
  * Read a user TOTP status
  */
-export const getApiV1AuthAdminUsersById2Fa = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AuthAdminUsersById2FaData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/admin/users/{id}/2fa', ...options });
+export const getApiV1AuthAdminUsersById2Fa = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AuthAdminUsersById2FaData, ThrowOnError>): RequestResult<GetApiV1AuthAdminUsersById2FaResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AuthAdminUsersById2FaResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/admin/users/{id}/2fa', ...options });
 
 /**
  * Reset a user TOTP credential
  */
-export const postApiV1AuthAdminUsersById2FaReset = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthAdminUsersById2FaResetData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AuthAdminUsersById2FaReset = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthAdminUsersById2FaResetData, ThrowOnError>): RequestResult<PostApiV1AuthAdminUsersById2FaResetResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AuthAdminUsersById2FaResetResponses, unknown, ThrowOnError>({
     url: '/api/v1/auth/admin/users/{id}/2fa/reset',
     ...options,
     headers: {
@@ -189,17 +189,17 @@ export const postApiV1AuthAdminUsersById2FaReset = <ThrowOnError extends boolean
 /**
  * Forward users status request
  */
-export const getApiV1UsersStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users/status', ...options });
+export const getApiV1UsersStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersStatusData, ThrowOnError>): RequestResult<GetApiV1UsersStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1UsersStatusResponses, unknown, ThrowOnError>({ url: '/api/v1/users/status', ...options });
 
 /**
  * List users (requires user:user:list)
  */
-export const getApiV1Users = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users', ...options });
+export const getApiV1Users = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersData, ThrowOnError>): RequestResult<GetApiV1UsersResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1UsersResponses, unknown, ThrowOnError>({ url: '/api/v1/users', ...options });
 
 /**
  * Create a user with a client generated UUIDv7 id
  */
-export const postApiV1Users = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1Users = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersData, ThrowOnError>): RequestResult<PostApiV1UsersResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersResponses, unknown, ThrowOnError>({
     url: '/api/v1/users',
     ...options,
     headers: {
@@ -211,7 +211,7 @@ export const postApiV1Users = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Soft delete a user
  */
-export const deleteApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1UsersByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({
+export const deleteApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1UsersByIdData, ThrowOnError>): RequestResult<DeleteApiV1UsersByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1UsersByIdResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}',
     ...options,
     headers: {
@@ -223,12 +223,12 @@ export const deleteApiV1UsersById = <ThrowOnError extends boolean = false>(optio
 /**
  * Read one user
  */
-export const getApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1UsersByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users/{id}', ...options });
+export const getApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1UsersByIdData, ThrowOnError>): RequestResult<GetApiV1UsersByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1UsersByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/users/{id}', ...options });
 
 /**
  * Update a user's profile
  */
-export const patchApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1UsersByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).patch<unknown, unknown, ThrowOnError>({
+export const patchApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1UsersByIdData, ThrowOnError>): RequestResult<PatchApiV1UsersByIdResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PatchApiV1UsersByIdResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}',
     ...options,
     headers: {
@@ -240,7 +240,7 @@ export const patchApiV1UsersById = <ThrowOnError extends boolean = false>(option
 /**
  * Suspend a user
  */
-export const postApiV1UsersByIdSuspend = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdSuspendData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1UsersByIdSuspend = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdSuspendData, ThrowOnError>): RequestResult<PostApiV1UsersByIdSuspendResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersByIdSuspendResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/suspend',
     ...options,
     headers: {
@@ -252,7 +252,7 @@ export const postApiV1UsersByIdSuspend = <ThrowOnError extends boolean = false>(
 /**
  * Unsuspend a user
  */
-export const postApiV1UsersByIdUnsuspend = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdUnsuspendData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1UsersByIdUnsuspend = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdUnsuspendData, ThrowOnError>): RequestResult<PostApiV1UsersByIdUnsuspendResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersByIdUnsuspendResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/unsuspend',
     ...options,
     headers: {
@@ -264,7 +264,7 @@ export const postApiV1UsersByIdUnsuspend = <ThrowOnError extends boolean = false
 /**
  * Block a user
  */
-export const postApiV1UsersByIdBlock = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdBlockData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1UsersByIdBlock = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdBlockData, ThrowOnError>): RequestResult<PostApiV1UsersByIdBlockResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersByIdBlockResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/block',
     ...options,
     headers: {
@@ -276,7 +276,7 @@ export const postApiV1UsersByIdBlock = <ThrowOnError extends boolean = false>(op
 /**
  * Unblock a user
  */
-export const postApiV1UsersByIdUnblock = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdUnblockData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1UsersByIdUnblock = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdUnblockData, ThrowOnError>): RequestResult<PostApiV1UsersByIdUnblockResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersByIdUnblockResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/unblock',
     ...options,
     headers: {
@@ -288,7 +288,7 @@ export const postApiV1UsersByIdUnblock = <ThrowOnError extends boolean = false>(
 /**
  * Restore a soft deleted user
  */
-export const postApiV1UsersByIdRestore = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdRestoreData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1UsersByIdRestore = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdRestoreData, ThrowOnError>): RequestResult<PostApiV1UsersByIdRestoreResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1UsersByIdRestoreResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/restore',
     ...options,
     headers: {
@@ -300,7 +300,7 @@ export const postApiV1UsersByIdRestore = <ThrowOnError extends boolean = false>(
 /**
  * Require or release TOTP for a user
  */
-export const putApiV1UsersById2FaRequirement = <ThrowOnError extends boolean = false>(options: Options<PutApiV1UsersById2FaRequirementData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).put<unknown, unknown, ThrowOnError>({
+export const putApiV1UsersById2FaRequirement = <ThrowOnError extends boolean = false>(options: Options<PutApiV1UsersById2FaRequirementData, ThrowOnError>): RequestResult<PutApiV1UsersById2FaRequirementResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutApiV1UsersById2FaRequirementResponses, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/2fa-requirement',
     ...options,
     headers: {
@@ -312,27 +312,27 @@ export const putApiV1UsersById2FaRequirement = <ThrowOnError extends boolean = f
 /**
  * List audit trails (requires logs:log:read)
  */
-export const getApiV1LogsAuditTrails = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAuditTrailsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/audit-trails', ...options });
+export const getApiV1LogsAuditTrails = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAuditTrailsData, ThrowOnError>): RequestResult<GetApiV1LogsAuditTrailsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1LogsAuditTrailsResponses, unknown, ThrowOnError>({ url: '/api/v1/logs/audit-trails', ...options });
 
 /**
  * List access logs (requires logs:log:read)
  */
-export const getApiV1LogsAccessLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAccessLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/access-logs', ...options });
+export const getApiV1LogsAccessLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAccessLogsData, ThrowOnError>): RequestResult<GetApiV1LogsAccessLogsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1LogsAccessLogsResponses, unknown, ThrowOnError>({ url: '/api/v1/logs/access-logs', ...options });
 
 /**
  * List application logs (requires logs:log:read)
  */
-export const getApiV1LogsApplicationLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsApplicationLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/application-logs', ...options });
+export const getApiV1LogsApplicationLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsApplicationLogsData, ThrowOnError>): RequestResult<GetApiV1LogsApplicationLogsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1LogsApplicationLogsResponses, unknown, ThrowOnError>({ url: '/api/v1/logs/application-logs', ...options });
 
 /**
  * List the permission catalog
  */
-export const getApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AccessPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions', ...options });
+export const getApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AccessPermissionsData, ThrowOnError>): RequestResult<GetApiV1AccessPermissionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1AccessPermissionsResponses, unknown, ThrowOnError>({ url: '/api/v1/access/permissions', ...options });
 
 /**
  * Create a permission
  */
-export const postApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessPermissionsData, ThrowOnError>): RequestResult<PostApiV1AccessPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessPermissionsResponses, unknown, ThrowOnError>({
     url: '/api/v1/access/permissions',
     ...options,
     headers: {
@@ -344,17 +344,17 @@ export const postApiV1AccessPermissions = <ThrowOnError extends boolean = false>
 /**
  * Delete a permission
  */
-export const deleteApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
+export const deleteApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<DeleteApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
 
 /**
  * Read a permission
  */
-export const getApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
+export const getApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<GetApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
 
 /**
  * Update a permission description
  */
-export const putApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<PutApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).put<unknown, unknown, ThrowOnError>({
+export const putApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<PutApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<PutApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutApiV1AccessPermissionsByIdResponses, unknown, ThrowOnError>({
     url: '/api/v1/access/permissions/{id}',
     ...options,
     headers: {
@@ -366,12 +366,12 @@ export const putApiV1AccessPermissionsById = <ThrowOnError extends boolean = fal
 /**
  * List a user permissions
  */
-export const getApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions', ...options });
+export const getApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<GetApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions', ...options });
 
 /**
  * Grant permissions to a user
  */
-export const postApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<PostApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError>({
     url: '/api/v1/access/users/{userId}/permissions',
     ...options,
     headers: {
@@ -383,7 +383,7 @@ export const postApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boo
 /**
  * Copy permissions from another user
  */
-export const postApiV1AccessUsersByUserIdPermissionsCopy = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsCopyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+export const postApiV1AccessUsersByUserIdPermissionsCopy = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsCopyData, ThrowOnError>): RequestResult<PostApiV1AccessUsersByUserIdPermissionsCopyResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessUsersByUserIdPermissionsCopyResponses, unknown, ThrowOnError>({
     url: '/api/v1/access/users/{userId}/permissions/copy',
     ...options,
     headers: {
@@ -395,4 +395,4 @@ export const postApiV1AccessUsersByUserIdPermissionsCopy = <ThrowOnError extends
 /**
  * Revoke a user permission
  */
-export const deleteApiV1AccessUsersByUserIdPermissionsByPermissionId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions/{permissionId}', ...options });
+export const deleteApiV1AccessUsersByUserIdPermissionsByPermissionId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, ThrowOnError>): RequestResult<DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions/{permissionId}', ...options });

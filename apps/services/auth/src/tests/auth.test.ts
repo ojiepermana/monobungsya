@@ -5,12 +5,13 @@ import {
   USER_INVITED_SUBJECT,
   type UserInvitedEvent,
 } from '#project/contracts';
-import { Logger } from '#project/logger';
+import { ActivityLog, Logger } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
 import { createApp } from '../app';
 import { subscribeUserInvited } from '../modules/auth/auth.events';
 import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
 import type { AuthRepository } from '../modules/auth/auth.repository';
+import { recordAuthAccess } from '../modules/auth/auth.route';
 import { AuthService } from '../modules/auth/auth.service';
 import type {
   AuthMailer,
@@ -19,6 +20,54 @@ import type {
 } from '../modules/auth/auth.types';
 
 describe('auth service', () => {
+  it('records a correlated auth event without copying credential query values', () => {
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+
+    recordAuthAccess({
+      request: new Request(
+        'http://localhost/internal/auth/verify?token=secret-token',
+        {
+          headers: {
+            'x-request-id': 'request-auth',
+            'x-correlation-id': 'trace-auth',
+            cookie: 'project_session=session-value',
+          },
+        },
+      ),
+      method: 'magic_link',
+      event: 'sign_in',
+      outcome: 'success',
+      status: 302,
+      actor: {
+        id: '0198f8a0-0000-7000-8000-000000000001',
+        email: 'admin@project.local',
+        name: 'Admin',
+      },
+      sessionId: 'session-1',
+    });
+
+    expect(writeAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'sign_in',
+        authenticationMethod: 'magic_link',
+        requestId: 'request-auth',
+        traceId: 'trace-auth',
+        routeName: '/internal/auth/verify',
+        httpStatus: 302,
+        sessionId: 'session-1',
+      }),
+    );
+    expect(JSON.stringify(writeAccess.mock.calls[0]?.[0])).not.toContain(
+      'secret-token',
+    );
+    expect(JSON.stringify(writeAccess.mock.calls[0]?.[0])).not.toContain(
+      'session-value',
+    );
+    writeAccess.mockRestore();
+  });
+
   it('classifies a missing session cookie without exposing internal details', async () => {
     const service = new AuthService('auth');
 

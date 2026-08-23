@@ -23,6 +23,7 @@ describe('database tooling primitives', () => {
       'access',
       'user',
       'logs',
+      'jobs',
     ]);
     expect(schemaForScope('auth')).toBe('auth');
     expect(schemaForScope('logs')).toBe('logs');

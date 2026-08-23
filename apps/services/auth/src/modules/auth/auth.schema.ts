@@ -8,6 +8,7 @@ export const authStatusResponse = t.Object({
 
 export const magicLinkRequestBody = t.Object({
   email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
+  desktop: t.Optional(t.Literal(true)),
 });
 
 export const magicLinkQuery = t.Object({

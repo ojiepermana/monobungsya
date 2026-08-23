@@ -30,14 +30,39 @@ export type GetApiV1AuthStatusData = {
     url: '/api/v1/auth/status';
 };
 
+export type GetApiV1AuthStatusResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        service: string;
+        status: string;
+        module: string;
+    };
+};
+
+export type GetApiV1AuthStatusResponse = GetApiV1AuthStatusResponses[keyof GetApiV1AuthStatusResponses];
+
 export type PostApiV1AuthMagicLinkData = {
     body: {
         email: string;
+        desktop?: boolean;
     };
     path?: never;
     query?: never;
     url: '/api/v1/auth/magic-link';
 };
+
+export type PostApiV1AuthMagicLinkResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        accepted: boolean;
+    };
+};
+
+export type PostApiV1AuthMagicLinkResponse = PostApiV1AuthMagicLinkResponses[keyof PostApiV1AuthMagicLinkResponses];
 
 export type GetApiV1AuthVerifyData = {
     body?: never;
@@ -55,11 +80,45 @@ export type GetApiV1AuthSessionData = {
     url: '/api/v1/auth/session';
 };
 
+export type GetApiV1AuthSessionResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        authenticated: boolean;
+        sessionObservation?: {
+            state: 'authenticated' | 'anonymous' | 'invalid';
+            reason: string | unknown;
+            permissionCount: string | number;
+        };
+        user?: {
+            id: string;
+            email: string;
+            name: string;
+            permissions: Array<string>;
+        };
+        session?: {
+            id: string;
+            idleExpiresAt: string;
+            absoluteExpiresAt: string;
+        };
+    };
+};
+
+export type GetApiV1AuthSessionResponse = GetApiV1AuthSessionResponses[keyof GetApiV1AuthSessionResponses];
+
 export type PostApiV1AuthLogoutData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/auth/logout';
+};
+
+export type PostApiV1AuthLogoutResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
 };
 
 export type PostApiV1AuthPasskeyRegisterOptionsData = {
@@ -68,6 +127,17 @@ export type PostApiV1AuthPasskeyRegisterOptionsData = {
     query?: never;
     url: '/api/v1/auth/passkey/register/options';
 };
+
+export type PostApiV1AuthPasskeyRegisterOptionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type PostApiV1AuthPasskeyRegisterOptionsResponse = PostApiV1AuthPasskeyRegisterOptionsResponses[keyof PostApiV1AuthPasskeyRegisterOptionsResponses];
 
 export type PostApiV1AuthPasskeyRegisterVerifyData = {
     body: {
@@ -91,12 +161,38 @@ export type PostApiV1AuthPasskeyRegisterVerifyData = {
     url: '/api/v1/auth/passkey/register/verify';
 };
 
+export type PostApiV1AuthPasskeyRegisterVerifyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        label: string;
+        createdAt: string;
+        lastUsedAt: string | unknown;
+        backupState: boolean;
+    };
+};
+
+export type PostApiV1AuthPasskeyRegisterVerifyResponse = PostApiV1AuthPasskeyRegisterVerifyResponses[keyof PostApiV1AuthPasskeyRegisterVerifyResponses];
+
 export type PostApiV1AuthPasskeyLoginOptionsData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/auth/passkey/login/options';
 };
+
+export type PostApiV1AuthPasskeyLoginOptionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type PostApiV1AuthPasskeyLoginOptionsResponse = PostApiV1AuthPasskeyLoginOptionsResponses[keyof PostApiV1AuthPasskeyLoginOptionsResponses];
 
 export type PostApiV1AuthPasskeyLoginVerifyData = {
     body: {
@@ -119,12 +215,52 @@ export type PostApiV1AuthPasskeyLoginVerifyData = {
     url: '/api/v1/auth/passkey/login/verify';
 };
 
+export type PostApiV1AuthPasskeyLoginVerifyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        authenticated: boolean;
+        mfaRequired?: boolean;
+        purpose?: 'login' | 'enroll';
+        user?: {
+            id: string;
+            email: string;
+            name: string;
+        };
+        session?: {
+            id: string;
+            idleExpiresAt: string;
+            absoluteExpiresAt: string;
+        };
+    };
+};
+
+export type PostApiV1AuthPasskeyLoginVerifyResponse = PostApiV1AuthPasskeyLoginVerifyResponses[keyof PostApiV1AuthPasskeyLoginVerifyResponses];
+
 export type GetApiV1AuthPasskeysData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/auth/passkeys';
 };
+
+export type GetApiV1AuthPasskeysResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        passkeys: Array<{
+            id: string;
+            label: string;
+            createdAt: string;
+            lastUsedAt: string | unknown;
+            backupState: boolean;
+        }>;
+    };
+};
+
+export type GetApiV1AuthPasskeysResponse = GetApiV1AuthPasskeysResponses[keyof GetApiV1AuthPasskeysResponses];
 
 export type DeleteApiV1AuthPasskeysByIdData = {
     body?: never;
@@ -133,6 +269,13 @@ export type DeleteApiV1AuthPasskeysByIdData = {
     };
     query?: never;
     url: '/api/v1/auth/passkeys/{id}';
+};
+
+export type DeleteApiV1AuthPasskeysByIdResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
 };
 
 export type PatchApiV1AuthPasskeysByIdData = {
@@ -146,12 +289,39 @@ export type PatchApiV1AuthPasskeysByIdData = {
     url: '/api/v1/auth/passkeys/{id}';
 };
 
+export type PatchApiV1AuthPasskeysByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        label: string;
+        createdAt: string;
+        lastUsedAt: string | unknown;
+        backupState: boolean;
+    };
+};
+
+export type PatchApiV1AuthPasskeysByIdResponse = PatchApiV1AuthPasskeysByIdResponses[keyof PatchApiV1AuthPasskeysByIdResponses];
+
 export type PostApiV1Auth2FaEnrollData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/auth/2fa/enroll';
 };
+
+export type PostApiV1Auth2FaEnrollResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        secret: string;
+        otpauthUri: string;
+    };
+};
+
+export type PostApiV1Auth2FaEnrollResponse = PostApiV1Auth2FaEnrollResponses[keyof PostApiV1Auth2FaEnrollResponses];
 
 export type PostApiV1Auth2FaEnrollConfirmData = {
     body: {
@@ -161,6 +331,17 @@ export type PostApiV1Auth2FaEnrollConfirmData = {
     query?: never;
     url: '/api/v1/auth/2fa/enroll/confirm';
 };
+
+export type PostApiV1Auth2FaEnrollConfirmResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        recoveryCodes: Array<string>;
+    };
+};
+
+export type PostApiV1Auth2FaEnrollConfirmResponse = PostApiV1Auth2FaEnrollConfirmResponses[keyof PostApiV1Auth2FaEnrollConfirmResponses];
 
 export type PostApiV1Auth2FaVerifyData = {
     body: {
@@ -172,12 +353,38 @@ export type PostApiV1Auth2FaVerifyData = {
     url: '/api/v1/auth/2fa/verify';
 };
 
+export type PostApiV1Auth2FaVerifyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        authenticated: boolean;
+        redirectTo: string;
+    };
+};
+
+export type PostApiV1Auth2FaVerifyResponse = PostApiV1Auth2FaVerifyResponses[keyof PostApiV1Auth2FaVerifyResponses];
+
 export type GetApiV1Auth2FaStatusData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/auth/2fa/status';
 };
+
+export type GetApiV1Auth2FaStatusResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        enabled: boolean;
+        confirmedAt: string | unknown;
+        required: boolean;
+        recoveryCodesRemaining: string | number;
+    };
+};
+
+export type GetApiV1Auth2FaStatusResponse = GetApiV1Auth2FaStatusResponses[keyof GetApiV1Auth2FaStatusResponses];
 
 export type PostApiV1Auth2FaDisableData = {
     body: {
@@ -189,6 +396,17 @@ export type PostApiV1Auth2FaDisableData = {
     url: '/api/v1/auth/2fa/disable';
 };
 
+export type PostApiV1Auth2FaDisableResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        ok: boolean;
+    };
+};
+
+export type PostApiV1Auth2FaDisableResponse = PostApiV1Auth2FaDisableResponses[keyof PostApiV1Auth2FaDisableResponses];
+
 export type PostApiV1Auth2FaRecoveryCodesData = {
     body: {
         code: string;
@@ -198,6 +416,17 @@ export type PostApiV1Auth2FaRecoveryCodesData = {
     url: '/api/v1/auth/2fa/recovery-codes';
 };
 
+export type PostApiV1Auth2FaRecoveryCodesResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        recoveryCodes: Array<string>;
+    };
+};
+
+export type PostApiV1Auth2FaRecoveryCodesResponse = PostApiV1Auth2FaRecoveryCodesResponses[keyof PostApiV1Auth2FaRecoveryCodesResponses];
+
 export type GetApiV1AuthAdminUsersById2FaData = {
     body?: never;
     path: {
@@ -206,6 +435,20 @@ export type GetApiV1AuthAdminUsersById2FaData = {
     query?: never;
     url: '/api/v1/auth/admin/users/{id}/2fa';
 };
+
+export type GetApiV1AuthAdminUsersById2FaResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        enabled: boolean;
+        confirmedAt: string | unknown;
+        required: boolean;
+        recoveryCodesRemaining: string | number;
+    };
+};
+
+export type GetApiV1AuthAdminUsersById2FaResponse = GetApiV1AuthAdminUsersById2FaResponses[keyof GetApiV1AuthAdminUsersById2FaResponses];
 
 export type PostApiV1AuthAdminUsersById2FaResetData = {
     body: {
@@ -218,12 +461,36 @@ export type PostApiV1AuthAdminUsersById2FaResetData = {
     url: '/api/v1/auth/admin/users/{id}/2fa/reset';
 };
 
+export type PostApiV1AuthAdminUsersById2FaResetResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        ok: boolean;
+    };
+};
+
+export type PostApiV1AuthAdminUsersById2FaResetResponse = PostApiV1AuthAdminUsersById2FaResetResponses[keyof PostApiV1AuthAdminUsersById2FaResetResponses];
+
 export type GetApiV1UsersStatusData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/users/status';
 };
+
+export type GetApiV1UsersStatusResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        service: string;
+        status: string;
+        module: string;
+    };
+};
+
+export type GetApiV1UsersStatusResponse = GetApiV1UsersStatusResponses[keyof GetApiV1UsersStatusResponses];
 
 export type GetApiV1UsersData = {
     body?: never;
@@ -236,6 +503,41 @@ export type GetApiV1UsersData = {
     url: '/api/v1/users';
 };
 
+export type GetApiV1UsersResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            name: string;
+            email: string;
+            status: 'active' | 'suspended' | 'blocked' | 'deleted';
+            emailVerifiedAt: string | unknown;
+            suspendedAt: string | unknown;
+            blockedAt: string | unknown;
+            deletedAt: string | unknown;
+            createdAt: string;
+            updatedAt: string | unknown;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            status: '' | 'active' | 'suspended' | 'blocked' | 'deleted' | 'all';
+        };
+        options: {
+            statuses: Array<'active' | 'suspended' | 'blocked' | 'deleted'>;
+        };
+    };
+};
+
+export type GetApiV1UsersResponse = GetApiV1UsersResponses[keyof GetApiV1UsersResponses];
+
 export type PostApiV1UsersData = {
     body: {
         id: string;
@@ -246,6 +548,26 @@ export type PostApiV1UsersData = {
     query?: never;
     url: '/api/v1/users';
 };
+
+export type PostApiV1UsersResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersResponse = PostApiV1UsersResponses[keyof PostApiV1UsersResponses];
 
 export type DeleteApiV1UsersByIdData = {
     body: {
@@ -258,6 +580,26 @@ export type DeleteApiV1UsersByIdData = {
     url: '/api/v1/users/{id}';
 };
 
+export type DeleteApiV1UsersByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type DeleteApiV1UsersByIdResponse = DeleteApiV1UsersByIdResponses[keyof DeleteApiV1UsersByIdResponses];
+
 export type GetApiV1UsersByIdData = {
     body?: never;
     path: {
@@ -266,6 +608,26 @@ export type GetApiV1UsersByIdData = {
     query?: never;
     url: '/api/v1/users/{id}';
 };
+
+export type GetApiV1UsersByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type GetApiV1UsersByIdResponse = GetApiV1UsersByIdResponses[keyof GetApiV1UsersByIdResponses];
 
 export type PatchApiV1UsersByIdData = {
     body: {
@@ -278,6 +640,26 @@ export type PatchApiV1UsersByIdData = {
     url: '/api/v1/users/{id}';
 };
 
+export type PatchApiV1UsersByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PatchApiV1UsersByIdResponse = PatchApiV1UsersByIdResponses[keyof PatchApiV1UsersByIdResponses];
+
 export type PostApiV1UsersByIdSuspendData = {
     body: {
         reason: string;
@@ -288,6 +670,26 @@ export type PostApiV1UsersByIdSuspendData = {
     query?: never;
     url: '/api/v1/users/{id}/suspend';
 };
+
+export type PostApiV1UsersByIdSuspendResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersByIdSuspendResponse = PostApiV1UsersByIdSuspendResponses[keyof PostApiV1UsersByIdSuspendResponses];
 
 export type PostApiV1UsersByIdUnsuspendData = {
     body: {
@@ -300,6 +702,26 @@ export type PostApiV1UsersByIdUnsuspendData = {
     url: '/api/v1/users/{id}/unsuspend';
 };
 
+export type PostApiV1UsersByIdUnsuspendResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersByIdUnsuspendResponse = PostApiV1UsersByIdUnsuspendResponses[keyof PostApiV1UsersByIdUnsuspendResponses];
+
 export type PostApiV1UsersByIdBlockData = {
     body: {
         reason: string;
@@ -310,6 +732,26 @@ export type PostApiV1UsersByIdBlockData = {
     query?: never;
     url: '/api/v1/users/{id}/block';
 };
+
+export type PostApiV1UsersByIdBlockResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersByIdBlockResponse = PostApiV1UsersByIdBlockResponses[keyof PostApiV1UsersByIdBlockResponses];
 
 export type PostApiV1UsersByIdUnblockData = {
     body: {
@@ -322,6 +764,26 @@ export type PostApiV1UsersByIdUnblockData = {
     url: '/api/v1/users/{id}/unblock';
 };
 
+export type PostApiV1UsersByIdUnblockResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersByIdUnblockResponse = PostApiV1UsersByIdUnblockResponses[keyof PostApiV1UsersByIdUnblockResponses];
+
 export type PostApiV1UsersByIdRestoreData = {
     body: {
         reason: string;
@@ -332,6 +794,26 @@ export type PostApiV1UsersByIdRestoreData = {
     query?: never;
     url: '/api/v1/users/{id}/restore';
 };
+
+export type PostApiV1UsersByIdRestoreResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        email: string;
+        status: 'active' | 'suspended' | 'blocked' | 'deleted';
+        emailVerifiedAt: string | unknown;
+        suspendedAt: string | unknown;
+        blockedAt: string | unknown;
+        deletedAt: string | unknown;
+        createdAt: string;
+        updatedAt: string | unknown;
+    };
+};
+
+export type PostApiV1UsersByIdRestoreResponse = PostApiV1UsersByIdRestoreResponses[keyof PostApiV1UsersByIdRestoreResponses];
 
 export type PutApiV1UsersById2FaRequirementData = {
     body: {
@@ -344,6 +826,17 @@ export type PutApiV1UsersById2FaRequirementData = {
     query?: never;
     url: '/api/v1/users/{id}/2fa-requirement';
 };
+
+export type PutApiV1UsersById2FaRequirementResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        ok: boolean;
+    };
+};
+
+export type PutApiV1UsersById2FaRequirementResponse = PutApiV1UsersById2FaRequirementResponses[keyof PutApiV1UsersById2FaRequirementResponses];
 
 export type GetApiV1LogsAuditTrailsData = {
     body?: never;
@@ -358,6 +851,43 @@ export type GetApiV1LogsAuditTrailsData = {
     url: '/api/v1/logs/audit-trails';
 };
 
+export type GetApiV1LogsAuditTrailsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            action: string;
+            module: string;
+            entityType: string;
+            entityId: string;
+            entityLabel: string | unknown;
+            actorEmail: string | unknown;
+            actorRole: string | unknown;
+            changeSummary: string | unknown;
+            auditedAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            module: string;
+            action: string;
+        };
+        options: {
+            modules: Array<string>;
+            actions: Array<string>;
+        };
+    };
+};
+
+export type GetApiV1LogsAuditTrailsResponse = GetApiV1LogsAuditTrailsResponses[keyof GetApiV1LogsAuditTrailsResponses];
+
 export type GetApiV1LogsAccessLogsData = {
     body?: never;
     path?: never;
@@ -365,11 +895,59 @@ export type GetApiV1LogsAccessLogsData = {
         search?: string;
         event?: string;
         outcome?: string;
+        traceId?: string;
         actorUserId?: string;
         page?: string;
     };
     url: '/api/v1/logs/access-logs';
 };
+
+export type GetApiV1LogsAccessLogsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            event: string;
+            outcome: string;
+            routeName: string | unknown;
+            path: string | unknown;
+            method: string | unknown;
+            httpStatus: string | number | unknown;
+            requestId: string | unknown;
+            traceId: string | unknown;
+            traceSource: string | unknown;
+            clientRoute: string | unknown;
+            sessionId: string | unknown;
+            sessionSummary: {
+                state: string;
+                reason: string | unknown;
+                permissionCount: string | number;
+            } | unknown;
+            actorEmail: string | unknown;
+            failureReason: string | unknown;
+            accessedAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            event: string;
+            outcome: string;
+            traceId: string;
+        };
+        options: {
+            events: Array<string>;
+            outcomes: Array<string>;
+        };
+    };
+};
+
+export type GetApiV1LogsAccessLogsResponse = GetApiV1LogsAccessLogsResponses[keyof GetApiV1LogsAccessLogsResponses];
 
 export type GetApiV1LogsApplicationLogsData = {
     body?: never;
@@ -385,6 +963,51 @@ export type GetApiV1LogsApplicationLogsData = {
     url: '/api/v1/logs/application-logs';
 };
 
+export type GetApiV1LogsApplicationLogsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            level: string;
+            channel: string;
+            category: string;
+            event: string | unknown;
+            module: string | unknown;
+            message: string;
+            context: unknown;
+            exceptionClass: string | unknown;
+            exceptionMessage: string | unknown;
+            stackTrace: string | unknown;
+            actorUserId: string | unknown;
+            actorName: string | unknown;
+            actorEmail: string | unknown;
+            occurredAt: string;
+            createdAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            level: string;
+            module: string;
+            event: string;
+        };
+        options: {
+            levels: Array<string>;
+            modules: Array<string>;
+            events: Array<string>;
+        };
+    };
+};
+
+export type GetApiV1LogsApplicationLogsResponse = GetApiV1LogsApplicationLogsResponses[keyof GetApiV1LogsApplicationLogsResponses];
+
 export type GetApiV1AccessPermissionsData = {
     body?: never;
     path?: never;
@@ -397,6 +1020,39 @@ export type GetApiV1AccessPermissionsData = {
     url: '/api/v1/access/permissions';
 };
 
+export type GetApiV1AccessPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            name: string;
+            code: string;
+            namespace: string;
+            resource: string;
+            action: string;
+            scope: string | unknown;
+            description: string | unknown;
+            grantCount?: string | number;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            pageSize: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            namespace: string;
+        };
+    };
+};
+
+export type GetApiV1AccessPermissionsResponse = GetApiV1AccessPermissionsResponses[keyof GetApiV1AccessPermissionsResponses];
+
 export type PostApiV1AccessPermissionsData = {
     body: {
         name: string;
@@ -407,6 +1063,27 @@ export type PostApiV1AccessPermissionsData = {
     url: '/api/v1/access/permissions';
 };
 
+export type PostApiV1AccessPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        code: string;
+        namespace: string;
+        resource: string;
+        action: string;
+        scope: string | unknown;
+        description: string | unknown;
+        grantCount?: string | number;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostApiV1AccessPermissionsResponse = PostApiV1AccessPermissionsResponses[keyof PostApiV1AccessPermissionsResponses];
+
 export type DeleteApiV1AccessPermissionsByIdData = {
     body?: never;
     path: {
@@ -414,6 +1091,13 @@ export type DeleteApiV1AccessPermissionsByIdData = {
     };
     query?: never;
     url: '/api/v1/access/permissions/{id}';
+};
+
+export type DeleteApiV1AccessPermissionsByIdResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
 };
 
 export type GetApiV1AccessPermissionsByIdData = {
@@ -424,6 +1108,27 @@ export type GetApiV1AccessPermissionsByIdData = {
     query?: never;
     url: '/api/v1/access/permissions/{id}';
 };
+
+export type GetApiV1AccessPermissionsByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        code: string;
+        namespace: string;
+        resource: string;
+        action: string;
+        scope: string | unknown;
+        description: string | unknown;
+        grantCount?: string | number;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type GetApiV1AccessPermissionsByIdResponse = GetApiV1AccessPermissionsByIdResponses[keyof GetApiV1AccessPermissionsByIdResponses];
 
 export type PutApiV1AccessPermissionsByIdData = {
     body: {
@@ -436,6 +1141,27 @@ export type PutApiV1AccessPermissionsByIdData = {
     url: '/api/v1/access/permissions/{id}';
 };
 
+export type PutApiV1AccessPermissionsByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        code: string;
+        namespace: string;
+        resource: string;
+        action: string;
+        scope: string | unknown;
+        description: string | unknown;
+        grantCount?: string | number;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PutApiV1AccessPermissionsByIdResponse = PutApiV1AccessPermissionsByIdResponses[keyof PutApiV1AccessPermissionsByIdResponses];
+
 export type GetApiV1AccessUsersByUserIdPermissionsData = {
     body?: never;
     path: {
@@ -444,6 +1170,33 @@ export type GetApiV1AccessUsersByUserIdPermissionsData = {
     query?: never;
     url: '/api/v1/access/users/{userId}/permissions';
 };
+
+export type GetApiV1AccessUsersByUserIdPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        permissionId: string;
+        userId: string;
+        permission: {
+            id: string;
+            name: string;
+            code: string;
+            namespace: string;
+            resource: string;
+            action: string;
+            scope: string | unknown;
+            description: string | unknown;
+            grantCount?: string | number;
+            createdAt: string;
+            updatedAt: string;
+        };
+        createdAt: string;
+    }>;
+};
+
+export type GetApiV1AccessUsersByUserIdPermissionsResponse = GetApiV1AccessUsersByUserIdPermissionsResponses[keyof GetApiV1AccessUsersByUserIdPermissionsResponses];
 
 export type PostApiV1AccessUsersByUserIdPermissionsData = {
     body: {
@@ -456,6 +1209,18 @@ export type PostApiV1AccessUsersByUserIdPermissionsData = {
     url: '/api/v1/access/users/{userId}/permissions';
 };
 
+export type PostApiV1AccessUsersByUserIdPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        granted: Array<string>;
+        skipped: Array<string>;
+    };
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsResponse = PostApiV1AccessUsersByUserIdPermissionsResponses[keyof PostApiV1AccessUsersByUserIdPermissionsResponses];
+
 export type PostApiV1AccessUsersByUserIdPermissionsCopyData = {
     body: {
         sourceUserId: string;
@@ -467,6 +1232,18 @@ export type PostApiV1AccessUsersByUserIdPermissionsCopyData = {
     url: '/api/v1/access/users/{userId}/permissions/copy';
 };
 
+export type PostApiV1AccessUsersByUserIdPermissionsCopyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        granted: Array<string>;
+        skipped: Array<string>;
+    };
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsCopyResponse = PostApiV1AccessUsersByUserIdPermissionsCopyResponses[keyof PostApiV1AccessUsersByUserIdPermissionsCopyResponses];
+
 export type DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData = {
     body?: never;
     path: {
@@ -475,4 +1252,11 @@ export type DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData = {
     };
     query?: never;
     url: '/api/v1/access/users/{userId}/permissions/{permissionId}';
+};
+
+export type DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
 };

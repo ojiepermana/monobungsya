@@ -37,6 +37,7 @@ import {
   type ThemeRadius,
   type ThemeSpace,
 } from '@ojiepermana/angular/theme/styles';
+import { configureGeneratedClient } from '../../api/generated-client';
 import { provideApiConfiguration } from '../../api/shared/api-configuration';
 import { environment } from '../../environments/environment';
 import { navigationCorrelationInterceptor } from '../services/navigation-correlation.interceptor';
@@ -140,7 +141,8 @@ export const appConfig: ApplicationConfig = {
     // Initialize LayoutService with the app's layout defaults; the App shell binds
     // the wrapper to the service signals so these take effect.
     provideEnvironmentInitializer(() => {
-      inject(NavigationCorrelationService);
+      const navigation = inject(NavigationCorrelationService);
+      configureGeneratedClient(environment.apiUrl, () => navigation.current());
       inject(LayoutService).registerDefaults(APP_LAYOUT_DEFAULTS);
       const shell = inject(ShellService);
       shell.registerColor('sync');

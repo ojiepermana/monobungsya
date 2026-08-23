@@ -335,6 +335,50 @@ describe('logs repository', () => {
     expect(JSON.stringify(items[0])).not.toContain('rawResponse');
   });
 
+  it('keeps legacy or unsupported metadata readable without projecting details', async () => {
+    const { database } = createFakeDatabase((query) => {
+      if (query.text.startsWith('SELECT count')) return [{ total: 1 }];
+      return [
+        {
+          event: 'api_request',
+          outcome: 'success',
+          route_name: '/api/v1/users',
+          path: '/api/v1/users',
+          method: 'GET',
+          http_status: 200,
+          request_id: 'request-legacy',
+          trace_id: 'trace-legacy',
+          session_id: null,
+          metadata: JSON.stringify({
+            schemaVersion: 99,
+            client: { route: '/forged' },
+            details: { kind: 'unknown' },
+          }),
+          actor_email: null,
+          failure_reason: null,
+          accessed_at: '2026-08-22 09:15:30.123',
+        },
+      ];
+    });
+    const repository = new LogsRepository(database);
+
+    const { items } = await repository.listAccessLogs({
+      search: '',
+      event: '',
+      outcome: '',
+      traceId: '',
+      actorUserId: '',
+      page: 1,
+    });
+
+    expect(items[0]).toMatchObject({
+      traceId: 'trace-legacy',
+      traceSource: null,
+      clientRoute: null,
+      sessionSummary: null,
+    });
+  });
+
   it('binds actorUserId as an exact filter on all three endpoints (covers AC-10)', async () => {
     // Spec docs/specs/0007-user-management, AC-10: the detail page log tabs
     // narrow every log endpoint to one user's rows via actorUserId.
