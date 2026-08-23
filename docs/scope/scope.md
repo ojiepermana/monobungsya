@@ -36,7 +36,7 @@ Implement passwordless login, server side sessions, role authorization, and sign
 - [ ] Verify it: `/check verify auth magic link and session`
 - [x] Test it: `/test auth magic link and session`
 
-Spec [0003](../specs/0003-auth-magic-link-session.md) · code in `apps/services/auth`, `apps/gateway/erp`, and `packages/contracts`
+Spec [0003](../specs/0003-auth-magic-link-session/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, and `packages/contracts`
 
 ### 2. Auth login and callback UI · in-progress
 
@@ -49,7 +49,7 @@ session callback, and receive deterministic error states.
 - [x] Tauri runtime detection and desktop auth deep-link handoff
 - [ ] Verify it: `/check verify auth login and callback UI`
 
-Spec [0004](../specs/0004-auth-ui-callback.md) · code in `apps/web` and `apps/tauri`
+Spec [0004](../specs/0004-auth-ui-callback/index.md) · code in `apps/web` and `apps/tauri`
 
 ### 3. Angular UI package and CSS standard · in-progress
 
@@ -63,7 +63,7 @@ and `apps/tauri` packages the same Angular output.
 - [x] Root web scripts, generated SDK dependency, and Tauri build wiring
 - [ ] Verify it: `/check verify Angular UI package and CSS standard`
 
-Spec [0001](../specs/web/0001-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
+Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
 
 ### 4. MCP server for ERP tool access · in-progress
 
@@ -78,7 +78,7 @@ Scaffold an MCP server app at `apps/mcp` (Bun, TypeScript, STDIO transport) with
 - [x] Verify it: `/check verify MCP server for ERP tool access`
 - [x] Test it: `/test MCP server for ERP tool access`
 
-Spec [0005](../specs/0005-mcp-server-scaffold.md) · code in `apps/mcp`, `package.json`, and `.env.example`
+Spec [0005](../specs/0005-mcp-server-scaffold/index.md) · code in `apps/mcp`, `package.json`, and `.env.example`
 
 ### 5. Auth passkey login · in-progress
 
@@ -116,7 +116,7 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
 - [ ] Verify it: `/check verify log subsystem`
 - [ ] Test it: `/test log subsystem`
 
-Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
+Spec [0011](../specs/0011-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 
 ### 8. Permission access control · in-progress
 

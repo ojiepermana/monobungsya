@@ -64,7 +64,7 @@ Engineer chosen inputs treated as fixed requirements: suspend is temporary and b
 
 ## Update 2026-08-23: page composition on the package Page family
 
-The engineer asked for the `/users` pages to use `Page` from `@ojiepermana/angular` with the header, footer, content, and filter slots in the stacked variant. The pages had shipped with a hand rolled `<main>` grid: header row, filter row, table, and paging footer composed from raw elements. That worked, but it violates the standing web standard (spec `web/0001-angular-ui-standard`, AC-15: every page uses `Page` with its slots), and the page level `<main>` duplicates the `role="main"` landmark the package layout wrapper already renders through its content region, which the same standard's browser checks forbid (exactly one main landmark).
+The engineer asked for the `/users` pages to use `Page` from `@ojiepermana/angular` with the header, footer, content, and filter slots in the stacked variant. The pages had shipped with a hand rolled `<main>` grid: header row, filter row, table, and paging footer composed from raw elements. That worked, but it violates the standing web standard (spec `0010-angular-ui-standard`, AC-15: every page uses `Page` with its slots), and the page level `<main>` duplicates the `role="main"` landmark the package layout wrapper already renders through its content region, which the same standard's browser checks forbid (exactly one main landmark).
 
 Options weighed:
 
@@ -86,10 +86,10 @@ The smaller calls, each with its runner up:
 **Project sources** (verifiable, in this repo):
 - `CLAUDE.md`: the layering rule (route, schema, service, repository), the cross service extraction rule, and the field whitelist requirement.
 - Spec `0003-auth-magic-link-session.md`: magic link issuance, session validation, `PUBLIC_API_URL`, and the `suspended_at` login checks this design extends.
-- Spec `logs/0001-log-subsystem/`: the ActivityLog audit contract (audit writes fail visibly), the `actor_user_id` columns, and the viewer page patterns the new pages copy.
+- Spec `0011-log-subsystem/`: the ActivityLog audit contract (audit writes fail visibly), the `actor_user_id` columns, and the viewer page patterns the new pages copy.
 - `packages/database/migrations/auth/0001_auth_foundation.up.sql`: the current `user.users` shape and its foreign keys.
 - The `@ojiepermana/angular` showcase as the composition reference for the web pages; for the page scaffold specifically: `src/app/ui/theme/pages/pages.page.ts` (slots, filter placements, and input tables) and `src/app/home-page.ts` (a page inside the shell, with the appearance binding), plus `library/theme/page/` for the slot projection and scroll owner behavior.
-- Spec `web/0001-angular-ui-standard/`: AC-15 (every page composes `Page` and its slots), AC-16 (one main landmark, one content scroll owner), and the enforcement gates the recomposition must keep green.
+- Spec `0010-angular-ui-standard/`: AC-15 (every page composes `Page` and its slots), AC-16 (one main landmark, one content scroll owner), and the enforcement gates the recomposition must keep green.
 
 **Practices & standards**:
 - Soft delete with a tombstone timestamp instead of row removal.

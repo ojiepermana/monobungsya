@@ -187,7 +187,7 @@ function encodeAmount(
 
 /**
  * Shared write path for the log subsystem (spec
- * docs/specs/logs/0001-log-subsystem). Application and access log writes are
+ * docs/specs/0011-log-subsystem). Application and access log writes are
  * best effort: they return synchronously and queue the INSERT on one promise
  * chain, so a failed write never fails the calling request. Audit trail
  * writes are awaited and throw, so a failed audit fails the caller visibly.

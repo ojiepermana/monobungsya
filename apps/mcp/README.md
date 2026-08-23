@@ -2,7 +2,7 @@
 
 MCP server (Model Context Protocol) untuk integrasi ERP. Berjalan dengan Bun di atas transport STDIO dan memakai registry `ToolDefinition` agar puluhan hingga ratusan tool bisa ditambahkan tanpa menyentuh inti server.
 
-Spec: [docs/specs/0005-mcp-server-scaffold.md](../../docs/specs/0005-mcp-server-scaffold.md)
+Spec: [docs/specs/0005-mcp-server-scaffold/index.md](../../docs/specs/0005-mcp-server-scaffold/index.md)
 
 ## Install
 

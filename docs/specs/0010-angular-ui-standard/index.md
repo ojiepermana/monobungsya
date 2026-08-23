@@ -9,10 +9,10 @@
 
 ## Structure
 
-1. [Package and theme adoption](0001-package-theme.md), menetapkan dependency, import, theme provider, icon, dan state theme.
-2. [CSS migration](0001-css-migration.md), menetapkan perpindahan seluruh style `apps/web` dari SCSS ke CSS.
-3. [Layout integration](0001-layout-integration.md), menetapkan session gate, komposisi `Shell` dan `LayoutWrapperDefault`, halaman sebagai routed component, shell login fluid, responsive behavior, dan aksesibilitas.
-4. [Upstream library API](0001-upstream-library-api.md), menetapkan dua penambahan aditif di `@ojiepermana/angular` yang menjadi prasyarat: aksi logout yang dapat diikat consumer dan adapter settings yang dipublikasikan.
+1. [Package and theme adoption](0010-package-theme.md), menetapkan dependency, import, theme provider, icon, dan state theme.
+2. [CSS migration](0010-css-migration.md), menetapkan perpindahan seluruh style `apps/web` dari SCSS ke CSS.
+3. [Layout integration](0010-layout-integration.md), menetapkan session gate, komposisi `Shell` dan `LayoutWrapperDefault`, halaman sebagai routed component, shell login fluid, responsive behavior, dan aksesibilitas.
+4. [Upstream library API](0010-upstream-library-api.md), menetapkan dua penambahan aditif di `@ojiepermana/angular` yang menjadi prasyarat: aksi logout yang dapat diikat consumer dan adapter settings yang dipublikasikan.
 
 ## Requirements
 
@@ -49,7 +49,7 @@ Adopt `@ojiepermana/angular` version `22.1.x` as the Angular design system for `
 
 The canonical theme is system mode with light and dark support, brand teal, base neutral, extra small radius, and compact spacing. `Shell` is the unconditional application root with no axis inputs, so the shell controls on the settings surface stay live. `LayoutWrapperDefault` owns the frame, navigation placement, mobile drawer, skip link, content landmark, and focus on navigation. Pages are lazy loaded routed components that use `Page` and its slots. The session gate and the auth routes render inside `Shell` using `layout-type="fluid"`, which the package treats as brand only, so login gets its fluid shell from package geometry rather than local CSS.
 
-Runtime switching of layout and navigation axes is exposed to operators through one published `ThemeSettingsAdapter`. That adapter and a bindable logout action are additive package changes recorded in [upstream library API](0001-upstream-library-api.md), and they are prerequisites for this work.
+Runtime switching of layout and navigation axes is exposed to operators through one published `ThemeSettingsAdapter`. That adapter and a bindable logout action are additive package changes recorded in [upstream library API](0010-upstream-library-api.md), and they are prerequisites for this work.
 
 **Implementation skills**: `angular-developer` (`project/angular-developer`, `/Users/ojiepermana/.agents/skills/angular-developer/`)
 
@@ -123,7 +123,7 @@ export const appConfig = {
 
 **Rollout**:
 
-1. Release the additive package changes from [upstream library API](0001-upstream-library-api.md), then raise the dependency in monobungsia.
+1. Release the additive package changes from [upstream library API](0010-upstream-library-api.md), then raise the dependency in monobungsia.
 2. Install the package, theme CSS dependency, Tailwind, and local icon font, then register the theme provider and the settings adapter.
 3. Migrate global and component styles from SCSS to CSS and change Angular defaults.
 4. Put `LayoutLoading` and an input free `Shell` at the root, then move the layout into a provider component wrapping `LayoutWrapperDefault` and delete the hand composed primitives.
@@ -164,13 +164,13 @@ export const appConfig = {
 1. No backend migration, API route, generated SDK contract, or auth service change is part of this decision.
 2. The theme preference is browser local state, not a user profile preference, so it does not follow a user across devices.
 3. The existing operations console copy and gateway health data remain in the dashboard page.
-4. The current login and callback behavior remains governed by [0004 auth UI callback](../../0004-auth-ui-callback.md).
+4. The current login and callback behavior remains governed by [0004 auth UI callback](../0004-auth-ui-callback/index.md).
 
 ## Follow-up
 
 1. [ ] Capture the Angular package and CSS rules in the `## Agent skills` section of the appropriate `AGENTS.md` before implementation begins.
 2. [ ] Run `/check verify` against the acceptance criteria after the migration, including AXE and browser responsive checks.
-3. [ ] Ship the two additive package changes in [upstream library API](0001-upstream-library-api.md), then record the released version number here and raise the dependency.
+3. [ ] Ship the two additive package changes in [upstream library API](0010-upstream-library-api.md), then record the released version number here and raise the dependency.
 4. [ ] Measure the production initial bundle after the wrapper adoption and the lazy dashboard route, record the number here, and set the initial warning budget from it.
 5. [ ] Revisit the package update policy if a future release changes the Angular peer range or the published theme entry points.
 6. [ ] Confirm with the team that a `dockbar` icon rail is the right default for operators, since it replaces the labelled sidebar currently shown.
@@ -183,7 +183,7 @@ Tracer Bullet ordering: the first slice runs a thin thread from the upstream pac
 shell, the wrapper, and one real page, so the whole composition is proven before the remaining
 surfaces move.
 
-1. Ship the additive upstream package changes, a bindable logout action and a published `ThemeSettingsAdapter`, then release and raise the dependency in monobungsia, satisfies **AC-16** and unblocks **AC-13** and **AC-14**. See [upstream library API](0001-upstream-library-api.md).
+1. Ship the additive upstream package changes, a bindable logout action and a published `ThemeSettingsAdapter`, then release and raise the dependency in monobungsia, satisfies **AC-16** and unblocks **AC-13** and **AC-14**. See [upstream library API](0010-upstream-library-api.md).
 2. Verify package versions, theme provider, CSS imports, local icon font, and explicit subpath imports, and install the settings adapter on `THEME_SETTINGS_ADAPTER`, satisfies **AC-1**, **AC-2**, **AC-3**, **AC-4**, and **AC-11**.
 3. Complete the CSS migration and preserve auth behavior and domain content, satisfies **AC-5** and **AC-8**.
 4. Put `LayoutLoading` and an input free `Shell` at the application root, set host class `contents` on the root and the layout provider, and seed layout defaults through `registerDefaults`, satisfies **AC-13**.

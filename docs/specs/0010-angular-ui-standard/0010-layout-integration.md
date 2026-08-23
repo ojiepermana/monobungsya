@@ -131,7 +131,7 @@ inject(LayoutService).registerDefaults({
 Navigation default adalah `dockbar` dengan mode `default`. Operator dapat mengganti surface,
 appearance, width, layout type, nav type, dan nav type mode dari settings surface. Kontrol itu
 dilayani satu implementasi `ThemeSettingsAdapter` yang dipublikasikan package (lihat
-[upstream library API](0001-upstream-library-api.md)) dan dipasang melalui `THEME_SETTINGS_ADAPTER`.
+[upstream library API](0010-upstream-library-api.md)) dan dipasang melalui `THEME_SETTINGS_ADAPTER`.
 Aplikasi tidak menulis ulang logika batasan axis seperti `allowedNavTypes` atau `enforceConstraints`.
 
 Karena `layout-type` juga dipakai gate dan auth route, nilai efektifnya adalah `fluid` saat gate atau
@@ -268,7 +268,7 @@ sebagai brand only. Satu mekanisme melayani dua kebutuhan, dan CSS auth lokal bi
 
 **Phases**:
 
-1. Rilis perubahan package pada [upstream library API](0001-upstream-library-api.md): output logout dan adapter settings yang dipublikasikan. Tanpa ini logout tidak dapat diikat dan adapter harus diduplikasi.
+1. Rilis perubahan package pada [upstream library API](0010-upstream-library-api.md): output logout dan adapter settings yang dipublikasikan. Tanpa ini logout tidak dapat diikat dan adapter harus diduplikasi.
 2. Naikkan versi package di monobungsia, pasang `THEME_SETTINGS_ADAPTER`, dan tambahkan `LayoutLoading` serta `Shell` tanpa input di root, dengan komposisi lama masih aktif di belakang gate.
 3. Tambahkan component penyedia layout yang membungkus `LayoutWrapperDefault`, pindahkan `router-outlet` ke dalamnya, dan hapus komposisi manual `Layout`, `LayoutVertical`, `LayoutNavigation`, `LayoutContent` beserta instance `Navigation` kedua.
 4. Pindahkan dashboard ke routed component yang di lazy load memakai `Page`, lalu hapus markup halaman dari root template.

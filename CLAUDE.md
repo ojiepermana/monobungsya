@@ -89,7 +89,7 @@ Passwordless magic-link login (spec `docs/specs/0003`): tokens stored only as SH
 ## Workflow docs
 
 - `docs/scope/scope.md` — living scope with feature status (maintained by `/scope`).
-- `docs/specs/NNNN-*.md` — numbered build specs with acceptance criteria (owned by `/architect`). Check the relevant spec before building; features in progress list which acceptance criteria each task covers.
+- `docs/specs/NNNN-<name>/` — sequentially numbered build-spec folders (entry point `index.md`) with acceptance criteria (owned by `/architect`). Check the relevant spec before building; features in progress list which acceptance criteria each task covers.
 - Prose in README/specs is partly Indonesian; code, identifiers, and commit content are English.
 
 ## Spec slice completion

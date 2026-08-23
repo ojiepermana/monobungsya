@@ -1,5 +1,5 @@
 -- Replace the non partitioned log tables from 0002 with yearly range
--- partitioned parents (spec docs/specs/logs/0001-log-subsystem). Parents live
+-- partitioned parents (spec docs/specs/0011-log-subsystem). Parents live
 -- in schema "logs"; partition children live in schema "partition", one per
 -- Jakarta (UTC+7) calendar year, named <table>_<YYYY>. Composite primary keys
 -- (id, <time column>) are required by PostgreSQL range partitioning.

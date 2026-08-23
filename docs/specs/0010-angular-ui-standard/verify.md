@@ -78,7 +78,7 @@ emits no budget warning and that the initial bundle stays below 500 kB.
 
 ## Upstream library API, added 2026-08-21
 
-Steps for [upstream library API](0001-upstream-library-api.md) acceptance criteria AC-U1 to AC-U7.
+Steps for [upstream library API](0010-upstream-library-api.md) acceptance criteria AC-U1 to AC-U7.
 These run in the library repository at `/Users/ojiepermana/Development/ojiepermana/angular/`, not in
 monobungsia. Every step except the release ones is already covered by automated tests there, so
 `/check verify` can confirm them by running the commands rather than by hand.

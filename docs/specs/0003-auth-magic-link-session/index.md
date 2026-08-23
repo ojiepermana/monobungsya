@@ -222,7 +222,7 @@ Magic link request and verify are public but rate limited and return generic res
 **Project sources**:
 
 - `docs/specs/0001-enterprise-monorepo-foundation/index.md`, service boundaries, Bun, Elysia, and shared package decisions.
-- `docs/specs/0002-central-multischema-database-tooling.md`, PostgreSQL 18, UUIDv7, schema ownership, grants, and migration rules.
+- `docs/specs/0002-central-multischema-database-tooling/index.md`, PostgreSQL 18, UUIDv7, schema ownership, grants, and migration rules.
 - `packages/database/migrations/auth/0001_auth_foundation.up.sql`, existing auth entities and global roles.
 - `apps/services/auth/src/app.ts` and `apps/gateway/erp/src/routes/proxy.route.ts`, current HTTP composition and forwarding boundaries.
 - `packages/database/src/index.ts`, Bun SQL transaction helper and client lifecycle.

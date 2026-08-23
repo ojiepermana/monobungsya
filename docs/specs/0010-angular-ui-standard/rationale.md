@@ -146,7 +146,7 @@ Self hosted Material Symbols dipilih untuk menghindari request eksternal. Packag
 
 1. `CLAUDE.md`, aturan monorepo, Angular, generated SDK, dan Bun.
 2. `apps/web/AGENTS.md`, aturan Angular standalone, signals, forms, dan aksesibilitas.
-3. `docs/specs/0004-auth-ui-callback.md`, kontrak login, callback, state, dan responsive auth.
+3. `docs/specs/0004-auth-ui-callback/index.md`, kontrak login, callback, state, dan responsive auth.
 4. `apps/web/src/app/app.ts` dan `apps/web/src/app/app.html`, shell utama dan gateway health behavior.
 5. `apps/web/src/app/*.css` dan `apps/web/src/styles.css`, style surface yang menjadi batas migrasi.
 6. Package metadata and README untuk `@ojiepermana/angular@22.1.4`, `@ojiepermana/angular-theme@22.1.4`, `@ojiepermana/angular-navigation@22.1.4`, dan `@fontsource/material-symbols-rounded@5.3.3`.

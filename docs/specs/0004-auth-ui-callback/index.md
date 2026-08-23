@@ -184,7 +184,7 @@ The UI treats the auth API as the source of truth. It does not inspect or decode
 - `apps/web/src/app/app.html` and `apps/web/src/app/app.scss`, current operations console visual language.
 - `apps/web/src/app/app.routes.ts`, current empty route configuration.
 - `packages/angular-sdk/src/generated`, generated gateway client contract.
-- `docs/specs/0003-auth-magic-link-session.md`, auth API and security behavior.
+- `docs/specs/0003-auth-magic-link-session/index.md`, auth API and security behavior.
 - `apps/web/AGENTS.md`, Angular implementation and accessibility conventions.
 
 **Practices & standards**:

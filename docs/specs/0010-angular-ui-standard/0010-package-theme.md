@@ -91,7 +91,7 @@ ditulis ke storage. Kegagalan storage tetap tidak fatal dan jatuh ke default.
 
 Axis layout dan navigation dilayani satu implementasi `ThemeSettingsAdapter` dari package, dipasang
 melalui `THEME_SETTINGS_ADAPTER`, sehingga batasan seperti nav type yang valid per layout type tidak
-diduplikasi di aplikasi. Lihat [upstream library API](0001-upstream-library-api.md).
+diduplikasi di aplikasi. Lihat [upstream library API](0010-upstream-library-api.md).
 
 ## API and value sourcing
 

@@ -59,7 +59,7 @@ Calls settled here rather than asked: the login verify endpoint returns JSON plu
 
 ## Update 2026-08-23: passkey page composition
 
-The passkey settings page shipped with a hand rolled `<main>` that owns padding, scrolling, header text, alerts, and the table. The authenticated layout already provides the main landmark. This gives the page a second main landmark and leaves it outside the `Page` contract established by spec `web/0001-angular-ui-standard`. The user list and detail pages now show the proven consumer pattern for this repo.
+The passkey settings page shipped with a hand rolled `<main>` that owns padding, scrolling, header text, alerts, and the table. The authenticated layout already provides the main landmark. This gives the page a second main landmark and leaves it outside the `Page` contract established by spec `0010-angular-ui-standard`. The user list and detail pages now show the proven consumer pattern for this repo.
 
 ### Options considered
 
