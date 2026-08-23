@@ -13,6 +13,7 @@
 2. [CSS migration](0010-css-migration.md), menetapkan perpindahan seluruh style `apps/web` dari SCSS ke CSS.
 3. [Layout integration](0010-layout-integration.md), menetapkan session gate, komposisi `Shell` dan `LayoutWrapperDefault`, halaman sebagai routed component, shell login fluid, responsive behavior, dan aksesibilitas.
 4. [Upstream library API](0010-upstream-library-api.md), menetapkan dua penambahan aditif di `@ojiepermana/angular` yang menjadi prasyarat: aksi logout yang dapat diikat consumer dan adapter settings yang dipublikasikan.
+5. [Generated gateway SDK integration](0010-angular-sdk-integration.md), menetapkan generator OpenAPI, typed client, facade Angular, konfigurasi cookie, dan migrasi request gateway.
 
 ## Requirements
 

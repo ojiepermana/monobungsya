@@ -18,6 +18,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 7   | User lifecycle management           | Domain     | in-progress |
 | 8   | Permission access control           | Foundation | in-progress |
 | 9   | TOTP two factor authentication      | Foundation | in-progress |
+| 10  | Generated gateway SDK integration   | Foundation | in-progress |
 
 ## Foundations
 
@@ -64,6 +65,23 @@ and `apps/tauri` packages the same Angular output.
 - [ ] Verify it: `/check verify Angular UI package and CSS standard`
 
 Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
+
+### 10. Generated gateway SDK integration · in-progress
+
+Use the public gateway OpenAPI contract to generate a typed SDK in `packages/angular-sdk` and consume it from Angular through domain facades, while preserving cookie auth, correlation, loading, and existing page behavior.
+**Done when:** The complete public gateway contract generates cleanly, all gateway requests in `apps/web` use the generated SDK except browser magic link navigation, response types are useful, and OpenAPI validation, web typecheck, tests, lint, and generated diff checks pass.
+
+- [x] Design it (spec)
+- [ ] Build it: `/develop generated gateway SDK integration`
+  - [ ] Public Elysia response schemas, `desktop` magic link input, and regenerated OpenAPI and SDK artifacts (AC-1, AC-2, AC-3)
+  - [ ] Bootstrap client configuration, cookie credentials, Hey API middleware, and health or session tracer thread (AC-4, AC-7, AC-8, AC-11)
+  - [ ] Auth, passkey, and TOTP facade migration with preserved browser verification behavior (AC-5, AC-7, AC-9, AC-12)
+  - [ ] Users, logs, and access facade migration with generated types and explicit UI mappings (AC-5, AC-6, AC-7, AC-10)
+  - [ ] Transport tests, sensitive data checks, clean regeneration, and repository validation gate (AC-8, AC-9, AC-10, AC-13, AC-14)
+- [ ] Verify it: `/check verify generated gateway SDK integration`
+- [ ] Test it: `/test generated gateway SDK integration`
+
+Spec [0010 SDK child](../specs/0010-angular-ui-standard/0010-angular-sdk-integration.md) · code in `apps/gateway/erp`, `apps/services`, `apps/web`, `packages/angular-sdk`, and root scripts
 
 ### 4. MCP server for ERP tool access · in-progress
 
