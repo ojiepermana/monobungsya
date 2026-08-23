@@ -404,7 +404,14 @@ export class UserDetailPage {
 
     if (tab === 'access') {
       this.api
-        .accessLogs({ search: '', event: '', outcome: '', page, actorUserId })
+        .accessLogs({
+          search: '',
+          event: '',
+          outcome: '',
+          traceId: '',
+          page,
+          actorUserId,
+        })
         .subscribe({
           next: (response) => {
             this.accessRows.set(response.data);

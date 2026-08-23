@@ -39,6 +39,8 @@ import {
 } from '@ojiepermana/angular/theme/styles';
 import { provideApiConfiguration } from '../../api/shared/api-configuration';
 import { environment } from '../../environments/environment';
+import { navigationCorrelationInterceptor } from '../services/navigation-correlation.interceptor';
+import { NavigationCorrelationService } from '../services/navigation-correlation.service';
 import { routes } from './app.routes';
 import { ThemeSettingsAdapterService } from './theme-settings-adapter';
 
@@ -118,7 +120,10 @@ export const appConfig: ApplicationConfig = {
     // HTTP requests are in flight.
     provideHttpClient(
       withFetch(),
-      withInterceptors([layoutLoadingInterceptor]),
+      withInterceptors([
+        layoutLoadingInterceptor,
+        navigationCorrelationInterceptor,
+      ]),
     ),
     provideApiConfiguration(environment.apiUrl),
     provideShellWindowBridge(shellWindowBridge),
@@ -135,6 +140,7 @@ export const appConfig: ApplicationConfig = {
     // Initialize LayoutService with the app's layout defaults; the App shell binds
     // the wrapper to the service signals so these take effect.
     provideEnvironmentInitializer(() => {
+      inject(NavigationCorrelationService);
       inject(LayoutService).registerDefaults(APP_LAYOUT_DEFAULTS);
       const shell = inject(ShellService);
       shell.registerColor('sync');

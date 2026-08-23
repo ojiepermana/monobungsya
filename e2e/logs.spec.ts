@@ -29,7 +29,7 @@ test.describe('log pages as an admin', () => {
     }) => {
       await page.goto(route);
 
-      await expect(page.getByRole('searchbox')).toBeVisible();
+      await expect(page.getByRole('searchbox', { name: /log/i })).toBeVisible();
       expect(await page.getByRole('combobox').count()).toBeGreaterThanOrEqual(
         2,
       );

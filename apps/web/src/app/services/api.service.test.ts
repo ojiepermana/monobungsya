@@ -157,7 +157,14 @@ describe('ApiService (spec docs/specs/0007-user-management)', () => {
       .auditTrails({ search: '', module: '', action: '', page: 1, actorUserId })
       .subscribe();
     built.service
-      .accessLogs({ search: '', event: '', outcome: '', page: 1, actorUserId })
+      .accessLogs({
+        search: '',
+        event: '',
+        outcome: '',
+        traceId: '',
+        page: 1,
+        actorUserId,
+      })
       .subscribe();
     built.service
       .applicationLogs({

@@ -57,6 +57,14 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
             <option NativeSelectOption [value]="option" [selected]="option === outcome()">{{ option }}</option>
           }
         </select>
+        <input
+          Input
+          type="search"
+          placeholder="Trace ID..."
+          class="md:max-w-xs"
+          [value]="traceId()"
+          (input)="updateTraceId($event)"
+        />
         <button Button variant="outline" size="xs" type="button" [disabled]="!hasFilters()" (click)="clearFilters()">
           Clear Filters
         </button>
@@ -82,6 +90,8 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
                 <th class="px-4 py-3">Method</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="px-4 py-3">Request ID</th>
+                <th class="px-4 py-3">Client Flow</th>
+                <th class="px-4 py-3">Session</th>
                 <th class="px-4 py-3">Actor</th>
                 <th class="px-4 py-3">Reason</th>
               </tr>
@@ -101,6 +111,33 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
                   <td class="px-4 py-3 font-mono text-xs">{{ row.method ?? '-' }}</td>
                   <td class="px-4 py-3 font-mono text-xs">{{ row.httpStatus ?? '-' }}</td>
                   <td class="px-4 py-3 font-mono text-xs">{{ row.requestId ?? '-' }}</td>
+                  <td class="px-4 py-3 text-xs">
+                    @if (row.clientRoute || row.traceId) {
+                      <p>{{ row.clientRoute ?? '-' }}</p>
+                      <button
+                        type="button"
+                        class="mt-1 font-mono text-left text-primary underline"
+                        [attr.aria-label]="'Filter trace ' + (row.traceId ?? '')"
+                        (click)="filterTrace(row.traceId)"
+                      >
+                        {{ row.traceId ?? '-' }}
+                      </button>
+                      @if (row.traceSource === 'client_header') {
+                        <p class="mt-1 text-muted-foreground">client supplied</p>
+                      }
+                    } @else {
+                      <span>-</span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-xs">
+                    @if (row.sessionSummary) {
+                      <p>{{ row.sessionId ?? '-' }} · {{ row.sessionSummary.state }}</p>
+                      <p>{{ row.sessionSummary.role ?? '-' }} · {{ row.sessionSummary.permissionCount }} permissions</p>
+                      <p>{{ row.sessionSummary.reason ?? '-' }}</p>
+                    } @else {
+                      <span>-</span>
+                    }
+                  </td>
                   <td class="px-4 py-3">{{ row.actorEmail ?? '-' }}</td>
                   <td class="px-4 py-3 text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
                 </tr>
@@ -132,6 +169,7 @@ export class AccessLogsPage {
   protected readonly search = signal('');
   protected readonly event = signal('');
   protected readonly outcome = signal('');
+  protected readonly traceId = signal('');
   protected readonly events = signal<string[]>([]);
   protected readonly outcomes = signal<string[]>([]);
 
@@ -140,7 +178,11 @@ export class AccessLogsPage {
     return `Page ${meta.page} of ${Math.max(meta.totalPages, 1)} · ${meta.total} records`;
   });
   protected readonly hasFilters = computed(
-    () => this.search() !== '' || this.event() !== '' || this.outcome() !== '',
+    () =>
+      this.search() !== '' ||
+      this.event() !== '' ||
+      this.outcome() !== '' ||
+      this.traceId() !== '',
   );
 
   constructor() {
@@ -155,6 +197,7 @@ export class AccessLogsPage {
         search: this.search(),
         event: this.event(),
         outcome: this.outcome(),
+        traceId: this.traceId(),
         page,
       })
       .subscribe({
@@ -187,10 +230,21 @@ export class AccessLogsPage {
     this.load(1);
   }
 
+  protected updateTraceId(event: Event): void {
+    this.traceId.set((event.target as HTMLInputElement).value);
+    this.load(1);
+  }
+
+  protected filterTrace(traceId: string | null): void {
+    this.traceId.set(traceId ?? '');
+    this.load(1);
+  }
+
   protected clearFilters(): void {
     this.search.set('');
     this.event.set('');
     this.outcome.set('');
+    this.traceId.set('');
     this.load(1);
   }
 

@@ -109,7 +109,15 @@ export interface AccessLogFilters {
   search: string;
   event: string;
   outcome: string;
+  traceId: string;
   page: number;
+}
+
+export interface SessionSummary {
+  state: 'authenticated' | 'anonymous' | 'invalid';
+  reason: string | null;
+  role: string | null;
+  permissionCount: number;
 }
 
 export interface AccessLogItem {
@@ -120,6 +128,11 @@ export interface AccessLogItem {
   method: string | null;
   httpStatus: number | null;
   requestId: string | null;
+  traceId: string | null;
+  traceSource: 'client_header' | 'request_id' | null;
+  clientRoute: string | null;
+  sessionId: string | null;
+  sessionSummary: SessionSummary | null;
   actorEmail: string | null;
   failureReason: string | null;
   accessedAt: string;
@@ -258,6 +271,7 @@ export class ApiService {
             .set('search', filters.search)
             .set('event', filters.event)
             .set('outcome', filters.outcome)
+            .set('traceId', filters.traceId)
             .set('page', String(filters.page)),
           filters.actorUserId,
         ),

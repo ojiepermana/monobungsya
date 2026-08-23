@@ -67,7 +67,7 @@ function accessResponse(): AccessLogsResponse {
   return {
     data: [],
     meta: emptyMeta(),
-    filters: { search: '', event: '', outcome: '' },
+    filters: { search: '', event: '', outcome: '', traceId: '' },
     options: { events: [], outcomes: [] },
   };
 }
@@ -190,6 +190,7 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
       search: '',
       event: '',
       outcome: '',
+      traceId: '',
       page: 1,
       actorUserId: 'user-7',
     });
@@ -224,6 +225,7 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
       search: '',
       event: '',
       outcome: '',
+      traceId: '',
       page: 2,
       actorUserId: 'user-7',
     });
