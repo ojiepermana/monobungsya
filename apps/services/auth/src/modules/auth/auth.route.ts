@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { readAndVerifyAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
 import { UnauthorizedError } from '#project/errors';
+import { type ActivityActor, ActivityLog } from '#project/logger';
 import { AuthRepository } from './auth.repository';
 import {
   authStatusResponse,
@@ -102,9 +103,18 @@ export function createAuthRoute(
     )
     .get(
       '/internal/auth/verify',
-      async ({ query }) => {
+      async ({ query, request }) => {
         try {
           const session = await service.verifyMagicLink(query.token);
+          recordAuthAccess({
+            request,
+            method: 'magic_link',
+            event: 'sign_in',
+            outcome: 'success',
+            status: 302,
+            actor: session,
+            sessionId: session.sessionId,
+          });
           const headers = new Headers({
             Location: service.createVerifyRedirect(),
           });
@@ -120,6 +130,14 @@ export function createAuthRoute(
           return new Response(null, { status: 302, headers });
         } catch (error) {
           if (error instanceof UnauthorizedError) {
+            recordAuthAccess({
+              request,
+              method: 'magic_link',
+              event: 'sign_in',
+              outcome: 'failure',
+              status: 401,
+              failureReason: 'authentication_failed',
+            });
             return Response.redirect(service.createVerifyErrorRedirect(), 302);
           }
 
@@ -136,12 +154,12 @@ export function createAuthRoute(
     )
     .get(
       '/internal/auth/session',
-      async ({ request }) =>
-        Response.json(
-          await service.getSession(
-            readCookie(request.headers.get('cookie'), cookieName),
-          ),
-        ),
+      async ({ request }) => {
+        const result = await service.getSession(
+          readCookie(request.headers.get('cookie'), cookieName),
+        );
+        return Response.json(result);
+      },
       {
         response: { 200: sessionResponse },
         detail: {
@@ -153,9 +171,21 @@ export function createAuthRoute(
     .post(
       '/internal/auth/logout',
       async ({ request }) => {
-        await service.logout(
-          readCookie(request.headers.get('cookie'), cookieName),
+        const sessionToken = readCookie(
+          request.headers.get('cookie'),
+          cookieName,
         );
+        const session = await service.getSession(sessionToken);
+        await service.logout(sessionToken);
+        recordAuthAccess({
+          request,
+          method: 'session_cookie',
+          event: 'sign_out',
+          outcome: 'success',
+          status: 204,
+          actor: session.user,
+          sessionId: session.session?.id,
+        });
         return new Response(null, {
           status: 204,
           headers: {
@@ -170,6 +200,40 @@ export function createAuthRoute(
         },
       },
     );
+}
+
+export function recordAuthAccess(input: {
+  request: Request;
+  method: 'magic_link' | 'passkey' | 'session_cookie';
+  event: 'sign_in' | 'sign_out';
+  outcome: 'success' | 'failure';
+  status: number;
+  actor?: ActivityActor | null;
+  sessionId?: string | null;
+  failureReason?: string | null;
+}): void {
+  const url = new URL(input.request.url);
+  ActivityLog.writeAccess({
+    event: input.event,
+    outcome: input.outcome,
+    authenticationMethod: input.method,
+    accessChannel: 'web',
+    guard: 'auth',
+    actor: input.actor,
+    sessionId: input.sessionId,
+    requestId: input.request.headers.get('x-request-id'),
+    traceId:
+      input.request.headers.get('x-correlation-id') ??
+      input.request.headers.get('x-request-id'),
+    ipAddress: input.request.headers.get('x-real-ip'),
+    forwardedIp: input.request.headers.get('x-forwarded-for'),
+    userAgent: input.request.headers.get('user-agent'),
+    routeName: url.pathname,
+    path: url.pathname,
+    method: input.request.method,
+    httpStatus: input.status,
+    failureReason: input.failureReason,
+  });
 }
 
 export function readCookie(

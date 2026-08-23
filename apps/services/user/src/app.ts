@@ -21,7 +21,9 @@ export function createApp(
   environment: AppEnvironment = loadEnv('user'),
   dependencies: UserAppDependencies = {},
 ) {
-  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
+  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
+    persist: environment.BEST_EFFORT_LOGGING_ENABLED,
+  });
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)

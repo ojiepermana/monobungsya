@@ -7,7 +7,12 @@ import { env } from './config/env';
 const database = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.DATABASE_URL)
   : undefined;
-ActivityLog.configure(database);
+const logDatabase = env.ENABLE_INFRASTRUCTURE
+  ? createDatabaseClient(env.LOG_DATABASE_URL)
+  : undefined;
+ActivityLog.configure(logDatabase, {
+  bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
+});
 // A missing broker degrades this service, it does not stop it: a create still
 // commits and the invitation is logged as skipped (spec 0007, AC-2).
 const messaging = env.ENABLE_INFRASTRUCTURE
@@ -33,6 +38,8 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   await server.stop();
   await messaging?.close();
+  await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
+  if (logDatabase) await closeDatabaseClient(logDatabase);
   if (database) await closeDatabaseClient(database);
 }
 

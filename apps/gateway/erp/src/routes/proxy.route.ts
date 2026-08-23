@@ -5,6 +5,7 @@ import {
   canAccessAuthCapability,
   signAuthIdentity,
 } from '#project/contracts';
+import { updateAccessLogContext } from '#project/elysia';
 import {
   ForbiddenError,
   ServiceUnavailableError,
@@ -29,6 +30,10 @@ async function forwardRequest(
     `${internalPrefix}${suffix}${incomingUrl.search}`,
     serviceUrl,
   );
+  updateAccessLogContext(request, {
+    routeName: normalizeRouteName(incomingUrl.pathname),
+    capability: capability ?? null,
+  });
   const headers = new Headers(request.headers);
   headers.set(
     'x-request-id',
@@ -72,6 +77,9 @@ async function forwardRequest(
             : JSON.stringify(requestBody),
     });
   } catch {
+    updateAccessLogContext(request, {
+      failureReason: 'service_unavailable',
+    });
     const mapped = toErrorResponse(
       new ServiceUnavailableError(
         'The requested internal service is unavailable',
@@ -111,6 +119,9 @@ async function addIdentityHeaders(
       },
     );
   } catch {
+    updateAccessLogContext(request, {
+      failureReason: 'auth_service_unavailable',
+    });
     return mappedGatewayError(
       new ServiceUnavailableError('Authentication service is unavailable'),
       requestId,
@@ -118,6 +129,9 @@ async function addIdentityHeaders(
   }
 
   if (!response.ok) {
+    updateAccessLogContext(request, {
+      failureReason: 'auth_service_unavailable',
+    });
     return mappedGatewayError(
       new ServiceUnavailableError('Authentication service is unavailable'),
       requestId,
@@ -127,7 +141,7 @@ async function addIdentityHeaders(
   const session = (await response.json()) as {
     authenticated?: boolean;
     user?: { id?: string; email?: string; role?: AuthIdentity['role'] };
-    session?: { absoluteExpiresAt?: string };
+    session?: { id?: string; absoluteExpiresAt?: string };
   };
 
   if (
@@ -137,6 +151,9 @@ async function addIdentityHeaders(
     !session.user.role ||
     !session.session?.absoluteExpiresAt
   ) {
+    updateAccessLogContext(request, {
+      failureReason: 'authentication_required',
+    });
     return mappedGatewayError(
       new UnauthorizedError('Authentication is required'),
       requestId,
@@ -150,6 +167,9 @@ async function addIdentityHeaders(
     !Number.isFinite(expiry) ||
     expiry <= Date.now() - environment.AUTH_CLOCK_SKEW_SECONDS * 1000
   ) {
+    updateAccessLogContext(request, {
+      failureReason: 'authentication_required',
+    });
     return mappedGatewayError(
       new UnauthorizedError('Authentication session has expired'),
       requestId,
@@ -166,6 +186,9 @@ async function addIdentityHeaders(
   // Checked here as well as inside the service, so a role that may not reach a
   // domain never gets a signed identity for it in the first place.
   if (capability && !canAccessAuthCapability(identity.role, capability)) {
+    updateAccessLogContext(request, {
+      failureReason: 'permission_denied',
+    });
     return mappedGatewayError(
       new ForbiddenError('The current role cannot access this resource'),
       requestId,
@@ -184,6 +207,18 @@ async function addIdentityHeaders(
   headers.set('x-auth-role', identity.role);
   headers.set('x-auth-expires-at', identity.expiresAt);
   headers.set('x-auth-signature', signature);
+  updateAccessLogContext(request, {
+    actor: { id: identity.userId, email: identity.email, role: identity.role },
+    authenticationMethod: 'session_cookie',
+    sessionId: session.session?.id ?? null,
+  });
+}
+
+function normalizeRouteName(path: string): string {
+  return path.replace(
+    /\/(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?=\/|$)/gi,
+    '/:id',
+  );
 }
 
 function mappedGatewayError(error: unknown, requestId: string): Response {
@@ -530,6 +565,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           '/internal/logs',
           environment,
           true,
+          undefined,
+          'admin',
         ),
       {
         query: t.Object({
@@ -555,6 +592,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           '/internal/logs',
           environment,
           true,
+          undefined,
+          'admin',
         ),
       {
         query: t.Object({
@@ -580,6 +619,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           '/internal/logs',
           environment,
           true,
+          undefined,
+          'admin',
         ),
       {
         query: t.Object({

@@ -22,7 +22,9 @@ export function createApp(
   authOptions: AuthRouteOptions = {},
   passkeyOptions: PasskeyRouteOptions = {},
 ) {
-  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
+  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
+    persist: environment.BEST_EFFORT_LOGGING_ENABLED,
+  });
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)

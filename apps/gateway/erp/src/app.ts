@@ -1,6 +1,7 @@
 import { cors } from '@elysiajs/cors';
 import { Elysia, t } from 'elysia';
 import {
+  createAccessLogPlugin,
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
@@ -12,11 +13,14 @@ import { loadGatewayEnv } from './config/env';
 import { createProxyRoute } from './routes/proxy.route';
 
 export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
-  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
+  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
+    persist: environment.BEST_EFFORT_LOGGING_ENABLED,
+  });
 
   return new Elysia({ name: environment.serviceName })
     .use(cors({ origin: environment.CORS_ORIGIN, credentials: true }))
     .use(requestIdPlugin)
+    .use(createAccessLogPlugin())
     .use(createLoggerPlugin(logger, 'gateway-logger'))
     .use(createErrorHandler('gateway-error-handler', { logger }))
     .use(

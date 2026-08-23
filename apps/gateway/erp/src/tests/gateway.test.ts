@@ -1,11 +1,20 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { readAndVerifyAuthIdentity } from '#project/contracts';
+import { ActivityLog } from '#project/logger';
 import { createApp } from '../app';
 import { loadGatewayEnv } from '../config/env';
 
 describe('api gateway', () => {
+  beforeEach(() => {
+    ActivityLog.configure(undefined);
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  });
+
   it('exposes health and forwards public boundaries', async () => {
     const app = createApp(loadGatewayEnv({ NODE_ENV: 'test', PORT: '3000' }));
     const health = await app.handle(new Request('http://localhost/health'));
@@ -509,6 +518,78 @@ describe('api gateway', () => {
         ),
       ).toMatchObject({ role: 'admin' });
     } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('writes one complete access row after a protected API response', async () => {
+    const secret = 'integration-signing-secret';
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: secret,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+        if (new URL(request.url).pathname === '/internal/auth/session') {
+          return Response.json({
+            authenticated: true,
+            user: {
+              id: '0198f8a0-0000-7000-8000-000000000001',
+              email: 'admin@project.local',
+              role: 'admin',
+            },
+            session: { id: 'session-1', absoluteExpiresAt: expiresAt },
+          });
+        }
+        return Response.json({ data: [] }, { status: 200 });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/users?search=secret-token', {
+          headers: {
+            cookie: 'project_session=session-value',
+            'x-request-id': 'request-123',
+            'x-correlation-id': 'trace-456',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(writeAccess).toHaveBeenCalledTimes(1);
+      expect(writeAccess.mock.calls[0]?.[0]).toMatchObject({
+        event: 'api_request',
+        outcome: 'success',
+        routeName: '/api/v1/users',
+        path: '/api/v1/users',
+        method: 'GET',
+        httpStatus: 200,
+        requestId: 'request-123',
+        traceId: 'trace-456',
+        authenticationMethod: 'session_cookie',
+        sessionId: 'session-1',
+        actor: { email: 'admin@project.local' },
+      });
+      expect(JSON.stringify(writeAccess.mock.calls[0]?.[0])).not.toContain(
+        'secret-token',
+      );
+    } finally {
+      writeAccess.mockRestore();
       globalThis.fetch = originalFetch;
     }
   });

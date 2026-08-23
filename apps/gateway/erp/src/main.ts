@@ -1,5 +1,14 @@
+import { closeDatabaseClient, createDatabaseClient } from '#project/database';
+import { ActivityLog } from '#project/logger';
 import { createApp } from './app';
 import { env } from './config/env';
+
+const logDatabase = env.ENABLE_INFRASTRUCTURE
+  ? createDatabaseClient(env.LOG_DATABASE_URL)
+  : undefined;
+ActivityLog.configure(logDatabase, {
+  bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
+});
 
 const app = createApp(env);
 const server = app.listen(env.PORT);
@@ -15,6 +24,8 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   await server.stop();
+  await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
+  if (logDatabase) await closeDatabaseClient(logDatabase);
 }
 
 process.on('SIGINT', () => void shutdown('SIGINT').then(() => process.exit(0)));

@@ -4,9 +4,14 @@ import type {
 } from '@simplewebauthn/server';
 import { Elysia } from 'elysia';
 import type { DatabaseClient } from '#project/database';
+import { UnauthorizedError } from '#project/errors';
 import type { Logger } from '#project/logger';
 import { AuthRepository } from './auth.repository';
-import { readCookie, serializeSessionCookie } from './auth.route';
+import {
+  readCookie,
+  recordAuthAccess,
+  serializeSessionCookie,
+} from './auth.route';
 import { PasskeyRepository } from './passkey.repository';
 import {
   passkeyCeremonyOptionsResponse,
@@ -18,7 +23,7 @@ import {
   passkeyRenameBody,
   passkeySummaryResponse,
 } from './passkey.schema';
-import { PasskeyService } from './passkey.service';
+import { type PasskeyLoginResult, PasskeyService } from './passkey.service';
 
 export interface PasskeyRouteOptions {
   database?: DatabaseClient;
@@ -107,10 +112,33 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
     .post(
       '/internal/auth/passkey/login/verify',
       async ({ body, request }) => {
-        const result = await service.verifyLogin(
-          body.response as unknown as AuthenticationResponseJSON,
-          clientIp(request),
-        );
+        let result: PasskeyLoginResult;
+        try {
+          result = await service.verifyLogin(
+            body.response as unknown as AuthenticationResponseJSON,
+            clientIp(request),
+          );
+        } catch (error) {
+          recordAuthAccess({
+            request,
+            method: 'passkey',
+            event: 'sign_in',
+            outcome: 'failure',
+            status: error instanceof UnauthorizedError ? 401 : 400,
+            failureReason: 'authentication_failed',
+          });
+          throw error;
+        }
+
+        recordAuthAccess({
+          request,
+          method: 'passkey',
+          event: 'sign_in',
+          outcome: 'success',
+          status: 200,
+          actor: result.user,
+          sessionId: result.session.id,
+        });
 
         return Response.json(
           {
