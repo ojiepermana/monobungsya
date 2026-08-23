@@ -16,8 +16,6 @@ import {
 } from '../../../services/api.service';
 import { UserDetailPage } from './user-detail.page';
 
-const ROLES = ['admin', 'manager', 'bi', 'staff', 'legacy'] as const;
-
 function emptyMeta(): LogsMeta {
   return { page: 1, perPage: 25, total: 0, totalPages: 0 };
 }
@@ -27,7 +25,6 @@ function testUser(overrides: Partial<UserRecord> = {}): UserRecord {
     id: 'user-1',
     name: 'Jane Staff',
     email: 'jane@project.local',
-    role: 'staff',
     status: 'active',
     emailVerifiedAt: null,
     suspendedAt: null,
@@ -44,10 +41,7 @@ function usersResponse(): UsersResponse {
     data: [],
     meta: emptyMeta(),
     filters: { search: '', status: '' },
-    options: {
-      roles: [...ROLES],
-      statuses: ['active', 'suspended', 'blocked', 'deleted'],
-    },
+    options: { statuses: ['active', 'suspended', 'blocked', 'deleted'] },
   };
 }
 
@@ -88,8 +82,7 @@ function createDetailPage(
     id: 'admin-1',
     name: 'Admin One',
     email: 'admin@project.local',
-    role: 'admin',
-    permissions: ['users.manage'],
+    permissions: ['user:user:manage'],
   },
 ) {
   const api = {
@@ -109,7 +102,13 @@ function createDetailPage(
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: ApiService, useValue: api },
-      { provide: AuthService, useValue: { user: signal(callerUser) } },
+      {
+        provide: AuthService,
+        useValue: {
+          user: signal(callerUser),
+          hasPermission: vi.fn().mockReturnValue(false),
+        },
+      },
     ],
   });
 
@@ -124,7 +123,7 @@ interface UserDetailPageInternals {
   loading(): boolean;
   error(): string | null;
   user(): UserRecord | null;
-  tab(): 'audit' | 'access' | 'application';
+  tab(): 'audit' | 'permissions' | 'access' | 'application';
   logsLoading(): boolean;
   auditRows(): unknown[];
   accessRows(): unknown[];
@@ -135,7 +134,7 @@ interface UserDetailPageInternals {
   editError(): string | null;
   actionOpen(): boolean;
   actionError(): string | null;
-  selectTab(tab: 'audit' | 'access' | 'application'): void;
+  selectTab(tab: 'audit' | 'permissions' | 'access' | 'application'): void;
   goTo(page: number): void;
   openEdit(): void;
   submitEdit(payload: unknown): void;
@@ -174,6 +173,31 @@ describe('UserDetailPage load (spec docs/specs/0007-user-management, AC-9, AC-10
     expect(page.loading()).toBe(false);
     expect(page.error()).toBe('Gagal memuat user.');
     expect(page.user()).toBeNull();
+  });
+});
+
+describe('UserDetailPage page composition (spec docs/specs/0007-user-management, AC-12)', () => {
+  it('composes the shared stacked page slots with content scrolling and no page main', () => {
+    const { fixture } = createDetailPage();
+    const root = fixture.nativeElement.querySelector('page') as HTMLElement;
+    const content = root.querySelector('pagecontent') as HTMLElement;
+
+    expect(root).not.toBeNull();
+    expect(root.getAttribute('data-page-variant')).toBe('stacked');
+    expect(root.getAttribute('data-page-scroll')).toBe('content');
+    const header = root.querySelector('pageheader') as HTMLElement;
+    const footer = root.querySelector('pagefooter') as HTMLElement;
+
+    expect(root.querySelectorAll('pageheader')).toHaveLength(1);
+    expect(header.className).toContain('min-h-(--layout-topbar-height)');
+    expect(root.querySelectorAll('pagecontent')).toHaveLength(1);
+    expect(content.classList.contains('p-6')).toBe(false);
+    expect(root.querySelectorAll('pagefooter')).toHaveLength(1);
+    expect(footer.className).toContain('min-h-(--layout-topbar-height)');
+    expect(
+      root.querySelector('pagecontent app-user-edit-dialog'),
+    ).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('main')).toBeNull();
   });
 });
 
@@ -252,7 +276,6 @@ describe('UserDetailPage edit and status actions (spec docs/specs/0007-user-mana
     const updated = testUser({
       id: 'user-1',
       name: 'Renamed',
-      role: 'manager',
     });
     const { api, component } = createDetailPage({
       updateUser: vi.fn().mockReturnValue(of(updated)),
@@ -261,11 +284,10 @@ describe('UserDetailPage edit and status actions (spec docs/specs/0007-user-mana
     api.auditTrails.mockClear();
     page.openEdit();
 
-    page.submitEdit({ name: 'Renamed', role: 'manager' });
+    page.submitEdit({ name: 'Renamed' });
 
     expect(api.updateUser).toHaveBeenCalledWith('user-1', {
       name: 'Renamed',
-      role: 'manager',
     });
     expect(page.editOpen()).toBe(false);
     expect(page.user()).toEqual(updated);
@@ -289,7 +311,7 @@ describe('UserDetailPage edit and status actions (spec docs/specs/0007-user-mana
     const page = internal(component);
     page.openEdit();
 
-    page.submitEdit({ role: 'manager' });
+    page.submitEdit({ name: 'Renamed' });
 
     expect(page.editOpen()).toBe(true);
     expect(page.editError()).toBe(
@@ -344,8 +366,7 @@ describe('UserDetailPage edit and status actions (spec docs/specs/0007-user-mana
       id: 'admin-1',
       name: 'Admin One',
       email: 'admin@project.local',
-      role: 'admin',
-      permissions: ['users.manage'],
+      permissions: ['user:user:manage'],
     });
 
     expect(internal(component).actions()).toEqual([]);
@@ -356,8 +377,7 @@ describe('UserDetailPage edit and status actions (spec docs/specs/0007-user-mana
       id: 'admin-1',
       name: 'Admin One',
       email: 'admin@project.local',
-      role: 'admin',
-      permissions: ['users.manage'],
+      permissions: ['user:user:manage'],
     });
 
     expect(internal(component).actions().length).toBeGreaterThan(0);

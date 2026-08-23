@@ -12,14 +12,11 @@ import {
 } from '../../../services/api.service';
 import { UsersPage } from './users.page';
 
-const ROLES = ['admin', 'manager', 'bi', 'staff', 'legacy'] as const;
-
 function testUser(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
     id: 'user-1',
     name: 'Jane Staff',
     email: 'jane@project.local',
-    role: 'staff',
     status: 'active',
     emailVerifiedAt: null,
     suspendedAt: null,
@@ -36,10 +33,7 @@ function emptyResponse(overrides: Partial<UsersResponse> = {}): UsersResponse {
     data: [],
     meta: { page: 1, perPage: 25, total: 0, totalPages: 0 },
     filters: { search: '', status: '' },
-    options: {
-      roles: [...ROLES],
-      statuses: ['active', 'suspended', 'blocked', 'deleted'],
-    },
+    options: { statuses: ['active', 'suspended', 'blocked', 'deleted'] },
     ...overrides,
   };
 }
@@ -57,8 +51,7 @@ function createPage(
     id: 'admin-1',
     name: 'Admin One',
     email: 'admin@project.local',
-    role: 'admin',
-    permissions: ['users.manage'],
+    permissions: ['user:user:manage'],
   },
 ) {
   const api = {
@@ -92,14 +85,13 @@ interface UsersPageInternals {
   meta(): { page: number; perPage: number; total: number; totalPages: number };
   search(): string;
   status(): string;
-  roles(): string[];
   callerId(): string | null;
   hasFilters(): boolean;
   draftValid(): boolean;
   createOpen(): boolean;
   creating(): boolean;
   createError(): string | null;
-  draft(): { id: string; name: string; email: string; role: string };
+  draft(): { id: string; name: string; email: string };
   editOpen(): boolean;
   editError(): string | null;
   actionOpen(): boolean;
@@ -126,7 +118,7 @@ function inputEvent(value: string): Event {
 }
 
 describe('UsersPage list and filters (spec docs/specs/0007-user-management, AC-9)', () => {
-  it('loads the first page on construction and exposes rows, meta, and roles', () => {
+  it('loads the first page on construction and exposes rows and meta', () => {
     const row = testUser({ name: 'Loaded User' });
     const { component } = createPage({
       users: vi.fn().mockReturnValue(
@@ -143,7 +135,6 @@ describe('UsersPage list and filters (spec docs/specs/0007-user-management, AC-9
     expect(page.loading()).toBe(false);
     expect(page.rows()).toEqual([row]);
     expect(page.meta().total).toBe(1);
-    expect(page.roles()).toEqual([...ROLES]);
   });
 
   it('sets an error and stops loading when the list request fails', () => {
@@ -223,7 +214,7 @@ describe('UsersPage list and filters (spec docs/specs/0007-user-management, AC-9
 });
 
 describe('UsersPage create (spec docs/specs/0007-user-management, AC-1, AC-2)', () => {
-  it('mints a client generated UUIDv7 and defaults the role to the first option', () => {
+  it('mints a client generated UUIDv7 for a new user', () => {
     const { component } = createPage();
     const page = internal(component);
 
@@ -235,7 +226,6 @@ describe('UsersPage create (spec docs/specs/0007-user-management, AC-1, AC-2)', 
     expect(page.draft().id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
-    expect(page.draft().role).toBe(ROLES[0]);
   });
 
   it('draftValid requires a non empty name and an email containing @', () => {
@@ -268,7 +258,6 @@ describe('UsersPage create (spec docs/specs/0007-user-management, AC-1, AC-2)', 
       id: page.draft().id,
       name: 'New User',
       email: 'new@project.local',
-      role: ROLES[0],
     });
     expect(page.creating()).toBe(false);
     expect(page.createOpen()).toBe(false);
@@ -314,6 +303,59 @@ describe('UsersPage create (spec docs/specs/0007-user-management, AC-1, AC-2)', 
   });
 });
 
+describe('UsersPage page composition (spec docs/specs/0007-user-management, AC-12)', () => {
+  it('composes the shared stacked page slots and keeps dialogs inside content', () => {
+    const { fixture } = createPage({
+      users: vi.fn().mockReturnValue(of(emptyResponse({ data: [testUser()] }))),
+    });
+    const root = fixture.nativeElement.querySelector('page') as HTMLElement;
+    const content = root.querySelector('pagecontent') as HTMLElement;
+
+    expect(root).not.toBeNull();
+    expect(root.getAttribute('data-page-variant')).toBe('stacked');
+    expect(root.getAttribute('data-page-scroll')).toBe('content');
+    const header = root.querySelector('pageheader') as HTMLElement;
+    const filter = root.querySelector('pagefilter') as HTMLElement;
+    const footer = root.querySelector('pagefooter') as HTMLElement;
+    const filterToggle = root.querySelector(
+      '[data-page-control="filter-toggle"] button',
+    ) as HTMLButtonElement;
+
+    expect(root.querySelectorAll('pageheader')).toHaveLength(1);
+    expect(header.className).toContain('min-h-(--layout-topbar-height)');
+    expect(root.querySelectorAll('pagefilter')).toHaveLength(1);
+    expect(filter.getAttribute('data-page-filter-open')).toBe('true');
+    expect(filterToggle).not.toBeNull();
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(root.querySelectorAll('pagecontent')).toHaveLength(1);
+    expect(content.classList.contains('p-6')).toBe(false);
+    expect(content.querySelector('thead[tableheader]')).not.toBeNull();
+    expect(content.querySelector('tbody[tablebody]')).not.toBeNull();
+    expect(content.querySelector('caption[tablecaption]')).not.toBeNull();
+    expect(root.querySelectorAll('pagefooter')).toHaveLength(1);
+    expect(footer.className).toContain('min-h-(--layout-topbar-height)');
+    expect(root.querySelector('pagecontent app-reason-dialog')).not.toBeNull();
+    expect(root.querySelector('pagecontent dialog')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('main')).toBeNull();
+
+    filterToggle.click();
+    fixture.detectChanges();
+
+    expect(filter.getAttribute('data-page-filter-open')).toBe('false');
+    expect(filter.className).toContain('hidden');
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(filter.hasAttribute('hidden')).toBe(true);
+
+    filterToggle.click();
+    fixture.detectChanges();
+
+    expect(filter.getAttribute('data-page-filter-open')).toBe('true');
+    expect(filter.className).not.toContain('hidden');
+    expect(filter.hasAttribute('hidden')).toBe(false);
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('true');
+  });
+});
+
 describe('UsersPage edit and status actions (spec docs/specs/0007-user-management, AC-3, AC-4, AC-6)', () => {
   it('submits only the changed fields and reloads the current page on success', () => {
     // The fake server echoes back whatever page it was asked for, the same
@@ -332,9 +374,9 @@ describe('UsersPage edit and status actions (spec docs/specs/0007-user-managemen
     api.users.mockClear();
     page.openEdit(testUser({ id: 'user-1' }));
 
-    page.submitEdit({ role: 'manager' });
+    page.submitEdit({ name: 'Renamed' });
 
-    expect(api.updateUser).toHaveBeenCalledWith('user-1', { role: 'manager' });
+    expect(api.updateUser).toHaveBeenCalledWith('user-1', { name: 'Renamed' });
     expect(page.editOpen()).toBe(false);
     expect(api.users).toHaveBeenCalledWith({ search: '', status: '', page: 2 });
   });
@@ -350,7 +392,7 @@ describe('UsersPage edit and status actions (spec docs/specs/0007-user-managemen
     const page = internal(component);
     page.openEdit(testUser());
 
-    page.submitEdit({ role: 'manager' });
+    page.submitEdit({ name: 'Renamed' });
 
     expect(page.editOpen()).toBe(true);
     expect(page.editError()).toBe(
@@ -398,8 +440,7 @@ describe('UsersPage edit and status actions (spec docs/specs/0007-user-managemen
       id: 'admin-9',
       name: 'Admin Nine',
       email: 'admin9@project.local',
-      role: 'admin',
-      permissions: ['users.manage'],
+      permissions: ['user:user:manage'],
     });
 
     expect(internal(component).callerId()).toBe('admin-9');

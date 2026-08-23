@@ -1,5 +1,6 @@
 import type { Routes } from '@angular/router';
 import { authGuard, guestGuard, permissionGuard } from '../auth/auth.guard';
+import { PERMISSIONS } from '../auth/permissions';
 
 export const routes: Routes = [
   {
@@ -52,17 +53,26 @@ export const routes: Routes = [
   {
     path: 'users',
     title: 'MONOBUNGSYA · User Management',
-    canActivate: [authGuard, permissionGuard('users.manage')],
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.userUserList)],
     loadComponent: () =>
       import('../pages/users/list/users.page').then((m) => m.UsersPage),
   },
   {
     path: 'users/:id',
     title: 'MONOBUNGSYA · User Detail',
-    canActivate: [authGuard, permissionGuard('users.manage')],
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.userUserRead)],
     loadComponent: () =>
       import('../pages/users/detail/user-detail.page').then(
         (m) => m.UserDetailPage,
+      ),
+  },
+  {
+    path: 'access/permissions',
+    title: 'MONOBUNGSYA · Permission Catalog',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessPermissionList)],
+    loadComponent: () =>
+      import('../pages/access/permissions/permissions.page').then(
+        (m) => m.PermissionsPage,
       ),
   },
   {
@@ -79,7 +89,7 @@ export const routes: Routes = [
   {
     path: 'logs/audit',
     title: 'MONOBUNGSYA · Audit Logs',
-    canActivate: [authGuard, permissionGuard('logs.read')],
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],
     loadComponent: () =>
       import('../pages/logs/audit/audit-logs.page').then(
         (m) => m.AuditLogsPage,
@@ -88,7 +98,7 @@ export const routes: Routes = [
   {
     path: 'logs/access',
     title: 'MONOBUNGSYA · Access Logs',
-    canActivate: [authGuard, permissionGuard('logs.read')],
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],
     loadComponent: () =>
       import('../pages/logs/access/access-logs.page').then(
         (m) => m.AccessLogsPage,
@@ -97,7 +107,7 @@ export const routes: Routes = [
   {
     path: 'logs/application',
     title: 'MONOBUNGSYA · Application Logs',
-    canActivate: [authGuard, permissionGuard('logs.read')],
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],
     loadComponent: () =>
       import('../pages/logs/application/application-logs.page').then(
         (m) => m.ApplicationLogsPage,

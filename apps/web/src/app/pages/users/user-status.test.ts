@@ -12,7 +12,6 @@ function user(overrides: Partial<UserRecord> = {}): UserRecord {
     id: 'user-1',
     name: 'Jane Staff',
     email: 'jane@project.local',
-    role: 'staff',
     status: 'active',
     emailVerifiedAt: null,
     suspendedAt: null,

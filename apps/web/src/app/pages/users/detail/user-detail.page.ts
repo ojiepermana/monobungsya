@@ -17,12 +17,29 @@ import {
   CardTitleComponent,
 } from '@ojiepermana/angular/component/card';
 import {
+  TableBodyComponent,
+  TableCaptionComponent,
+  TableCellComponent,
+  TableComponent,
+  TableHeadComponent,
+  TableHeaderComponent,
+  TableRowComponent,
+} from '@ojiepermana/angular/component/table';
+import {
   TabsComponent,
   TabsContentComponent,
   TabsListComponent,
   TabsTriggerComponent,
 } from '@ojiepermana/angular/component/tabs';
-import { type AuthRole, AuthService } from '../../../auth/auth.service';
+import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
+import {
+  PageComponent,
+  PageContentComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
+import { AuthService } from '../../../auth/auth.service';
+import { PERMISSIONS } from '../../../auth/permissions';
 import {
   type AccessLogItem,
   ApiService,
@@ -41,6 +58,7 @@ import {
   type StatusActionMeta,
   statusActionError,
 } from '../user-status';
+import { UserAccessPanel } from './user-access-panel';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'medium',
@@ -49,7 +67,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
 
 const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
-type TabKey = 'audit' | 'access' | 'application';
+type TabKey = 'audit' | 'permissions' | 'access' | 'application';
 
 /**
  * User detail (spec docs/specs/0007-user-management, AC-9 and AC-10): the
@@ -75,21 +93,34 @@ type TabKey = 'audit' | 'access' | 'application';
     TabsContentComponent,
     TabsListComponent,
     TabsTriggerComponent,
+    TableBodyComponent,
+    TableCaptionComponent,
+    TableCellComponent,
+    TableComponent,
+    TableHeadComponent,
+    TableHeaderComponent,
+    TableRowComponent,
+    PageComponent,
+    PageContentComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
     UserEditDialog,
+    UserAccessPanel,
   ],
   template: `
-    <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
-      <header class="flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
-          <h1 class="mt-2 text-2xl font-semibold text-foreground">{{ user()?.name ?? 'User' }}</h1>
+          <h1 class="truncate text-lg font-semibold text-foreground">{{ user()?.name ?? 'User' }}</h1>
         </div>
         <a Button variant="outline" size="xs" routerLink="/users">Kembali ke daftar</a>
-      </header>
+      </PageHeader>
 
-      @if (error()) {
-        <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
-      }
+      <PageContent class="grid min-h-0 content-start gap-6">
+        @if (error()) {
+          <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
+        }
 
       @if (loading()) {
         <p class="text-sm text-muted-foreground">Memuat user...</p>
@@ -99,7 +130,6 @@ type TabKey = 'audit' | 'access' | 'application';
             <CardTitle level="2" class="flex flex-wrap items-center gap-3">
               <span>{{ profile.email }}</span>
               <span Badge [variant]="statusVariant()">{{ statusLabel() }}</span>
-              <span Badge variant="outline">{{ profile.role }}</span>
             </CardTitle>
             <CardDescription class="font-mono text-xs">{{ profile.id }}</CardDescription>
           </CardHeader>
@@ -153,6 +183,9 @@ type TabKey = 'audit' | 'access' | 'application';
         <Tabs [(value)]="tab">
           <TabsList>
             <button TabsTrigger value="audit" (click)="selectTab('audit')">Audit Trail</button>
+            @if (canViewAccess()) {
+              <button TabsTrigger value="permissions" (click)="selectTab('permissions')">Access</button>
+            }
             <button TabsTrigger value="access" (click)="selectTab('access')">Access Log</button>
             <button TabsTrigger value="application" (click)="selectTab('application')">Application Log</button>
           </TabsList>
@@ -161,60 +194,64 @@ type TabKey = 'audit' | 'access' | 'application';
             @if (auditRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada audit trail untuk user ini.</p>
             } @else {
-              <div class="overflow-auto border border-border bg-card">
-                <table class="min-w-full text-left text-sm">
-                  <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th class="px-4 py-3">Waktu</th>
-                      <th class="px-4 py-3">Action</th>
-                      <th class="px-4 py-3">Entity</th>
-                      <th class="px-4 py-3">Perubahan</th>
+              <Table class="min-w-full border border-border bg-card">
+                <caption TableCaption class="sr-only">Audit trail user</caption>
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                  <tr TableRow>
+                    <th TableHead scope="col">Waktu</th>
+                    <th TableHead scope="col">Action</th>
+                    <th TableHead scope="col">Entity</th>
+                    <th TableHead scope="col">Perubahan</th>
+                  </tr>
+                </thead>
+                <tbody TableBody>
+                  @for (row of auditRows(); track row.id) {
+                    <tr TableRow class="align-top">
+                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.auditedAt) }}</td>
+                      <td TableCell>{{ row.action }}</td>
+                      <td TableCell>
+                        <p class="font-medium text-foreground">{{ row.module }}</p>
+                        <p class="text-xs text-muted-foreground">{{ row.entityLabel ?? row.entityId }}</p>
+                      </td>
+                      <td TableCell class="text-muted-foreground">{{ row.changeSummary ?? '-' }}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of auditRows(); track row.id) {
-                      <tr class="border-b border-border align-top last:border-0">
-                        <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.auditedAt) }}</td>
-                        <td class="px-4 py-3">{{ row.action }}</td>
-                        <td class="px-4 py-3">
-                          <p class="font-medium text-foreground">{{ row.module }}</p>
-                          <p class="text-xs text-muted-foreground">{{ row.entityLabel ?? row.entityId }}</p>
-                        </td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ row.changeSummary ?? '-' }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+                  }
+                </tbody>
+              </Table>
             }
           </TabsContent>
+
+          @if (canViewAccess()) {
+            <TabsContent value="permissions">
+              <app-user-access-panel [userId]="profile.id" />
+            </TabsContent>
+          }
 
           <TabsContent value="access">
             @if (accessRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada access log untuk user ini.</p>
             } @else {
-              <div class="overflow-auto border border-border bg-card">
-                <table class="min-w-full text-left text-sm">
-                  <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th class="px-4 py-3">Waktu</th>
-                      <th class="px-4 py-3">Event</th>
-                      <th class="px-4 py-3">Hasil</th>
-                      <th class="px-4 py-3">Kegagalan</th>
+              <Table class="min-w-full border border-border bg-card">
+                <caption TableCaption class="sr-only">Access log user</caption>
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                  <tr TableRow>
+                    <th TableHead scope="col">Waktu</th>
+                    <th TableHead scope="col">Event</th>
+                    <th TableHead scope="col">Hasil</th>
+                    <th TableHead scope="col">Kegagalan</th>
+                  </tr>
+                </thead>
+                <tbody TableBody>
+                  @for (row of accessRows(); track row.accessedAt + row.event) {
+                    <tr TableRow class="align-top">
+                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.accessedAt) }}</td>
+                      <td TableCell>{{ row.event }}</td>
+                      <td TableCell>{{ row.outcome }}</td>
+                      <td TableCell class="text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of accessRows(); track row.accessedAt + row.event) {
-                      <tr class="border-b border-border align-top last:border-0">
-                        <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.accessedAt) }}</td>
-                        <td class="px-4 py-3">{{ row.event }}</td>
-                        <td class="px-4 py-3">{{ row.outcome }}</td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+                  }
+                </tbody>
+              </Table>
             }
           </TabsContent>
 
@@ -222,46 +259,34 @@ type TabKey = 'audit' | 'access' | 'application';
             @if (applicationRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log untuk user ini.</p>
             } @else {
-              <div class="overflow-auto border border-border bg-card">
-                <table class="min-w-full text-left text-sm">
-                  <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th class="px-4 py-3">Waktu</th>
-                      <th class="px-4 py-3">Level</th>
-                      <th class="px-4 py-3">Module</th>
-                      <th class="px-4 py-3">Message</th>
+              <Table class="min-w-full border border-border bg-card">
+                <caption TableCaption class="sr-only">Application log user</caption>
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                  <tr TableRow>
+                    <th TableHead scope="col">Waktu</th>
+                    <th TableHead scope="col">Level</th>
+                    <th TableHead scope="col">Module</th>
+                    <th TableHead scope="col">Message</th>
+                  </tr>
+                </thead>
+                <tbody TableBody>
+                  @for (row of applicationRows(); track row.id) {
+                    <tr TableRow class="align-top">
+                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.occurredAt) }}</td>
+                      <td TableCell>{{ row.level }}</td>
+                      <td TableCell>{{ row.module ?? '-' }}</td>
+                      <td TableCell class="text-muted-foreground">{{ row.message }}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of applicationRows(); track row.id) {
-                      <tr class="border-b border-border align-top last:border-0">
-                        <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.occurredAt) }}</td>
-                        <td class="px-4 py-3">{{ row.level }}</td>
-                        <td class="px-4 py-3">{{ row.module ?? '-' }}</td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ row.message }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+                  }
+                </tbody>
+              </Table>
             }
           </TabsContent>
         </Tabs>
 
-        <footer class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
-          <div class="flex items-center gap-2">
-            <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)">First</button>
-            <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)">Previous</button>
-            <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)">Next</button>
-            <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)">Last</button>
-          </div>
-        </footer>
-
         <app-user-edit-dialog
           [(open)]="editOpen"
           [user]="profile"
-          [roles]="roles()"
           [busy]="saving()"
           [error]="editError()"
           (saved)="submitEdit($event)"
@@ -280,7 +305,19 @@ type TabKey = 'audit' | 'access' | 'application';
       } @else {
         <p class="border border-border bg-card p-5 text-sm text-muted-foreground">User tidak ditemukan.</p>
       }
-    </main>
+
+      </PageContent>
+
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
+        <div class="flex items-center gap-2">
+          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)">First</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)">Previous</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)">Next</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)">Last</button>
+        </div>
+      </PageFooter>
+    </Page>
   `,
 })
 export class UserDetailPage {
@@ -289,11 +326,11 @@ export class UserDetailPage {
 
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  protected readonly layout = inject(LayoutService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly user = signal<UserRecord | null>(null);
-  protected readonly roles = signal<AuthRole[]>([]);
 
   protected readonly tab = signal<TabKey>('audit');
   protected readonly logsLoading = signal(false);
@@ -317,8 +354,13 @@ export class UserDetailPage {
     const user = this.user();
     return user ? actionsFor(user, this.auth.user()?.id ?? null) : [];
   });
+  protected readonly canViewAccess = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.accessPermissionUserList),
+  );
   protected readonly activeMeta = computed(() => {
     switch (this.tab()) {
+      case 'permissions':
+        return EMPTY_META;
       case 'access':
         return this.accessMeta();
       case 'application':
@@ -343,7 +385,6 @@ export class UserDetailPage {
    * rather than running once in the constructor.
    */
   constructor() {
-    this.loadRoles();
     effect(() => {
       const id = this.id();
       this.tab.set('audit');
@@ -354,7 +395,7 @@ export class UserDetailPage {
 
   protected selectTab(tab: TabKey): void {
     this.tab.set(tab);
-    this.loadLogs(tab, 1, this.id());
+    if (tab !== 'permissions') this.loadLogs(tab, 1, this.id());
   }
 
   protected goTo(page: number): void {
@@ -376,15 +417,8 @@ export class UserDetailPage {
     });
   }
 
-  /** The role list comes from the same endpoint the list page reads it from. */
-  private loadRoles(): void {
-    this.api.users({ search: '', status: 'all', page: 1 }).subscribe({
-      next: (response) => this.roles.set(response.options.roles),
-      error: () => this.roles.set([]),
-    });
-  }
-
   private loadLogs(tab: TabKey, page: number, actorUserId: string): void {
+    if (tab === 'permissions') return;
     this.logsLoading.set(true);
 
     if (tab === 'audit') {

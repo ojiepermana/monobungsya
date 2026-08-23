@@ -50,7 +50,7 @@ describe('ApiService (spec docs/specs/0007-user-management)', () => {
       data: [],
       meta: { page: 2, perPage: 25, total: 0, totalPages: 0 },
       filters: { search: 'jane', status: 'active' },
-      options: { roles: [], statuses: [] },
+      options: { statuses: [] },
     });
   });
 
@@ -74,7 +74,6 @@ describe('ApiService (spec docs/specs/0007-user-management)', () => {
       id: 'uuid-v7',
       name: 'New User',
       email: 'new@project.local',
-      role: 'staff' as const,
     };
 
     built.service.createUser(payload).subscribe();

@@ -2,16 +2,15 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Service, signal } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import type { PermissionName } from './permissions';
+import { hasResolvedPermission } from './permissions';
 
-export type AuthRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
-
-export type AuthPermission = 'users.manage' | 'logs.read';
+export type AuthPermission = PermissionName;
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: AuthRole;
   permissions: AuthPermission[];
 }
 
@@ -108,6 +107,6 @@ export class AuthService {
   }
 
   hasPermission(permission: AuthPermission): boolean {
-    return this.user()?.permissions.includes(permission) ?? false;
+    return hasResolvedPermission(this.user()?.permissions, permission);
   }
 }

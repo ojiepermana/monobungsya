@@ -17,8 +17,26 @@ import {
   NativeSelectComponent,
   NativeSelectOptionDirective,
 } from '@ojiepermana/angular/component/native-select';
+import {
+  TableBodyComponent,
+  TableCaptionComponent,
+  TableCellComponent,
+  TableComponent,
+  TableHeadComponent,
+  TableHeaderComponent,
+  TableRowComponent,
+} from '@ojiepermana/angular/component/table';
+import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
+import {
+  PageComponent,
+  PageContentComponent,
+  PageFilterComponent,
+  PageFilterToggleComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
 import { v7 as uuidv7 } from 'uuid';
-import { type AuthRole, AuthService } from '../../../auth/auth.service';
+import { AuthService } from '../../../auth/auth.service';
 import {
   ApiService,
   type LogsMeta,
@@ -60,7 +78,6 @@ interface DraftUser {
   id: string;
   name: string;
   email: string;
-  role: AuthRole;
 }
 
 /**
@@ -85,25 +102,58 @@ interface DraftUser {
     LabelComponent,
     NativeSelectComponent,
     NativeSelectOptionDirective,
+    TableBodyComponent,
+    TableCaptionComponent,
+    TableCellComponent,
+    TableComponent,
+    TableHeadComponent,
+    TableHeaderComponent,
+    TableRowComponent,
+    PageComponent,
+    PageContentComponent,
+    PageFilterComponent,
+    PageFilterToggleComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
     ReasonDialog,
     RouterLink,
     UserEditDialog,
   ],
   template: `
-    <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
-      <header class="flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <Page
+      variant="stacked"
+      scroll="content"
+      [appearance]="layout.appearance()"
+      [filterOpen]="filterOpen()"
+      (filterOpenChange)="filterOpen.set($event)"
+      class="h-full min-h-0"
+    >
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
-          <h1 class="mt-2 text-2xl font-semibold text-foreground">User Management</h1>
+          <h1 class="truncate text-lg font-semibold text-foreground">User Management</h1>
         </div>
-        <button Button type="button" (click)="openCreate()">Tambah User</button>
-      </header>
+        <div class="flex shrink-0 items-center gap-2">
+          <PageFilterToggle
+            ariaLabel="Tampilkan atau sembunyikan filter"
+            (toggled)="filterOpen.set($event)"
+          >
+            <span>Filter</span>
+          </PageFilterToggle>
+          <button Button type="button" (click)="openCreate()">Tambah User</button>
+        </div>
+      </PageHeader>
 
-      <section class="grid gap-3 md:flex md:flex-wrap md:items-center">
+      <PageFilter
+        placement="stacked"
+        collapsible
+        [hidden]="!filterOpen()"
+        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:flex-wrap md:items-center"
+      >
         <input
           Input
           type="search"
-          placeholder="Cari nama, email, atau role..."
+          placeholder="Cari nama atau email..."
           class="md:max-w-xs"
           [value]="search()"
           (input)="updateSearch($event)"
@@ -118,44 +168,43 @@ interface DraftUser {
         <button Button variant="outline" size="xs" type="button" [disabled]="!hasFilters()" (click)="clearFilters()">
           Clear Filters
         </button>
-      </section>
+      </PageFilter>
 
-      @if (error()) {
-        <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
-      }
+      <PageContent class="grid min-h-0 content-start gap-6">
+        @if (error()) {
+          <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
+        }
 
-      @if (loading()) {
-        <p class="text-sm text-muted-foreground">Memuat user...</p>
-      } @else if (rows().length === 0) {
-        <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada user yang cocok.</p>
-      } @else {
-        <div class="overflow-auto border border-border bg-card">
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-              <tr>
-                <th class="px-4 py-3">Nama</th>
-                <th class="px-4 py-3">Email</th>
-                <th class="px-4 py-3">Role</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Dibuat</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
+        @if (loading()) {
+          <p class="text-sm text-muted-foreground">Memuat user...</p>
+        } @else if (rows().length === 0) {
+          <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada user yang cocok.</p>
+        } @else {
+          <Table class="min-w-full border border-border bg-card">
+            <caption TableCaption class="sr-only">Daftar user</caption>
+            <thead TableHeader class="text-xs uppercase text-muted-foreground">
+              <tr TableRow>
+                <th TableHead scope="col">Nama</th>
+                <th TableHead scope="col">Email</th>
+                <th TableHead scope="col">Status</th>
+                <th TableHead scope="col">Dibuat</th>
+                <th TableHead scope="col" class="text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody TableBody>
               @for (user of rows(); track user.id) {
-                <tr class="border-b border-border align-top last:border-0">
-                  <td class="px-4 py-3">
+                <tr TableRow class="align-top">
+                  <td TableCell>
                     <a class="font-medium text-foreground underline-offset-4 hover:underline" [routerLink]="['/users', user.id]">
                       {{ user.name }}
                     </a>
                   </td>
-                  <td class="px-4 py-3 text-muted-foreground">{{ user.email }}</td>
-                  <td class="px-4 py-3">{{ user.role }}</td>
-                  <td class="px-4 py-3">
+                  <td TableCell class="text-muted-foreground">{{ user.email }}</td>
+                  <td TableCell>
                     <span Badge [variant]="statusVariant(user.status)">{{ statusLabel(user.status) }}</span>
                   </td>
-                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(user.createdAt) }}</td>
-                  <td class="px-4 py-3">
+                  <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(user.createdAt) }}</td>
+                  <td TableCell>
                     <div class="flex flex-wrap justify-end gap-2">
                       @if (user.status !== 'deleted') {
                         <button Button size="xs" variant="outline" type="button" (click)="openEdit(user)">
@@ -178,11 +227,61 @@ interface DraftUser {
                 </tr>
               }
             </tbody>
-          </table>
-        </div>
-      }
+          </Table>
+        }
 
-      <footer class="flex flex-wrap items-center justify-between gap-3">
+        <app-user-edit-dialog
+          [(open)]="editOpen"
+          [user]="editing()"
+          [busy]="saving()"
+          [error]="editError()"
+          (saved)="submitEdit($event)"
+        />
+
+        <app-reason-dialog
+          [(open)]="actionOpen"
+          [title]="pendingTitle()"
+          [description]="pending()?.action.question ?? ''"
+          [confirmLabel]="pending()?.action.label ?? 'Konfirmasi'"
+          [destructive]="pending()?.action.destructive ?? false"
+          [busy]="acting()"
+          [error]="actionError()"
+          (confirmed)="runAction($event)"
+        />
+
+        <Dialog [(open)]="createOpen" class="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Tambah User</DialogTitle>
+            <DialogDescription>
+              User baru menerima email undangan berisi magic link dan bisa langsung login.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogContent class="grid gap-4 py-2">
+            <div class="grid gap-2">
+              <label Label for="create-name">Nama</label>
+              <input Input id="create-name" [value]="draft().name" (input)="patchDraft('name', $event)" />
+            </div>
+            <div class="grid gap-2">
+              <label Label for="create-email">Email</label>
+              <input Input id="create-email" type="email" [value]="draft().email" (input)="patchDraft('email', $event)" />
+            </div>
+            <p class="font-mono text-xs text-muted-foreground">id: {{ draft().id }}</p>
+            @if (createError()) {
+              <p class="text-sm text-destructive" role="alert">{{ createError() }}</p>
+            }
+          </DialogContent>
+
+          <DialogFooter>
+            <button Button variant="outline" type="button" DialogClose>Batal</button>
+            <button Button type="button" [disabled]="creating() || !draftValid()" (click)="submitCreate()">
+              {{ creating() ? 'Menyimpan...' : 'Simpan' }}
+            </button>
+          </DialogFooter>
+        </Dialog>
+      </PageContent>
+
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)">First</button>
@@ -190,73 +289,18 @@ interface DraftUser {
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)">Next</button>
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)">Last</button>
         </div>
-      </footer>
+      </PageFooter>
 
-      <Dialog [(open)]="createOpen" class="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Tambah User</DialogTitle>
-          <DialogDescription>
-            User baru menerima email undangan berisi magic link dan bisa langsung login.
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogContent class="grid gap-4 py-2">
-          <div class="grid gap-2">
-            <label Label for="create-name">Nama</label>
-            <input Input id="create-name" [value]="draft().name" (input)="patchDraft('name', $event)" />
-          </div>
-          <div class="grid gap-2">
-            <label Label for="create-email">Email</label>
-            <input Input id="create-email" type="email" [value]="draft().email" (input)="patchDraft('email', $event)" />
-          </div>
-          <div class="grid gap-2">
-            <label Label for="create-role">Role</label>
-            <select NativeSelect id="create-role" [value]="draft().role" (change)="patchDraft('role', $event)">
-              @for (role of roles(); track role) {
-                <option NativeSelectOption [value]="role" [selected]="role === draft().role">{{ role }}</option>
-              }
-            </select>
-          </div>
-          <p class="font-mono text-xs text-muted-foreground">id: {{ draft().id }}</p>
-          @if (createError()) {
-            <p class="text-sm text-destructive" role="alert">{{ createError() }}</p>
-          }
-        </DialogContent>
-
-        <DialogFooter>
-          <button Button variant="outline" type="button" DialogClose>Batal</button>
-          <button Button type="button" [disabled]="creating() || !draftValid()" (click)="submitCreate()">
-            {{ creating() ? 'Menyimpan...' : 'Simpan' }}
-          </button>
-        </DialogFooter>
-      </Dialog>
-
-      <app-user-edit-dialog
-        [(open)]="editOpen"
-        [user]="editing()"
-        [roles]="roles()"
-        [busy]="saving()"
-        [error]="editError()"
-        (saved)="submitEdit($event)"
-      />
-
-      <app-reason-dialog
-        [(open)]="actionOpen"
-        [title]="pendingTitle()"
-        [description]="pending()?.action.question ?? ''"
-        [confirmLabel]="pending()?.action.label ?? 'Konfirmasi'"
-        [destructive]="pending()?.action.destructive ?? false"
-        [busy]="acting()"
-        [error]="actionError()"
-        (confirmed)="runAction($event)"
-      />
-    </main>
+    </Page>
   `,
 })
 export class UsersPage {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  protected readonly layout = inject(LayoutService);
   private readonly reasonDialog = viewChild(ReasonDialog);
+
+  protected readonly filterOpen = signal(true);
 
   /** Used to hide the status actions on the caller's own row (AC-6). */
   protected readonly callerId = computed(() => this.auth.user()?.id ?? null);
@@ -270,7 +314,6 @@ export class UsersPage {
   protected readonly meta = signal<LogsMeta>(EMPTY_META);
   protected readonly search = signal('');
   protected readonly status = signal<UserStatusFilter>('');
-  protected readonly roles = signal<AuthRole[]>([]);
 
   protected readonly createOpen = signal(false);
   protected readonly creating = signal(false);
@@ -319,7 +362,6 @@ export class UsersPage {
         next: (response) => {
           this.rows.set(response.data);
           this.meta.set(response.meta);
-          this.roles.set(response.options.roles);
           this.loading.set(false);
         },
         error: () => {
@@ -359,7 +401,6 @@ export class UsersPage {
     this.draft.set({
       ...emptyDraft(),
       id: uuidv7(),
-      role: this.roles()[0] ?? 'staff',
     });
     this.createError.set(null);
     this.createOpen.set(true);
@@ -379,7 +420,6 @@ export class UsersPage {
         id: draft.id,
         name: draft.name.trim(),
         email: draft.email.trim(),
-        role: draft.role,
       })
       .subscribe({
         next: () => {
@@ -468,5 +508,5 @@ export class UsersPage {
 }
 
 function emptyDraft(): DraftUser {
-  return { id: '', name: '', email: '', role: 'staff' };
+  return { id: '', name: '', email: '' };
 }

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import type { AuthRole } from '../auth/auth.service';
+import type { AuthPermission } from '../auth/auth.service';
 
 export interface HealthResponse {
   status: string;
@@ -27,7 +27,6 @@ export interface UserRecord {
   id: string;
   name: string;
   email: string;
-  role: AuthRole;
   status: UserStatus;
   emailVerifiedAt: string | null;
   suspendedAt: string | null;
@@ -47,7 +46,7 @@ export interface UsersResponse {
   data: UserRecord[];
   meta: LogsMeta;
   filters: Omit<UsersFilters, 'page'>;
-  options: { roles: AuthRole[]; statuses: UserStatus[] };
+  options: { statuses: UserStatus[] };
 }
 
 export interface CreateUserPayload {
@@ -55,12 +54,10 @@ export interface CreateUserPayload {
   id: string;
   name: string;
   email: string;
-  role: AuthRole;
 }
 
 export interface UpdateUserPayload {
   name?: string;
-  role?: AuthRole;
 }
 
 export interface LogsMeta {
@@ -116,8 +113,41 @@ export interface AccessLogFilters {
 export interface SessionSummary {
   state: 'authenticated' | 'anonymous' | 'invalid';
   reason: string | null;
-  role: string | null;
   permissionCount: number;
+}
+
+export interface PermissionRecord {
+  id: string;
+  name: AuthPermission;
+  code: string;
+  namespace: string;
+  resource: string;
+  action: string;
+  scope: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PermissionsResponse {
+  data: PermissionRecord[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+  filters: { search: string; namespace: string };
+}
+
+export interface PermissionGrant {
+  id: string;
+  permissionId: string;
+  userId: string;
+  permission: PermissionRecord;
+  createdAt: string;
+}
+
+export type PermissionGrantResponse = PermissionGrant[];
+
+export interface PermissionMutationResponse {
+  granted: PermissionRecord[];
+  skipped: string[];
 }
 
 export interface AccessLogItem {
@@ -295,6 +325,80 @@ export class ApiService {
           filters.actorUserId,
         ),
       },
+    );
+  }
+
+  permissions(filters: {
+    search: string;
+    namespace: string;
+    page: number;
+  }): Observable<PermissionsResponse> {
+    return this.http.get<PermissionsResponse>(
+      `${this.base}/api/v1/access/permissions`,
+      {
+        params: new HttpParams()
+          .set('search', filters.search)
+          .set('namespace', filters.namespace)
+          .set('page', String(filters.page)),
+      },
+    );
+  }
+
+  createPermission(payload: {
+    name: string;
+    description: string;
+  }): Observable<PermissionRecord> {
+    return this.http.post<PermissionRecord>(
+      `${this.base}/api/v1/access/permissions`,
+      payload,
+    );
+  }
+
+  updatePermission(
+    id: string,
+    description: string,
+  ): Observable<PermissionRecord> {
+    return this.http.put<PermissionRecord>(
+      `${this.base}/api/v1/access/permissions/${encodeURIComponent(id)}`,
+      { description },
+    );
+  }
+
+  deletePermission(id: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/api/v1/access/permissions/${encodeURIComponent(id)}`,
+    );
+  }
+
+  userPermissions(userId: string): Observable<PermissionGrantResponse> {
+    return this.http.get<PermissionGrantResponse>(
+      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions`,
+    );
+  }
+
+  grantUserPermissions(
+    userId: string,
+    permissionIds: string[],
+  ): Observable<PermissionMutationResponse> {
+    return this.http.post<PermissionMutationResponse>(
+      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions`,
+      { permissionIds },
+    );
+  }
+
+  copyUserPermissions(
+    userId: string,
+    sourceUserId: string,
+  ): Observable<PermissionMutationResponse> {
+    return this.http.post<PermissionMutationResponse>(
+      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions/copy`,
+      { sourceUserId },
+    );
+  }
+
+  revokeUserPermission(userId: string, permissionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/api/v1/access/users/${encodeURIComponent(userId)}/permissions/${encodeURIComponent(permissionId)}`,
     );
   }
 

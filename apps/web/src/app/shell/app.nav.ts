@@ -1,5 +1,6 @@
 import type { NavigationItem } from '@ojiepermana/angular/navigation';
 import type { AuthPermission } from '../auth/auth.service';
+import { hasResolvedPermission, PERMISSIONS } from '../auth/permissions';
 
 export const APP_BRAND_ICON = 'payments' as const;
 
@@ -28,10 +29,8 @@ export function appNavigationFor(
     },
   ];
 
-  // users.manage is admin only (spec 0007, AC-8), so a manager never sees a
-  // menu entry the gateway would refuse.
   const userItems: NavigationItem[] = [];
-  if (permissions.includes('users.manage')) {
+  if (hasResolvedPermission(permissions, PERMISSIONS.userUserList)) {
     userItems.push({
       id: 'users',
       type: 'item',
@@ -42,7 +41,7 @@ export function appNavigationFor(
   }
 
   const logItems: NavigationItem[] = [];
-  if (permissions.includes('logs.read')) {
+  if (hasResolvedPermission(permissions, PERMISSIONS.logsLogRead)) {
     logItems.push(
       {
         id: 'logs-audit',
@@ -80,7 +79,27 @@ export function appNavigationFor(
   return [
     group('Overview', overviewItems),
     ...(userItems.length > 0 ? [group('Users', userItems)] : []),
-    ...(settingsItems.length > 0 ? [group('Settings', settingsItems)] : []),
+    ...(settingsItems.length > 0
+      ? [
+          group('Settings', [
+            ...settingsItems,
+            ...(hasResolvedPermission(
+              permissions,
+              PERMISSIONS.accessPermissionList,
+            )
+              ? [
+                  {
+                    id: 'permission-catalog',
+                    type: 'item' as const,
+                    title: 'Permission Catalog',
+                    icon: 'key',
+                    link: '/access/permissions',
+                  },
+                ]
+              : []),
+          ]),
+        ]
+      : []),
     ...(logItems.length > 0 ? [group('Logs', logItems)] : []),
   ];
 }

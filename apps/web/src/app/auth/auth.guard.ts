@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import type { AuthPermission, AuthUser } from './auth.service';
 import { AuthService } from './auth.service';
+import { hasResolvedPermission } from './permissions';
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
@@ -30,7 +31,9 @@ export function permissionGuard(permission: AuthPermission): CanActivateFn {
     const auth = inject(AuthService);
     const router = inject(Router);
     const decide = (user: AuthUser | null) =>
-      user?.permissions.includes(permission) ? true : router.parseUrl('/');
+      hasResolvedPermission(user?.permissions, permission)
+        ? true
+        : router.parseUrl('/');
 
     if (auth.loaded()) {
       return decide(auth.user());

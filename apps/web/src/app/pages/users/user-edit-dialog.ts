@@ -19,15 +19,10 @@ import {
 } from '@ojiepermana/angular/component/dialog';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import { LabelComponent } from '@ojiepermana/angular/component/label';
-import {
-  NativeSelectComponent,
-  NativeSelectOptionDirective,
-} from '@ojiepermana/angular/component/native-select';
-import type { AuthRole } from '../../auth/auth.service';
 import type { UpdateUserPayload, UserRecord } from '../../services/api.service';
 
 /**
- * Edits a user's name and role. Email is shown but not editable: it cannot be
+ * Edits a user's name. Email is shown but not editable: it cannot be
  * changed through the API (spec docs/specs/0007-user-management, AC-3), because
  * it is the login identity and stays unique across every row.
  *
@@ -46,28 +41,18 @@ import type { UpdateUserPayload, UserRecord } from '../../services/api.service';
     DialogTitleComponent,
     InputComponent,
     LabelComponent,
-    NativeSelectComponent,
-    NativeSelectOptionDirective,
   ],
   template: `
     <Dialog [(open)]="open" class="max-w-lg">
       <DialogHeader>
         <DialogTitle>Ubah User</DialogTitle>
-        <DialogDescription>Nama dan role bisa diubah. Email tidak bisa diubah.</DialogDescription>
+        <DialogDescription>Nama bisa diubah. Akses diatur dari tab Access.</DialogDescription>
       </DialogHeader>
 
       <DialogContent class="grid gap-4 py-2">
         <div class="grid gap-2">
           <label Label for="edit-name">Nama</label>
           <input Input id="edit-name" [value]="name()" (input)="setName($event)" />
-        </div>
-        <div class="grid gap-2">
-          <label Label for="edit-role">Role</label>
-          <select NativeSelect id="edit-role" [value]="role()" (change)="setRole($event)">
-            @for (option of roles(); track option) {
-              <option NativeSelectOption [value]="option" [selected]="option === role()">{{ option }}</option>
-            }
-          </select>
         </div>
         <p class="text-xs text-muted-foreground">{{ user()?.email }}</p>
         @if (error()) {
@@ -87,13 +72,11 @@ import type { UpdateUserPayload, UserRecord } from '../../services/api.service';
 export class UserEditDialog {
   readonly open = model(false);
   readonly user = input<UserRecord | null>(null);
-  readonly roles = input<AuthRole[]>([]);
   readonly busy = input(false);
   readonly error = input<string | null>(null);
   readonly saved = output<UpdateUserPayload>();
 
   protected readonly name = signal('');
-  protected readonly role = signal<AuthRole>('staff');
 
   /** Reloads the fields whenever a different user is put into the dialog. */
   constructor() {
@@ -102,7 +85,6 @@ export class UserEditDialog {
 
       if (user) {
         this.name.set(user.name);
-        this.role.set(user.role);
       }
     });
   }
@@ -114,18 +96,11 @@ export class UserEditDialog {
       return false;
     }
 
-    return (
-      this.name().trim().length > 0 &&
-      (this.name().trim() !== user.name || this.role() !== user.role)
-    );
+    return this.name().trim().length > 0 && this.name().trim() !== user.name;
   });
 
   protected setName(event: Event): void {
     this.name.set((event.target as HTMLInputElement).value);
-  }
-
-  protected setRole(event: Event): void {
-    this.role.set((event.target as HTMLSelectElement).value as AuthRole);
   }
 
   /** Only the fields that actually changed are sent. */
@@ -140,10 +115,6 @@ export class UserEditDialog {
 
     if (this.name().trim() !== user.name) {
       payload.name = this.name().trim();
-    }
-
-    if (this.role() !== user.role) {
-      payload.role = this.role();
     }
 
     this.saved.emit(payload);

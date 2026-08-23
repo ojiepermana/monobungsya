@@ -1,5 +1,6 @@
 import type { NavigationItem } from '@ojiepermana/angular/navigation';
 import { describe, expect, it } from 'vitest';
+import { PERMISSIONS } from '../auth/permissions';
 import { appNavigationFor } from './app.nav';
 
 describe('application navigation authorization', () => {
@@ -7,11 +8,18 @@ describe('application navigation authorization', () => {
     // User management is its own group above Settings: it is a domain area,
     // not a preference (spec docs/specs/0007-user-management).
     expect(
-      navigationIds(appNavigationFor(['users.manage', 'logs.read'])),
+      navigationIds(
+        appNavigationFor([
+          PERMISSIONS.userUserManage,
+          PERMISSIONS.logsLogRead,
+          PERMISSIONS.accessPermissionManage,
+        ]),
+      ),
     ).toEqual([
       'logs-overview',
       'users',
       'passkeys',
+      'permission-catalog',
       'logs-audit',
       'logs-access',
       'logs-application',
@@ -19,13 +27,13 @@ describe('application navigation authorization', () => {
   });
 
   it('does not expose user administration without its permission', () => {
-    expect(navigationIds(appNavigationFor(['logs.read']))).not.toContain(
-      'users',
-    );
+    expect(
+      navigationIds(appNavigationFor([PERMISSIONS.logsLogRead])),
+    ).not.toContain('users');
   });
 
-  it('does not expose any logs destination without logs.read (covers AC-5)', () => {
-    const ids = navigationIds(appNavigationFor(['users.manage']));
+  it('does not expose any logs destination without the logs read permission (covers AC-5)', () => {
+    const ids = navigationIds(appNavigationFor([PERMISSIONS.userUserManage]));
 
     expect(ids).not.toContain('logs-audit');
     expect(ids).not.toContain('logs-access');
@@ -39,13 +47,15 @@ describe('application navigation authorization', () => {
 
   it('lets every signed in user manage their own passkeys', () => {
     expect(navigationIds(appNavigationFor([]))).toContain('passkeys');
-    expect(navigationIds(appNavigationFor(['logs.read']))).toContain(
-      'passkeys',
-    );
+    expect(
+      navigationIds(appNavigationFor([PERMISSIONS.logsLogRead])),
+    ).toContain('passkeys');
   });
 
   it('does not expose deleted feature destinations', () => {
-    const ids = navigationIds(appNavigationFor(['users.manage', 'logs.read']));
+    const ids = navigationIds(
+      appNavigationFor([PERMISSIONS.userUserManage, PERMISSIONS.logsLogRead]),
+    );
 
     expect(ids).not.toContain('dashboard');
   });

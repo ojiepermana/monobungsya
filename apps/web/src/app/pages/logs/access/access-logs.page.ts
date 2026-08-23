@@ -132,7 +132,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
                   <td class="px-4 py-3 text-xs">
                     @if (row.sessionSummary) {
                       <p>{{ row.sessionId ?? '-' }} · {{ row.sessionSummary.state }}</p>
-                      <p>{{ row.sessionSummary.role ?? '-' }} · {{ row.sessionSummary.permissionCount }} permissions</p>
+                      <p>{{ row.sessionSummary.permissionCount }} permissions</p>
                       <p>{{ row.sessionSummary.reason ?? '-' }}</p>
                     } @else {
                       <span>-</span>

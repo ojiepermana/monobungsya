@@ -77,7 +77,7 @@ const ACTIONS: Record<UserStatusAction, StatusActionMeta> = {
  * authority: an action the UI offers by mistake still returns 409.
  *
  * A status action on the caller's own account is always refused (AC-6), so it
- * is not offered at all. Editing your own name and role is still allowed.
+ * is not offered at all. Editing your own name remains allowed.
  */
 export function actionsFor(
   user: UserRecord,
