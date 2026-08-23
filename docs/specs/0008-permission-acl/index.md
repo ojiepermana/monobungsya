@@ -1,11 +1,11 @@
 # 0008. Permission first access control without roles
 
-**Date**: 2026-08-23
+**Date**: 2026-08-23 · Updated: 2026-08-23
 **Status**: In Progress
 
 ## Summary
 
-Otorisasi di seluruh sistem pindah dari role global ke daftar permission per user (ACL murni). Sebuah service baru bernama access menjadi sumber kebenaran tunggal untuk katalog permission dan grant per user, gateway memeriksa permission pada setiap request terproteksi, dan konsep role dihapus total dari domain user, auth, dan web. Admin mengelola katalog dan grant lewat halaman Angular baru, dengan multi select dan aksi salin grant dari user lain supaya operasional tetap ringan.
+Otorisasi di seluruh sistem pindah dari role global ke daftar permission per user (ACL murni). Sebuah service baru bernama access menjadi sumber kebenaran tunggal untuk katalog permission dan grant per user, gateway memeriksa permission pada setiap request terproteksi, dan konsep role dihapus total dari domain user, auth, dan web. Admin mengelola katalog dan grant lewat halaman Angular baru, dengan multi select dan aksi salin grant dari user lain supaya operasional tetap ringan. Katalog permission memakai page scaffold bertumpuk, filter tertutup secara default dengan toggle di header, serta tombol header dan action tabel berukuran `xs`.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ Otorisasi di seluruh sistem pindah dari role global ke daftar permission per use
 - **AC-11**: Downstream services (user, logs, access) verify the extended identity header signature, which now covers the permission list, and independently enforce their own route permissions. A request whose header lacks the required permission is rejected with 403 even when it reaches the service directly.
 - **AC-12**: `GET /api/v1/auth/session` returns the user's effective permissions, filled by the gateway from the same lookup path, and no longer returns a role. The web `AuthUser` model, guards, and navigation gate on permission names imported from `packages/acl`.
 - **AC-13**: Every previously protected gateway route (users, logs) now requires the matching new permission; the capability enum, `canAccessAuthCapability`, and `permissionsForRole` are deleted from the codebase.
-- **AC-14**: The web app has permission catalog pages (list with search, create, edit description, delete with cascade warning) and the user detail page has an access tab with multi select granting grouped by namespace, revoking, and a copy grants from another user action; all gated by `access:*` permissions.
+- **AC-14**: The web app has permission catalog pages (list with search, create, edit description, delete with cascade warning) and the user detail page has an access tab with multi select granting grouped by namespace, revoking, and a copy grants from another user action; all gated by `access:*` permissions. The catalog list composes the `Page` stacked scaffold with header, `PageFilter`, content, and footer slots. Its filter is `collapsible`, closed by default, and controlled by the `Filter` toggle in the page header. Header primary actions and table row actions use `Button size="xs"`.
 - **AC-15**: Every catalog mutation, grant, and revoke writes an awaited audit trail via `ActivityLog.writeAudit`, and the access service implements the full mandatory logging contract (request id plugin, logger plugin, error handler, redaction, best effort application logs, flush on shutdown).
 - **AC-16**: OpenAPI specs and the Angular SDK are regenerated and committed; `bun run check:dependencies`, `bun run lint`, and `bun run typecheck` pass; every new env var is documented in `.env.example`.
 
@@ -97,6 +97,8 @@ The manage wildcard rule: holding `namespace:resource:manage` satisfies any requ
 | `GET /internal/access/permissions/lookup?userId=` | GET | userId | `{ permissions: string[] }` sorted distinct | internal only, called by the gateway, never proxied | 422 bad uuid |
 | `/api/v1/auth/session` | GET | session cookie | existing session payload, now with gateway filled `permissions: string[]` and no `role` | authenticated session | 401 |
 
+**Permission catalog page composition**: the Angular catalog list uses `Page` from `@ojiepermana/angular/theme/page` with `variant="stacked"` and `scroll="content"`. `PageHeader` contains the title, the `Filter` toggle, and the primary catalog action. `PageFilter` uses `placement="stacked"` and `collapsible`, starts hidden, and contains search and namespace filters. `PageContent` contains loading, error, empty, table, and dialogs. `PageFooter` contains paging controls. The primary header action and row actions use `Button size="xs"`; the user detail access tab follows the same compact action sizing where it renders actions.
+
 **Identity header contract** (replaces the role bearing shape from spec 0003, defined once in `packages/contracts`):
 
 - Headers: `x-auth-user-id`, `x-auth-email`, `x-auth-permissions` (comma joined canonical names), `x-auth-expires-at`, `x-auth-signature`. `x-auth-role` is removed.
@@ -160,6 +162,7 @@ The manage wildcard rule: holding `namespace:resource:manage` satisfies any requ
 - Copy grants: copying from a source user grants exactly the missing subset, verifies **AC-7**, **AC-14**
 - Role removal: `GET /api/v1/auth/session` payload contains no role key, and grep proves no role reads remain, verifies **AC-3**, **AC-12**, **AC-13**
 - Audit: each grant, revoke, and catalog mutation produces one audit row with the acting admin, verifies **AC-15**
+- UI catalog: the permission list starts with its filter hidden, the header `Filter` toggle opens and closes it, and header and table actions render at `xs`, verifies **AC-14**
 
 ## Build plan
 
@@ -168,7 +171,7 @@ Tracer Bullet: slice 1 threads one request end to end through every new layer (p
 1. **Thin thread**: create `packages/acl` (constants, helpers, unit tests); access schema migrations and catalog plus bootstrap seeds; access service skeleton per the repo service shape (composition root, `createApp`, env validation, full logging contract, Dockerfile) exposing only the internal lookup; gateway resolves permissions through a new TTL cache and authorizes one migrated route, `GET /api/v1/users`, forwarding the extended identity header; the user service plugin verifies the new header shape for that route. Proof: bootstrap admin lists users, an ungranted user gets 403, access service down gives 503. Satisfies **AC-1**, **AC-2**, **AC-4**, **AC-5**, **AC-6**, and threads **AC-9**, **AC-11**.
 2. **Full cutover**: declarative gateway route table mapping every users and logs route to its permission constant; session response enrichment; delete the capability enum, `canAccessAuthCapability`, and `permissionsForRole`; auth service returns identity and session state only; `user` schema migration drops the role column; user service, auth service, and web stop reading or writing role (create user dialog loses the role field, guards and navigation move to `packages/acl` names). Satisfies **AC-3**, **AC-9**, **AC-11**, **AC-12**, **AC-13**.
 3. **Admin API**: access service catalog CRUD and grant endpoints with derived code and segments, immutability rules, idempotent multi grant, copy action, protected namespace and self lockout guards, awaited audit writes, `access.permission.changed` publication, the access service internal cache, and the gateway invalidation subscription. Satisfies **AC-7**, **AC-8**, **AC-10**, **AC-15**.
-4. **Admin UI**: Angular catalog pages and the user detail access tab (multi select grouped by namespace, revoke, copy from user), navigation gating, using the regenerated SDK. Satisfies **AC-14**.
+4. **Admin UI**: Angular catalog pages and the user detail access tab (multi select grouped by namespace, revoke, copy from user), navigation gating, using the regenerated SDK. The catalog list uses the stacked `Page` slots, starts with a hidden collapsible filter controlled from the header, and uses `xs` actions in the header and table. Satisfies **AC-14**.
 5. **Proof and artifacts**: the critical test scenarios above across packages and services, OpenAPI and SDK regeneration committed, `.env.example` updates, dependency check, lint, typecheck. Satisfies **AC-16** and the test halves of the rest.
 
 ## Migration plan
