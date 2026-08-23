@@ -2,9 +2,9 @@ import type { NavigationItem } from '@ojiepermana/angular/navigation';
 import type { AuthPermission } from '../auth/auth.service';
 import { hasResolvedPermission, PERMISSIONS } from '../auth/permissions';
 
-export const APP_BRAND_ICON = 'payments' as const;
+export const APP_BRAND_ICON = 'apps' as const;
 
-/** Application navigation grouped by the main areas of the payroll app. */
+/** Application navigation grouped by the main areas of the app. */
 export function appNavigationFor(
   permissions: readonly AuthPermission[],
 ): readonly NavigationItem[] {

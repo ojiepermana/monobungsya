@@ -265,8 +265,6 @@ invoice
 
 payment
 
-employee
-
 dan seterusnya.
 
 Masing-masing module memiliki dependency sendiri.

@@ -121,7 +121,7 @@ export const createOrderTool = defineTool({
 export const tools: ToolDefinition[] = [checkStockTool, createOrderTool];
 ```
 
-Module yang disiapkan: `inventory/`, lalu `sales/`, `purchasing/`, `finance/`, `customer/`, `reporting/` dibuat saat tool pertamanya hadir.
+Module yang disiapkan: `inventory/`, lalu `sales/`, `purchasing/`, `finance/`, dan `customer/` dibuat saat tool pertamanya hadir.
 
 ## Struktur dan best practice
 

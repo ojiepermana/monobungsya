@@ -45,17 +45,3 @@ export type UserDeletedEvent = {
   occurredAt: string;
   userId: string;
 };
-
-export type EmployeeCreatedEvent = {
-  type: 'employee.created';
-  version: 1;
-  occurredAt: string;
-  employeeId: string;
-};
-
-export type PayrollRunCompletedEvent = {
-  type: 'payroll.run.completed';
-  version: 1;
-  occurredAt: string;
-  payrollRunId: string;
-};

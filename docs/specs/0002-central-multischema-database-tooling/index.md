@@ -111,13 +111,11 @@ CREATE TABLE "user"."users" (
 | Scope       | PostgreSQL schema | Owner                | Notes                                                                                                |
 | ----------- | ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
 | `auth`      | `auth`            | Auth service         | Auth is the identity infrastructure scope. The schema name avoids confusion with the `user` service. |
+| `access`    | `access`          | Access service       | Permission catalog and direct user grants use this schema.                                           |
 | `user`      | `user`            | User service         | All user domain tables use this schema.                                                              |
-| `employee`  | `employee`        | Employee service     | All employee domain tables use this schema.                                                          |
-| `payroll`   | `payroll`         | Payroll service      | All payroll domain tables use this schema.                                                           |
-| `reporting` | `reporting`       | Reporting service    | Reporting tables use this schema.                                                                    |
 | `logs`      | `logs`            | Infrastructure scope | Logging and audit partitions stay in this schema.                                                    |
 
-The runner has an explicit allowlist for these six scopes. It scans every directory under the configured migration and seed roots and rejects an unknown directory. An unknown scope or schema fails closed. Migration SQL must qualify every application object with its schema and table name. The runner must not rely on `search_path`. The old `users`, `log`, and separate `partition` schemas are not canonical. Partitioned tables and their partitions belong under `logs`.
+The runner has an explicit allowlist for these scopes. It scans every directory under the configured migration and seed roots and rejects an unknown directory. An unknown scope or schema fails closed. Migration SQL must qualify every application object with its schema and table name. The runner must not rely on `search_path`. The old `users`, `log`, and separate `partition` schemas are not canonical. Partitioned tables and their partitions belong under `logs`.
 
 Foreign keys may point to another table in the same owned schema. A service must not create a foreign key to another service schema. Cross service references store UUID values and are checked through the service or messaging boundary. Auth user identifiers are therefore UUID references without database foreign keys in other service schemas.
 
@@ -156,9 +154,9 @@ Schema rollback does not guess which seed rows were removed. `db:migrate:down` l
 | `bun run db:migrate:down`                | Uses `DATABASE_MIGRATION_URL`. Nonproduction recovery command. Roll back the latest migration files in reverse order, with optional `--steps <positive integer>` and optional `--service <name>`. It is not the normal production deployment path. |
 | `bun run db:seed:reset --service <name>` | Uses `DATABASE_MIGRATION_URL`. Clear seed tracking for one scope so its idempotent seed files can be replayed. It does not delete business rows.                                                                                                   |
 
-The `--service` value is an ownership name, not a PostgreSQL schema name. The mapping is one to one for `auth`, `user`, `employee`, `payroll`, `reporting`, and `logs`. A filtered command applies only matching files and never runs files from another scope automatically. Since migration order is globally serial, before applying a filtered file the runner verifies that every lower numbered migration in every scope is already tracked. Those earlier files are the implicit dependency model. If any is missing, the command fails and reports the missing names.
+The `--service` value is an ownership name, not a PostgreSQL schema name. The mapping is one to one for `auth`, `access`, `user`, and `logs`. A filtered command applies only matching files and never runs files from another scope automatically. Since migration order is globally serial, before applying a filtered file the runner verifies that every lower numbered migration in every scope is already tracked. Those earlier files are the implicit dependency model. If any is missing, the command fails and reports the missing names.
 
-The runner checks PostgreSQL `server_version_num` before a command that connects to the database and fails unless the server major version is exactly 18. Before any migration or reset, it runs `SELECT uuidv7()` as a startup probe and fails with an actionable error if the native function is unavailable. Time columns use `timestamptz`, which stores an unambiguous instant. The application and reporting layer render instants in `Asia/Jakarta`; writers use `now()` and do not depend on a host local timezone.
+The runner checks PostgreSQL `server_version_num` before a command that connects to the database and fails unless the server major version is exactly 18. Before any migration or reset, it runs `SELECT uuidv7()` as a startup probe and fails with an actionable error if the native function is unavailable. Time columns use `timestamptz`, which stores an unambiguous instant. The application and presentation layer render instants in `Asia/Jakarta`; writers use `now()` and do not depend on a host local timezone.
 
 ### Reset and concurrency
 
@@ -176,7 +174,7 @@ All mutating commands take a PostgreSQL advisory lock on the target database thr
 
 The migration role from `DATABASE_MIGRATION_URL` may create and alter the allowlisted application schemas, metadata tables, indexes, and explicit grants. It is the role used by migration, seed, down, and reset commands. Runtime roles from `DATABASE_URL` are separate and cannot perform DDL.
 
-The provisioning contract uses these fixed role names: `project_migrator`, `project_auth_runtime`, `project_user_runtime`, `project_employee_runtime`, `project_payroll_runtime`, `project_reporting_runtime`, and `project_logs_writer`. DBA or infrastructure automation creates these roles and manages their credentials outside the repository. Migration `0007_database_grants` only applies grants and never creates roles, passwords, or login attributes.
+The provisioning contract uses these fixed role names: `project_migrator`, `project_auth_runtime`, `project_user_runtime`, and `project_logs_writer`. DBA or infrastructure automation creates these roles and manages their credentials outside the repository. Migration `0007_database_grants` only applies grants and never creates roles, passwords, or login attributes.
 
 Each service runtime role receives usage and data privileges only on its owned schema. The logs scope grants `project_logs_writer` select and insert access to the three logging tables. No service runtime role receives unrestricted read or write access to another service schema. Grants are explicit in migration SQL or the controlled provisioning step and are not inferred from folder names. Default privileges for objects created by `project_migrator` must preserve the same scope grants for future tables.
 
@@ -192,13 +190,13 @@ Tests must cover a fresh reset, a second idempotent migrate, a failed migration 
 - `DATABASE_MIGRATION_URL`: migration role connection used by all database commands.
 - `DATABASE_RESET_ALLOWED`: explicit nonproduction gate for destructive schema reset.
 - `NODE_ENV`: must be `development` or `test` for reset.
-- `DATABASE_TIMEZONE`: fixed to `Asia/Jakarta` for display and reporting conventions. Storage uses `timestamptz`.
+- `DATABASE_TIMEZONE`: fixed to `Asia/Jakarta` for display conventions. Storage uses `timestamptz`.
 
 **Rollout**:
 
 - New migration and seed source uses this standard immediately.
 - Move the working runner from `contekan/database` into `packages/database` without changing domain data in the same change.
-- Add bootstrap migrations that create `auth`, `user`, `employee`, `payroll`, `reporting`, and `logs`.
+- Add bootstrap migrations that create `auth`, `user`, and `logs`.
 - Rename the old `users` schema to `auth`, and replace old `log` and `partition` references with `logs` qualified names.
 - Migrate existing natural or non UUIDv7 primary keys through explicit mapping utilities before enforcing the catalog validation on those tables.
 - Add root scripts and CI checks, then remove duplicate operational logic from `contekan` after the package runner is verified.
@@ -222,7 +220,7 @@ Tests must cover a fresh reset, a second idempotent migrate, a failed migration 
 **Negative / tradeoffs**:
 
 - A central package must coordinate schema changes and global migration numbers.
-- `timestamptz` requires reporting and presentation code to convert instants to Asia Jakarta when local wall time is needed.
+- `timestamptz` requires presentation code to convert instants to Asia Jakarta when local wall time is needed.
 - UUID remapping makes legacy imports more involved and requires downstream identifier mapping.
 - Reset removes all allowlisted application schemas and needs a migration role with destructive DDL privilege in nonproduction.
 - Catalog validation and explicit grants add implementation and CI work before the standard is fully enforced.

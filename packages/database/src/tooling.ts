@@ -4,9 +4,6 @@ export const DATABASE_SCOPES = {
   auth: 'auth',
   access: 'access',
   user: 'user',
-  employee: 'employee',
-  payroll: 'payroll',
-  reporting: 'reporting',
   logs: 'logs',
 } as const;
 

@@ -193,7 +193,7 @@ Tracer Bullet: slice 1 threads one request end to end through every new layer (p
 
 - Access decisions become data, changeable per user at runtime with a full audit trail, instead of five hardcoded role enums spread across gateway, services, and web.
 - Defence in depth gets real teeth: services verify a signed permission list instead of trusting a role string, and re check per route.
-- The access domain is a clean, extractable service with its own schema, matching the repo's ownership rules, and future namespaces (employee, payroll) only add catalog rows and route entries.
+- The access domain is a clean, extractable service with its own schema, matching the repo's ownership rules. Future namespaces only add catalog rows and route entries.
 
 **Negative / tradeoffs**:
 

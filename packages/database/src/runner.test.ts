@@ -9,6 +9,7 @@ import {
   discoverSeeds,
 } from './runner';
 import {
+  DATABASE_SCOPES,
   isDatabaseScope,
   parseMigrationName,
   schemaForScope,
@@ -17,6 +18,12 @@ import {
 
 describe('database tooling primitives', () => {
   test('maps service scopes to their canonical schema names', () => {
+    expect(Object.keys(DATABASE_SCOPES)).toEqual([
+      'auth',
+      'access',
+      'user',
+      'logs',
+    ]);
     expect(schemaForScope('auth')).toBe('auth');
     expect(schemaForScope('logs')).toBe('logs');
     expect(isDatabaseScope('user')).toBe(true);

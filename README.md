@@ -117,7 +117,7 @@ Hasilnya ditulis ke `openapi.yaml` pada gateway dan service yang tersisa. Public
 
 `packages/messaging` menyediakan publisher, subscriber, request response, dan lifecycle connection untuk NATS. Business service memakai abstraction ini, bukan detail connection di seluruh business logic.
 
-Event contract ada di `packages/contracts/src/events`. Event handler implementation tetap berada di module service pemilik event. Event contract awal yang tersedia adalah user created, user updated, user deleted, employee created, dan payroll run completed.
+Event contract ada di `packages/contracts/src/events`. Event handler implementation tetap berada di module service pemilik event. Event contract awal yang tersedia adalah user invited, user created, user updated, user deleted, dan access permission changed.
 
 ## Database
 
@@ -128,15 +128,13 @@ PostgreSQL 18 menjadi prasyarat. Semua primary key application table memakai `uu
 | Scope     | Schema      |
 | --------- | ----------- |
 | auth      | `auth`      |
+| access    | `access`    |
 | user      | `user`      |
-| employee  | `employee`  |
-| payroll   | `payroll`   |
-| reporting | `reporting` |
 | logs      | `logs`      |
 
 Gunakan `DATABASE_MIGRATION_URL` untuk role migration. `DATABASE_RESET_ALLOWED=true` hanya boleh dipakai pada development atau test.
 
-Role PostgreSQL dibuat oleh DBA atau infrastructure automation, bukan oleh migration runner. Nama role canonical adalah `project_migrator`, `project_auth_runtime`, `project_user_runtime`, `project_employee_runtime`, `project_payroll_runtime`, `project_reporting_runtime`, dan `project_logs_writer`. Password serta atribut login harus disimpan di secret manager. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
+Role PostgreSQL dibuat oleh DBA atau infrastructure automation, bukan oleh migration runner. Nama role canonical adalah `project_migrator`, `project_auth_runtime`, `project_user_runtime`, dan `project_logs_writer`. Password serta atribut login harus disimpan di secret manager. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
 
 ```bash
 bun run db:migrate
@@ -208,4 +206,4 @@ Saat ownership atau deployment benar benar membutuhkan pemisahan, pindahkan satu
 
 ## Status scaffold
 
-Scaffold ini tidak mengimplementasikan login, user CRUD, employee workflow, payroll calculation, reporting query, authorization policy, migration bisnis, atau event handler produksi. Endpoint status hanya membuktikan composition root, health, OpenAPI, dan boundary dasar. Keputusan auth, tenant isolation, dan domain model perlu dibuat sebelum fitur bisnis pertama dibangun.
+Scaffold awal ini tidak mengimplementasikan login, user CRUD, authorization policy, migration bisnis, atau event handler produksi. Endpoint status hanya membuktikan composition root, health, OpenAPI, dan boundary dasar. Keputusan auth, tenant isolation, dan domain model perlu dibuat sebelum fitur bisnis pertama dibangun.

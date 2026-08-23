@@ -80,7 +80,7 @@ Elysia schemas are the source of truth. `bun run openapi:generate` writes `opena
 
 ### Database
 
-PostgreSQL 18, native Bun SQL (no ORM). Multischema with per-domain ownership: `auth`, `user`, `employee`, `payroll`, `reporting`, `logs`. Primary keys are `uuid` with native `uuidv7()` default. Canonical migrations and seeds live in `packages/database/migrations/<schema>` and `packages/database/seeds` — not inside services. Migrations use `DATABASE_MIGRATION_URL` (role `project_migrator`); runtime roles are per-service and provisioned outside the migration runner. All queries must use parameter binding; filtering/sorting must go through field whitelists in the repository.
+PostgreSQL 18, native Bun SQL (no ORM). Multischema with per domain ownership: `auth`, `access`, `user`, and `logs`. Primary keys are `uuid` with native `uuidv7()` default. Canonical migrations and seeds live in `packages/database/migrations/<schema>` and `packages/database/seeds`, outside deployable services. Migrations use `DATABASE_MIGRATION_URL` with role `project_migrator`; runtime roles are provisioned outside the migration runner. All queries must use parameter binding; filtering and sorting must go through field whitelists in the repository.
 
 ### Auth
 

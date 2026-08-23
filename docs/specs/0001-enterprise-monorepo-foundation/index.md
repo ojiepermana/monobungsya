@@ -14,7 +14,7 @@ Verification steps live in [verify.md](verify.md).
 
 **Chosen option**: Option 2: Explicit service applications in one monorepo
 
-Gunakan root Bun project dengan Angular app, Elysia API Gateway, lima Bun service domain, dan shared package infrastructure yang minimal. Hanya `packages/*` menjadi workspace package bernama, sedangkan semua app dijalankan langsung dari source path oleh root scripts. Elysia TypeBox schema menjadi source of truth untuk OpenAPI. Gateway adalah satu satunya public entry point pada `/api/v1/*`; komunikasi domain memakai NATS abstraction atau internal HTTP saat memang diperlukan.
+Gunakan root Bun project dengan Angular app, Elysia API Gateway, dua Bun service domain awal, dan shared package infrastructure yang minimal. Hanya `packages/*` menjadi workspace package bernama, sedangkan semua app dijalankan langsung dari source path oleh root scripts. Elysia TypeBox schema menjadi source of truth untuk OpenAPI. Gateway adalah satu satunya public entry point pada `/api/v1/*`; komunikasi domain memakai NATS abstraction atau internal HTTP saat memang diperlukan.
 
 **Container image option**: Centralize canonical Dockerfiles in `infra/docker`.
 
@@ -28,11 +28,11 @@ Setiap deployable app memiliki satu Dockerfile di folder deployment terpusat. Bu
 - Root `package.json` memiliki seluruh dependency versioning, scripts, dan app entrypoints.
 - Root `package.json` menyediakan import map `#project/*` untuk source shared packages.
 - Bun install menghasilkan satu physical `node_modules` di root.
-- App source berada di `apps/web`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/employee`, `apps/services/payroll`, dan `apps/services/reporting` tanpa manifest lokal.
+- App source awal berada di `apps/web`, `apps/gateway/erp`, `apps/services/auth`, dan `apps/services/user` tanpa manifest lokal.
 - Shared package hanya berisi `contracts`, `angular-sdk`, `database`, `messaging`, `config`, `logger`, dan `errors`.
 - Setiap app memiliki `GET /health`, typed env, logger, error handler, OpenAPI, Bun smoke test, dan graceful shutdown.
 - Business module mengikuti `route -> schema -> service -> repository -> database`.
-- Gateway memiliki boundary `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/employees/*`, `/api/v1/payroll/*`, dan `/api/v1/reports/*`.
+- Gateway memiliki boundary awal `/api/v1/auth/*` dan `/api/v1/users/*`.
 - Tidak ada generic repository, generic service, cross service source import, atau business logic di gateway.
 - `bun run openapi:generate` menghasilkan spec service, public gateway spec, dan generated SDK.
 - `bun run openapi:validate` memvalidasi semua spec dan `bun run check:dependencies` memeriksa cross service import.
@@ -40,12 +40,12 @@ Setiap deployable app memiliki satu Dockerfile di folder deployment terpusat. Bu
 
 ### Container image contract
 
-- Image memiliki satu Dockerfile untuk setiap target berikut: `web`, `gateway`, `services/auth`, `services/user`, `services/employee`, `services/payroll`, dan `services/reporting`.
+- Image memiliki satu Dockerfile untuk setiap target awal berikut: `web`, `gateway`, `services/auth`, dan `services/user`.
 - Build dijalankan dari root dengan bentuk `docker build -f infra/docker/<target>/Dockerfile .` dan memakai `bun.lock` melalui `bun install --frozen-lockfile`.
 - Base image backend memakai `oven/bun:1.4.0`. Backend memakai tahap dependency production dan menjalankan source dengan Bun. Image final tidak membawa dependency development.
 - Image web membangun Angular dalam tahap Bun lalu menyajikan asset dengan image Nginx unprivileged. Nginx mendengar pada port 8080 sehingga proses runtime tetap non root. Deployment dapat memetakan port publik 80 ke port container 8080.
 - Angular menerima `WEB_API_URL` sebagai nilai konfigurasi build. Artifact production tidak boleh memakai URL gateway localhost sebagai nilai tetap.
-- Port backend tetap mengikuti kontrak aplikasi: gateway 3000, auth 3101, user 3102, employee 3103, payroll 3104, dan reporting 3105. Port publik ditentukan oleh deployment.
+- Port backend awal mengikuti kontrak aplikasi: gateway 3000, auth 3101, dan user 3102. Port publik ditentukan oleh deployment.
 - Backend memiliki health check HTTP ke `/health`. Web memiliki health check HTTP ke `/` dan mengharapkan status 200. Health hanya membuktikan proses HTTP hidup, bukan kesehatan PostgreSQL, NATS, atau SMTP.
 - Runtime menerima environment dari deployment. Secret seperti `DATABASE_URL`, `NATS_URL`, credential SMTP, dan `INTERNAL_AUTH_SIGNING_SECRET` tidak ditulis ke Dockerfile, build argument, atau image layer.
 - Runtime berjalan sebagai user non root dengan hak Linux minimum. Log tetap dikirim ke stdout atau stderr. Container menjalankan satu proses utama dan meneruskan SIGTERM untuk graceful shutdown.
@@ -114,9 +114,9 @@ Setiap deployable app memiliki satu Dockerfile di folder deployment terpusat. Bu
 
 **Phases**:
 
-1. Tambahkan tujuh Dockerfile baru di `infra/docker` dan pastikan setiap image dapat dibangun dari root memakai lockfile.
+1. Tambahkan empat Dockerfile baru di `infra/docker` dan pastikan setiap image dapat dibangun dari root memakai lockfile.
 2. Tambahkan pemeriksaan CI untuk build image, target platform, health check, dan secret scan.
-3. Perbarui README dan workflow yang masih menunjuk ke Dockerfile di `apps`, lalu hapus tujuh Dockerfile lama setelah path baru lulus pemeriksaan.
+3. Perbarui README dan workflow yang masih menunjuk ke Dockerfile di `apps`, lalu hapus empat Dockerfile lama setelah path baru lulus pemeriksaan.
 
 **Rollback**: Kembalikan perubahan dokumentasi dan CI, lalu pulihkan Dockerfile lama di folder `apps` dari commit sebelumnya. Image yang sudah dipublikasikan tetap dapat dipakai berdasarkan tag commit.
 

@@ -83,7 +83,7 @@ A new `apps/mcp` app named `monobungsia-mcp` (version 1.0.0) serves MCP over STD
 
 ## Rationale
 
-The engineer's stated goal is "dozens to hundreds of tools across inventory, sales, purchasing, finance, customer, and reporting". That goal decides between options 1 and 2: a declarative registry makes the tool set data, which is what keeps a large catalog consistent, testable, and cheap to extend; the high level API is nicer for three tools and worse for a hundred. Option 3 lost on the repo's own rules: the engineer confirmed in the design conversation that the single root manifest, the shared tsconfig base, and the single root `.env.example` win over the standalone layout in the original request, and nothing here needs to be publishable.
+The engineer's stated goal is "dozens to hundreds of tools across inventory, sales, purchasing, finance, and customer". That goal decides between options 1 and 2: a declarative registry makes the tool set data, which is what keeps a large catalog consistent, testable, and cheap to extend; the high level API is nicer for three tools and worse for a hundred. Option 3 lost on the repo's own rules: the engineer confirmed in the design conversation that the single root manifest, the shared tsconfig base, and the single root `.env.example` win over the standalone layout in the original request, and nothing here needs to be publishable.
 
 Calls settled here with design context (each with the runner up): the stock path is `GET /api/v1/stock` (aligned with the gateway's public `/api/v1/*` prefix; runner up was the literal `/api/stock` from the request, which no route in this repo would ever match). ERP requests carry a 15 second timeout via `AbortSignal.timeout` (runner up: no timeout; a hung fetch inside a STDIO tool call freezes the client's conversation, so bounded failure wins). JSON Schema for `tools/list` comes from zod v4's built in `z.toJSONSchema` (runner up: the `zod-to-json-schema` package, an extra dependency zod v4 made unnecessary). ERP failures return `isError: true` tool results while protocol misuse (unknown tool, bad arguments) throws `McpError` (runner up: throwing for everything; the split keeps business failures visible to the model as content while protocol errors stay protocol errors). The server name is `monobungsia-mcp` per the engineer's pick over the requested `edsis-mcp-server`.
 
@@ -118,7 +118,7 @@ apps/mcp/
     └── utils/toolResponse.ts      # jsonToolResponse(data)
 ```
 
-Future modules (`sales/`, `purchasing/`, `finance/`, `customer/`, `reporting/`) are sibling folders under `tools/`, created when their first tool lands.
+Future modules (`sales/`, `purchasing/`, `finance/`, `customer/`) are sibling folders under `tools/`, created when their first tool lands.
 
 **Root wiring** (no files under `apps/mcp` besides the above):
 

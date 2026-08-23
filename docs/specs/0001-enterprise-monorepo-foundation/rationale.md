@@ -8,7 +8,7 @@ Decision record for [index.md](index.md).
 
 Project dimulai dari workspace kosong dan perlu memberi developer baru struktur yang dapat dipahami. Sistem membutuhkan HTTP API, event bus internal, database transactional, generated frontend client, typed configuration, observability dasar, serta deployability per service.
 
-Beberapa service domain sudah dipilih sejak awal, yaitu auth, user, employee, payroll, dan reporting. Kontrak antar service harus mencegah import source internal, sedangkan shared package harus tetap bebas dari business domain agar pemisahan repository di masa depan tidak menjadi rewrite.
+Service auth dan user dipilih sebagai domain awal. Kontrak antar service harus mencegah import source internal, sedangkan shared package harus tetap bebas dari business domain agar pemisahan repository di masa depan tidak menjadi rewrite.
 
 Kontrak container perlu mendukung satu build context root karena semua aplikasi memakai dependency workspace bersama. Image harus dapat dibangun untuk production dan diperiksa oleh CI tanpa memasukkan credential, database, NATS, SMTP, atau reverse proxy ke dalam image aplikasi. Web client juga harus dapat menunjuk ke gateway yang berbeda per environment, sedangkan server backend mempertahankan port dan endpoint health yang sudah dipakai oleh aplikasi.
 
