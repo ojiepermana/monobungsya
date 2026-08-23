@@ -48,9 +48,12 @@ export interface PasskeyServiceOptions {
 }
 
 export interface PasskeyLoginResult {
+  status: 'authenticated' | 'mfa_required';
   user: { id: string; email: string; name: string };
-  session: { id: string; idleExpiresAt: Date; absoluteExpiresAt: Date };
-  sessionToken: string;
+  session?: { id: string; idleExpiresAt: Date; absoluteExpiresAt: Date };
+  sessionToken?: string;
+  challengeToken?: string;
+  purpose?: 'login' | 'enroll';
 }
 
 export class PasskeyService {
@@ -233,6 +236,7 @@ export class PasskeyService {
           sessionId: outcome.session.sessionId,
         });
         return {
+          status: 'authenticated',
           user: {
             id: outcome.user.id,
             email: outcome.user.email,
@@ -244,6 +248,17 @@ export class PasskeyService {
             absoluteExpiresAt: outcome.session.absoluteExpiresAt,
           },
           sessionToken,
+        };
+      case 'mfa_required':
+        return {
+          status: 'mfa_required',
+          user: {
+            id: outcome.user.id,
+            email: outcome.user.email,
+            name: outcome.user.name,
+          },
+          challengeToken: outcome.challengeToken,
+          purpose: outcome.purpose,
         };
       case 'challenge_invalid':
         throw new GoneError('The passkey challenge is expired or already used');

@@ -1,9 +1,13 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
+import { createSecret, hashSecret } from './auth.crypto';
 import type {
   AuthRepositoryDependencies,
   AuthUser,
+  FirstFactorResult,
+  MfaChallengePurpose,
   SessionIdentity,
   SessionObservation,
+  SessionRecord,
 } from './auth.types';
 
 export type AuthModuleStatus = {
@@ -16,13 +20,14 @@ export interface MagicLinkIssueResult {
   rateLimited: boolean;
 }
 
-export type RateLimitKeyType = 'email' | 'ip' | 'passkey_ip';
+export type RateLimitKeyType =
+  | 'email'
+  | 'ip'
+  | 'passkey_ip'
+  | 'totp_ip'
+  | 'totp_user';
 
-export interface SessionRecord {
-  sessionId: string;
-  idleExpiresAt: Date;
-  absoluteExpiresAt: Date;
-}
+export type { SessionRecord } from './auth.types';
 
 export interface ConsumedSession extends SessionRecord {
   user: AuthUser;
@@ -38,6 +43,8 @@ export interface CleanupResult {
   sessions: number;
   rateLimits: number;
   webauthnChallenges: number;
+  mfaChallenges: number;
+  unconfirmedTotp: number;
 }
 
 export class AuthRepository {
@@ -133,7 +140,7 @@ export class AuthRepository {
   async consumeMagicToken(
     tokenHash: string,
     sessionTokenHash: string,
-  ): Promise<ConsumedSession | null> {
+  ): Promise<FirstFactorResult | null> {
     const database = this.requireDatabase();
 
     return withTransaction(database, async (transaction) => {
@@ -155,22 +162,30 @@ export class AuthRepository {
         return null;
       }
 
-      const session = await insertSession(
-        transaction,
-        sessionTokenHash,
-        String(tokenRow.user_id),
-      );
       const [userRow] = await transaction`
-        SELECT id, email, name, suspended_at
-        FROM "user"."users"
-        WHERE id = ${tokenRow.user_id}
+        SELECT
+          user_record.id,
+          user_record.email,
+          user_record.name,
+          user_record.suspended_at,
+          user_record.totp_required_at,
+          credential.confirmed_at
+        FROM "user"."users" AS user_record
+        LEFT JOIN "auth"."totp_credentials" AS credential
+          ON credential.user_id = user_record.id
+        WHERE user_record.id = ${tokenRow.user_id}
       `;
 
-      if (!session || !userRow) {
+      if (!userRow) {
         return null;
       }
 
-      return { user: mapUser(userRow), ...session };
+      return completeFirstFactor(
+        transaction,
+        userRow,
+        sessionTokenHash,
+        'magic_link',
+      );
     });
   }
 
@@ -315,12 +330,31 @@ export class AuthRepository {
         )
         SELECT count(*)::integer AS count FROM deleted
       `;
+      const [mfaChallenges] = await transaction`
+        WITH deleted AS (
+          DELETE FROM "auth"."mfa_challenges"
+          WHERE used_at IS NOT NULL OR expires_at <= now()
+          RETURNING id
+        )
+        SELECT count(*)::integer AS count FROM deleted
+      `;
+      const [unconfirmedTotp] = await transaction`
+        WITH deleted AS (
+          DELETE FROM "auth"."totp_credentials"
+          WHERE confirmed_at IS NULL
+            AND created_at <= now() - interval '24 hours'
+          RETURNING id
+        )
+        SELECT count(*)::integer AS count FROM deleted
+      `;
 
       return {
         loginTokens: Number(loginTokens?.count ?? 0),
         sessions: Number(sessions?.count ?? 0),
         rateLimits: Number(rateLimits?.count ?? 0),
         webauthnChallenges: Number(webauthnChallenges?.count ?? 0),
+        mfaChallenges: Number(mfaChallenges?.count ?? 0),
+        unconfirmedTotp: Number(unconfirmedTotp?.count ?? 0),
       };
     });
   }
@@ -409,6 +443,47 @@ export function mapUser(row: Record<string, unknown>): AuthUser {
     name: String(row.name),
     suspendedAt: row.suspended_at ? new Date(String(row.suspended_at)) : null,
   };
+}
+
+/**
+ * Completes the first factor without deciding whether a session is allowed
+ * until the user's confirmed credential and requirement flag are read inside
+ * the same transaction as the session or MFA challenge write.
+ */
+export async function completeFirstFactor(
+  transaction: DatabaseClient,
+  userRow: Record<string, unknown>,
+  sessionTokenHash: string,
+  method: 'magic_link' | 'passkey',
+): Promise<FirstFactorResult> {
+  const user = mapUser(userRow);
+  const totpEnabled = userRow.confirmed_at !== null;
+  const required = userRow.totp_required_at !== null;
+
+  if (totpEnabled || required) {
+    const purpose: MfaChallengePurpose =
+      required && !totpEnabled ? 'enroll' : 'login';
+    const challengeToken = createSecret();
+
+    await transaction`
+      INSERT INTO "auth"."mfa_challenges" (
+        user_id, purpose, token_hash, expires_at
+      ) VALUES (
+        ${user.id}, ${purpose}, ${hashSecret(challengeToken)},
+        now() + interval '5 minutes'
+      )
+    `;
+
+    return { status: 'mfa_required', user, challengeToken, purpose };
+  }
+
+  const session = await insertSession(transaction, sessionTokenHash, user.id);
+
+  if (!session) {
+    throw new Error(`Unable to create session after ${method} authentication`);
+  }
+
+  return { status: 'authenticated', user, session };
 }
 
 function sessionInvalidReason(

@@ -9,6 +9,8 @@ import { createAuthIdentityPlugin } from '../../shared/plugins/auth-identity.plu
 import {
   createUserBody,
   statusActionBody,
+  totpRequirementBody,
+  totpRequirementResponse,
   updateUserBody,
   userIdParams,
   userResponse,
@@ -222,6 +224,28 @@ export function createUsersRoute(
           return run('delete', params.id, body.reason, identity, request);
         },
         statusActionSchema('delete'),
+      )
+      .put(
+        '/internal/users/:id/2fa-requirement',
+        ({ body, params, identity, request, requirePermissions }) => {
+          requirePermissions(PERMISSIONS.userUserManage);
+          return service.setTotpRequirement(
+            params.id,
+            body.required,
+            body.reason,
+            requireActor(identity),
+            correlationOf(request),
+          );
+        },
+        {
+          params: userIdParams,
+          body: totpRequirementBody,
+          response: { 200: totpRequirementResponse },
+          detail: {
+            tags: ['Users'],
+            summary: 'Require or release TOTP for a user',
+          },
+        },
       )
   );
 }

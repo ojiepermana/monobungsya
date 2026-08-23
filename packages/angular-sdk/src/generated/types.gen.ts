@@ -146,6 +146,78 @@ export type PatchApiV1AuthPasskeysByIdData = {
     url: '/api/v1/auth/passkeys/{id}';
 };
 
+export type PostApiV1Auth2FaEnrollData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/enroll';
+};
+
+export type PostApiV1Auth2FaEnrollConfirmData = {
+    body: {
+        code: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/enroll/confirm';
+};
+
+export type PostApiV1Auth2FaVerifyData = {
+    body: {
+        code?: string;
+        recoveryCode?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/verify';
+};
+
+export type GetApiV1Auth2FaStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/status';
+};
+
+export type PostApiV1Auth2FaDisableData = {
+    body: {
+        code?: string;
+        recoveryCode?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/disable';
+};
+
+export type PostApiV1Auth2FaRecoveryCodesData = {
+    body: {
+        code: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/recovery-codes';
+};
+
+export type GetApiV1AuthAdminUsersById2FaData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/admin/users/{id}/2fa';
+};
+
+export type PostApiV1AuthAdminUsersById2FaResetData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/admin/users/{id}/2fa/reset';
+};
+
 export type GetApiV1UsersStatusData = {
     body?: never;
     path?: never;
@@ -259,6 +331,18 @@ export type PostApiV1UsersByIdRestoreData = {
     };
     query?: never;
     url: '/api/v1/users/{id}/restore';
+};
+
+export type PutApiV1UsersById2FaRequirementData = {
+    body: {
+        required: boolean;
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{id}/2fa-requirement';
 };
 
 export type GetApiV1LogsAuditTrailsData = {

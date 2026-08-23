@@ -282,6 +282,23 @@ export class UsersRepository {
     return row ? mapUser(row) : null;
   }
 
+  async setTotpRequirement(
+    id: string,
+    required: boolean,
+    executor: DatabaseClient,
+  ): Promise<boolean> {
+    const rows = (await executor.unsafe(
+      `UPDATE "user"."users"
+       SET totp_required_at = CASE WHEN $2 THEN COALESCE(totp_required_at, now()) ELSE NULL END,
+           updated_at = now()
+       WHERE id = $1
+       RETURNING id`,
+      [id, required] as never[],
+    )) as Array<Record<string, unknown>>;
+
+    return rows.length > 0;
+  }
+
   private requireDatabase(executor?: DatabaseClient): DatabaseClient {
     const database = executor ?? this.database;
 

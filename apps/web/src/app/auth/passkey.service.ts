@@ -25,8 +25,10 @@ export interface Passkey {
 }
 
 export interface PasskeyLoginResponse {
-  authenticated: true;
-  user: AuthUser;
+  authenticated: boolean;
+  mfaRequired?: boolean;
+  purpose?: 'login' | 'enroll';
+  user?: AuthUser;
 }
 
 /** Thrown when the person closes or cancels the browser's passkey dialog. */
@@ -86,7 +88,7 @@ export class PasskeyService {
    * Signs in with a discoverable passkey. No email is typed: the browser offers
    * whichever passkey is registered for this site.
    */
-  async signIn(): Promise<AuthUser> {
+  async signIn(): Promise<AuthUser | null> {
     const options = await this.post<PublicKeyCredentialRequestOptionsJSON>(
       '/api/v1/auth/passkey/login/options',
     );
@@ -98,11 +100,15 @@ export class PasskeyService {
       { response: assertion },
     );
 
+    if (result.mfaRequired) {
+      return null;
+    }
+
     // The session cookie is already set, so the shared user state is refreshed
     // from the session endpoint the same way every other login path does it.
     const user = await firstValueFrom(this.auth.loadCurrentUser());
 
-    return user ?? result.user;
+    return user ?? result.user ?? null;
   }
 
   async load(): Promise<Passkey[]> {

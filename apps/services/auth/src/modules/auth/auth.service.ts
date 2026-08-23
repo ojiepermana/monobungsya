@@ -8,7 +8,7 @@ import { createSecret, hashSecret, normalizeEmail } from './auth.crypto';
 import { AuthRepository } from './auth.repository';
 import type {
   AuthMailer,
-  SessionIdentity,
+  FirstFactorResult,
   SessionObservation,
 } from './auth.types';
 
@@ -32,6 +32,10 @@ export interface SessionResult {
     absoluteExpiresAt: string;
   };
 }
+
+export type MagicLinkVerification = FirstFactorResult & {
+  sessionToken?: string;
+};
 
 export class AuthService {
   constructor(
@@ -130,9 +134,7 @@ export class AuthService {
     return true;
   }
 
-  async verifyMagicLink(
-    token: string,
-  ): Promise<SessionIdentity & { sessionToken: string }> {
+  async verifyMagicLink(token: string): Promise<MagicLinkVerification> {
     if (!token || token.length < 20) {
       throw new UnauthorizedError('Magic link is invalid or expired');
     }
@@ -147,13 +149,11 @@ export class AuthService {
       throw new UnauthorizedError('Magic link is invalid or expired');
     }
 
-    return {
-      ...session.user,
-      sessionId: session.sessionId,
-      idleExpiresAt: session.idleExpiresAt,
-      absoluteExpiresAt: session.absoluteExpiresAt,
-      sessionToken,
-    };
+    if (session.status === 'mfa_required') {
+      return session;
+    }
+
+    return { ...session, sessionToken };
   }
 
   createVerifyRedirect(): string {
@@ -162,6 +162,13 @@ export class AuthService {
 
   createVerifyErrorRedirect(): string {
     return new URL('/auth/callback-error', this.webAppUrl).toString();
+  }
+
+  createMfaRedirect(purpose: 'login' | 'enroll'): string {
+    return new URL(
+      purpose === 'enroll' ? '/auth/two-factor/enroll' : '/auth/two-factor',
+      this.webAppUrl,
+    ).toString();
   }
 
   async getSession(sessionToken: string | undefined): Promise<SessionResult> {

@@ -59,6 +59,7 @@ import {
   statusActionError,
 } from '../user-status';
 import { UserAccessPanel } from './user-access-panel';
+import { UserTwoFactorPanel } from './user-two-factor-panel';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'medium',
@@ -106,6 +107,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
     PageHeaderComponent,
     UserEditDialog,
     UserAccessPanel,
+    UserTwoFactorPanel,
   ],
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
@@ -179,6 +181,8 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             </div>
           </CardContent>
         </Card>
+
+        <app-user-two-factor-panel [userId]="profile.id" />
 
         <Tabs [(value)]="tab">
           <TabsList>

@@ -663,6 +663,147 @@ export function createProxyRoute(
         },
       },
     )
+    .post(
+      '/api/v1/auth/2fa/enroll',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+        ),
+      {
+        detail: { tags: ['Auth'], summary: 'Start TOTP enrollment' },
+      },
+    )
+    .post(
+      '/api/v1/auth/2fa/enroll/confirm',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({ code: t.String({ pattern: '^[0-9]{6}$' }) }),
+        detail: { tags: ['Auth'], summary: 'Confirm TOTP enrollment' },
+      },
+    )
+    .post(
+      '/api/v1/auth/2fa/verify',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({
+          code: t.Optional(t.String({ pattern: '^[0-9]{6}$' })),
+          recoveryCode: t.Optional(t.String({ minLength: 8, maxLength: 32 })),
+        }),
+        detail: { tags: ['Auth'], summary: 'Verify a TOTP login challenge' },
+      },
+    )
+    .get(
+      '/api/v1/auth/2fa/status',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+        ),
+      {
+        detail: { tags: ['Auth'], summary: 'Read the current TOTP status' },
+      },
+    )
+    .post(
+      '/api/v1/auth/2fa/disable',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({
+          code: t.Optional(t.String({ pattern: '^[0-9]{6}$' })),
+          recoveryCode: t.Optional(t.String({ minLength: 8, maxLength: 32 })),
+        }),
+        detail: { tags: ['Auth'], summary: 'Disable TOTP' },
+      },
+    )
+    .post(
+      '/api/v1/auth/2fa/recovery-codes',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          false,
+          body,
+        ),
+      {
+        body: t.Object({ code: t.String({ pattern: '^[0-9]{6}$' }) }),
+        detail: { tags: ['Auth'], summary: 'Regenerate TOTP recovery codes' },
+      },
+    )
+    .get(
+      '/api/v1/auth/admin/users/:id/2fa',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.userUserManage],
+          permissionCache,
+        ),
+      {
+        params: userIdParams,
+        detail: { tags: ['Auth'], summary: 'Read a user TOTP status' },
+      },
+    )
+    .post(
+      '/api/v1/auth/admin/users/:id/2fa/reset',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.auth,
+          '/api/v1/auth',
+          '/internal/auth',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.userUserManage],
+          permissionCache,
+        ),
+      {
+        params: userIdParams,
+        body: t.Object({ reason: t.String({ minLength: 3, maxLength: 500 }) }),
+        detail: { tags: ['Auth'], summary: 'Reset a user TOTP credential' },
+      },
+    )
     .get(
       '/api/v1/users/status',
       ({ request }) =>
@@ -762,6 +903,22 @@ export function createProxyRoute(
       ({ body, request }) =>
         forwardUser(request, body, PERMISSIONS.userUserDelete),
       statusActionRoute('Soft delete a user'),
+    )
+    .put(
+      '/api/v1/users/:id/2fa-requirement',
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserManage),
+      {
+        params: userIdParams,
+        body: t.Object({
+          required: t.Boolean(),
+          reason: t.String({ minLength: 3, maxLength: 500 }),
+        }),
+        detail: {
+          tags: ['Users'],
+          summary: 'Require or release TOTP for a user',
+        },
+      },
     )
     .get(
       '/api/v1/logs/audit-trails',

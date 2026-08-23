@@ -316,6 +316,53 @@ export class UsersService {
     });
   }
 
+  async setTotpRequirement(
+    id: string,
+    required: boolean,
+    reason: string,
+    actor: UserActor,
+    correlation: RequestCorrelation,
+  ): Promise<{ ok: true }> {
+    const database = this.requireDatabase();
+
+    await withTransaction(database, async (transaction) => {
+      const before = await this.repository.findByIdForUpdate(id, transaction);
+      if (!before) throw new NotFoundError('User not found');
+      const [beforeRequirement] = await transaction`
+        SELECT totp_required_at
+        FROM "user"."users"
+        WHERE id = ${id}
+      `;
+
+      const updated = await this.repository.setTotpRequirement(
+        id,
+        required,
+        transaction,
+      );
+      if (!updated) throw new NotFoundError('User not found');
+
+      await this.writeAudit({
+        action: required ? 'totp_require' : 'totp_unrequire',
+        user: before,
+        actor,
+        correlation,
+        transaction,
+        statusBefore: null,
+        statusAfter: null,
+        beforeState: {
+          totpRequired: beforeRequirement?.totp_required_at != null,
+        },
+        afterState: { totpRequired: required },
+        changeSummary: required
+          ? 'TOTP requirement enabled'
+          : 'TOTP requirement disabled',
+        reason,
+      });
+    });
+
+    return { ok: true };
+  }
+
   /**
    * Audit writes carry the actor's name, which the identity headers do not
    * include: the id from the verified identity names the row this service owns,
@@ -328,7 +375,7 @@ export class UsersService {
     correlation: RequestCorrelation;
     transaction: DatabaseClient;
     statusBefore: string | null;
-    statusAfter: string;
+    statusAfter: string | null;
     beforeState: unknown;
     afterState: unknown;
     changeSummary: string;

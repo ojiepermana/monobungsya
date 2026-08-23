@@ -1,11 +1,14 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
 import {
+  completeFirstFactor,
   incrementRateLimit,
-  insertSession,
   mapUser,
-  type SessionRecord,
 } from './auth.repository';
-import type { AuthRepositoryDependencies, AuthUser } from './auth.types';
+import type {
+  AuthRepositoryDependencies,
+  AuthUser,
+  FirstFactorResult,
+} from './auth.types';
 import type {
   AssertionCheck,
   AttestationCheck,
@@ -25,7 +28,14 @@ export type RegisterCredentialOutcome =
   | { status: 'verification_failed'; reason: string };
 
 export type AuthenticateOutcome =
-  | { status: 'authenticated'; user: AuthUser; session: SessionRecord }
+  | ({ status: 'authenticated' } & Extract<
+      FirstFactorResult,
+      { status: 'authenticated' }
+    >)
+  | ({ status: 'mfa_required' } & Extract<
+      FirstFactorResult,
+      { status: 'mfa_required' }
+    >)
   | { status: 'challenge_invalid' }
   | { status: 'unknown_credential' }
   | {
@@ -293,25 +303,39 @@ export class PasskeyRepository {
         WHERE id = ${credential.id}
       `;
 
-      const session = await insertSession(
-        transaction,
-        input.sessionTokenHash,
-        credential.userId,
-      );
       const [userRow] = await transaction`
-        SELECT id, email, name, suspended_at
-        FROM "user"."users"
-        WHERE id = ${credential.userId}
+        SELECT
+          user_record.id,
+          user_record.email,
+          user_record.name,
+          user_record.suspended_at,
+          user_record.totp_required_at,
+          totp.confirmed_at
+        FROM "user"."users" AS user_record
+        LEFT JOIN "auth"."totp_credentials" AS totp
+          ON totp.user_id = user_record.id
+        WHERE user_record.id = ${credential.userId}
       `;
 
-      if (!session || !userRow) {
+      if (!userRow) {
         return { status: 'unknown_credential' as const };
+      }
+
+      const firstFactor = await completeFirstFactor(
+        transaction,
+        userRow,
+        input.sessionTokenHash,
+        'passkey',
+      );
+
+      if (firstFactor.status === 'mfa_required') {
+        return firstFactor;
       }
 
       return {
         status: 'authenticated' as const,
-        user: mapUser(userRow),
-        session,
+        user: firstFactor.user,
+        session: firstFactor.session,
       };
     });
   }

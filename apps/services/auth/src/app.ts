@@ -41,6 +41,7 @@ export function createApp(
           { name: 'Health', description: 'Service health checks' },
           { name: 'Auth', description: 'Auth module' },
           { name: 'Passkey', description: 'Passkey (WebAuthn) sign in' },
+          { name: 'Two factor', description: 'TOTP two factor authentication' },
         ],
       }),
     )

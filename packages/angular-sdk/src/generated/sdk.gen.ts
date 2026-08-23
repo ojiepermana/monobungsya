@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1UsersByIdData, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsData, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersByIdData, GetApiV1UsersData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1UsersByIdData, PostApiV1AccessPermissionsData, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersData, PutApiV1AccessPermissionsByIdData } from './types.gen';
+import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1UsersByIdData, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsData, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1Auth2FaStatusData, GetApiV1AuthAdminUsersById2FaData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersByIdData, GetApiV1UsersData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1UsersByIdData, PostApiV1AccessPermissionsData, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1Auth2FaDisableData, PostApiV1Auth2FaEnrollConfirmData, PostApiV1Auth2FaEnrollData, PostApiV1Auth2FaRecoveryCodesData, PostApiV1Auth2FaVerifyData, PostApiV1AuthAdminUsersById2FaResetData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersData, PutApiV1AccessPermissionsByIdData, PutApiV1UsersById2FaRequirementData } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -104,6 +104,81 @@ export const deleteApiV1AuthPasskeysById = <ThrowOnError extends boolean = false
  */
 export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1AuthPasskeysByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).patch<unknown, unknown, ThrowOnError>({
     url: '/api/v1/auth/passkeys/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Start TOTP enrollment
+ */
+export const postApiV1Auth2FaEnroll = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1Auth2FaEnrollData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).post<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/enroll', ...options });
+
+/**
+ * Confirm TOTP enrollment
+ */
+export const postApiV1Auth2FaEnrollConfirm = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaEnrollConfirmData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/2fa/enroll/confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Verify a TOTP login challenge
+ */
+export const postApiV1Auth2FaVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaVerifyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/2fa/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read the current TOTP status
+ */
+export const getApiV1Auth2FaStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1Auth2FaStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/2fa/status', ...options });
+
+/**
+ * Disable TOTP
+ */
+export const postApiV1Auth2FaDisable = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaDisableData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/2fa/disable',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Regenerate TOTP recovery codes
+ */
+export const postApiV1Auth2FaRecoveryCodes = <ThrowOnError extends boolean = false>(options: Options<PostApiV1Auth2FaRecoveryCodesData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/2fa/recovery-codes',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read a user TOTP status
+ */
+export const getApiV1AuthAdminUsersById2Fa = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AuthAdminUsersById2FaData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/auth/admin/users/{id}/2fa', ...options });
+
+/**
+ * Reset a user TOTP credential
+ */
+export const postApiV1AuthAdminUsersById2FaReset = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AuthAdminUsersById2FaResetData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/auth/admin/users/{id}/2fa/reset',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -215,6 +290,18 @@ export const postApiV1UsersByIdUnblock = <ThrowOnError extends boolean = false>(
  */
 export const postApiV1UsersByIdRestore = <ThrowOnError extends boolean = false>(options: Options<PostApiV1UsersByIdRestoreData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}/restore',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Require or release TOTP for a user
+ */
+export const putApiV1UsersById2FaRequirement = <ThrowOnError extends boolean = false>(options: Options<PutApiV1UsersById2FaRequirementData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).put<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/users/{id}/2fa-requirement',
     ...options,
     headers: {
         'Content-Type': 'application/json',

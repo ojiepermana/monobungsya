@@ -1,8 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
+import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { type Passkey, PasskeyService } from '../../../auth/passkey.service';
+import { TotpService } from '../../../auth/totp.service';
 import { PasskeysSettingsPage } from './passkeys.page';
 
 const passkey: Passkey = {
@@ -31,6 +33,16 @@ async function createPage(rows: Passkey[] = [passkey], supported = true) {
     remove: vi.fn().mockResolvedValue(undefined),
     messageFrom: vi.fn((_error: unknown, fallback: string) => fallback),
   };
+  const totpService = {
+    status: vi.fn().mockReturnValue(
+      of({
+        enabled: false,
+        confirmedAt: null,
+        required: false,
+        recoveryCodesRemaining: 0,
+      }),
+    ),
+  };
 
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
@@ -44,9 +56,9 @@ async function createPage(rows: Passkey[] = [passkey], supported = true) {
         },
       },
       { provide: PasskeyService, useValue: service },
+      { provide: TotpService, useValue: totpService },
     ],
   });
-
   const fixture = TestBed.createComponent(PasskeysSettingsPage);
   fixture.detectChanges();
   await fixture.whenStable();

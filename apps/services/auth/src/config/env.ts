@@ -14,6 +14,8 @@ export interface AuthEnvironment extends AppEnvironment {
   AUTH_CLOCK_SKEW_SECONDS: number;
   WEBAUTHN_RP_ID: string;
   WEBAUTHN_RP_NAME: string;
+  TOTP_ENCRYPTION_KEY: string;
+  TOTP_ISSUER: string;
 }
 
 export function loadAuthEnv(
@@ -45,6 +47,8 @@ export function loadAuthEnv(
     WEBAUTHN_RP_ID:
       optional(source.WEBAUTHN_RP_ID) ?? relyingPartyId(webAppUrl),
     WEBAUTHN_RP_NAME: optional(source.WEBAUTHN_RP_NAME) ?? 'Monobungsya',
+    TOTP_ENCRYPTION_KEY: optional(source.TOTP_ENCRYPTION_KEY) ?? '',
+    TOTP_ISSUER: optional(source.TOTP_ISSUER) ?? 'Monobungsya',
   };
 
   if (
@@ -57,6 +61,23 @@ export function loadAuthEnv(
     throw new Error(
       'SMTP_USERNAME and INTERNAL_AUTH_SIGNING_SECRET are required when auth infrastructure is enabled; SMTP_PASSWORD is also required in production',
     );
+  }
+
+  if (
+    (environment.ENABLE_INFRASTRUCTURE ||
+      environment.NODE_ENV === 'production') &&
+    !result.TOTP_ENCRYPTION_KEY
+  ) {
+    throw new Error(
+      'TOTP_ENCRYPTION_KEY is required when auth infrastructure is enabled or NODE_ENV is production',
+    );
+  }
+
+  if (
+    result.TOTP_ENCRYPTION_KEY &&
+    Buffer.from(result.TOTP_ENCRYPTION_KEY, 'base64').length !== 32
+  ) {
+    throw new Error('TOTP_ENCRYPTION_KEY must be a base64 encoded 32 byte key');
   }
 
   return result;

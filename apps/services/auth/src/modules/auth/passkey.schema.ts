@@ -52,15 +52,21 @@ export const passkeyListResponse = t.Object({
 });
 
 export const passkeyLoginResponse = t.Object({
-  authenticated: t.Literal(true),
-  user: t.Object({
-    id: t.String(),
-    email: t.String(),
-    name: t.String(),
-  }),
-  session: t.Object({
-    id: t.String(),
-    idleExpiresAt: t.String(),
-    absoluteExpiresAt: t.String(),
-  }),
+  authenticated: t.Boolean(),
+  mfaRequired: t.Optional(t.Boolean()),
+  purpose: t.Optional(t.Union([t.Literal('login'), t.Literal('enroll')])),
+  user: t.Optional(
+    t.Object({
+      id: t.String(),
+      email: t.String(),
+      name: t.String(),
+    }),
+  ),
+  session: t.Optional(
+    t.Object({
+      id: t.String(),
+      idleExpiresAt: t.String(),
+      absoluteExpiresAt: t.String(),
+    }),
+  ),
 });

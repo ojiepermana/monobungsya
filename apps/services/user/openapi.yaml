@@ -1106,5 +1106,73 @@ paths:
                       - type: string
                       - type: "null"
       operationId: postInternalUsersByIdRestore
+  /internal/users/{id}/2fa-requirement:
+    put:
+      tags:
+        - Users
+      summary: Require or release TOTP for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
+      operationId: putInternalUsersById2fa-requirement
 components:
   schemas: {}

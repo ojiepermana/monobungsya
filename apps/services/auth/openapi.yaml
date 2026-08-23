@@ -10,6 +10,8 @@ tags:
     description: Auth module
   - name: Passkey
     description: Passkey (WebAuthn) sign in
+  - name: Two factor
+    description: TOTP two factor authentication
 paths:
   /health:
     get:
@@ -223,6 +225,372 @@ paths:
         - Auth
       summary: Revoke the current browser session
       operationId: postInternalAuthLogout
+  /internal/auth/2fa/enroll:
+    post:
+      tags:
+        - Auth
+      summary: Start TOTP enrollment
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - secret
+                  - otpauthUri
+                properties:
+                  secret:
+                    type: string
+                  otpauthUri:
+                    type: string
+      operationId: postInternalAuth2faEnroll
+  /internal/auth/2fa/enroll/confirm:
+    post:
+      tags:
+        - Auth
+      summary: Confirm TOTP enrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - recoveryCodes
+                properties:
+                  recoveryCodes:
+                    type: array
+                    items:
+                      type: string
+      operationId: postInternalAuth2faEnrollConfirm
+  /internal/auth/2fa/verify:
+    post:
+      tags:
+        - Auth
+      summary: Verify a TOTP login challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                  - redirectTo
+                properties:
+                  authenticated:
+                    const: true
+                    type: boolean
+                  redirectTo:
+                    type: string
+      operationId: postInternalAuth2faVerify
+  /internal/auth/2fa/status:
+    get:
+      tags:
+        - Auth
+      summary: Read the current TOTP status
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - confirmedAt
+                  - required
+                  - recoveryCodesRemaining
+                properties:
+                  enabled:
+                    type: boolean
+                  confirmedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  required:
+                    type: boolean
+                  recoveryCodesRemaining:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+      operationId: getInternalAuth2faStatus
+  /internal/auth/2fa/disable:
+    post:
+      tags:
+        - Auth
+      summary: Disable TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
+      operationId: postInternalAuth2faDisable
+  /internal/auth/2fa/recovery-codes:
+    post:
+      tags:
+        - Auth
+      summary: Regenerate TOTP recovery codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - recoveryCodes
+                properties:
+                  recoveryCodes:
+                    type: array
+                    items:
+                      type: string
+      operationId: postInternalAuth2faRecovery-codes
+  /internal/auth/admin/users/{id}/2fa:
+    get:
+      tags:
+        - Auth
+      summary: Read a user TOTP status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - confirmedAt
+                  - required
+                  - recoveryCodesRemaining
+                properties:
+                  enabled:
+                    type: boolean
+                  confirmedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  required:
+                    type: boolean
+                  recoveryCodesRemaining:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+      operationId: getInternalAuthAdminUsersById2fa
+  /internal/auth/admin/users/{id}/2fa/reset:
+    post:
+      tags:
+        - Auth
+      summary: Reset a user TOTP credential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    const: true
+                    type: boolean
+      operationId: postInternalAuthAdminUsersById2faReset
   /internal/auth/passkey/register/options:
     post:
       tags:
@@ -545,12 +913,16 @@ paths:
                 type: object
                 required:
                   - authenticated
-                  - user
-                  - session
                 properties:
                   authenticated:
-                    const: true
                     type: boolean
+                  mfaRequired:
+                    type: boolean
+                  purpose:
+                    type: string
+                    enum:
+                      - login
+                      - enroll
                   user:
                     type: object
                     required:

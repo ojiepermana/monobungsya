@@ -28,6 +28,12 @@ import {
   type Passkey,
   PasskeyService,
 } from '../../../auth/passkey.service';
+import {
+  type TotpEnrollment,
+  TotpService,
+  type TotpStatus,
+} from '../../../auth/totp.service';
+import { TotpQrService } from '../../../auth/totp-qr.service';
 
 @Component({
   selector: 'app-passkeys-settings-page',
@@ -79,6 +85,21 @@ import {
       </PageHeader>
 
       <PageContent class="grid min-h-0 content-start gap-6">
+        <section class="grid gap-4 border border-border bg-card p-5">
+          <div><h2 class="text-base font-semibold">Two factor authentication</h2><p class="mt-1 text-sm text-muted-foreground">Gunakan kode 6 digit dari aplikasi authenticator. Recovery code hanya ditampilkan sekali.</p></div>
+          @if (totpStatus(); as status) {
+            @if (status.enabled) {
+              <p class="text-sm text-foreground">Aktif sejak {{ status.confirmedAt ? asDate(status.confirmedAt) : '-' }}. Recovery code tersisa {{ status.recoveryCodesRemaining }}.</p>
+              <div class="flex flex-wrap gap-2"><input Input type="text" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" [value]="totpCode()" (input)="updateTotpCode($event)" /><button Button size="xs" type="button" variant="outline" [disabled]="totpBusy()" (click)="regenerateTotp()">Buat recovery code baru</button><button Button size="xs" type="button" variant="destructive" [disabled]="totpBusy()" (click)="disableTotp()">Matikan 2FA</button></div>
+            } @else if (totpSetup(); as setup) {
+              <div class="grid gap-3 sm:grid-cols-[auto_1fr]"><div class="rounded bg-white p-3">@if (totpQrImage(); as qr) { <img [src]="qr" width="180" height="180" alt="QR code TOTP" /> }</div><div class="grid content-start gap-3"><p class="text-xs text-muted-foreground">Secret manual</p><code class="break-all rounded bg-muted p-3 text-sm">{{ setup.secret }}</code><div class="flex gap-2"><input Input type="text" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" [value]="totpCode()" (input)="updateTotpCode($event)" /><button Button size="xs" type="button" [disabled]="totpBusy()" (click)="confirmTotp()">Konfirmasi</button></div></div></div>
+            } @else {
+              <button Button size="xs" type="button" class="w-fit" [disabled]="totpBusy()" (click)="beginTotp()">Aktifkan 2FA</button>
+            }
+            @if (totpRecoveryCodes().length > 0) { <Alert><AlertTitle>Simpan recovery codes</AlertTitle><AlertDescription><div class="mt-2 grid grid-cols-2 gap-2 font-mono">@for (code of totpRecoveryCodes(); track code) { <span>{{ code }}</span> }</div></AlertDescription></Alert> }
+          } @else { <p class="text-sm text-muted-foreground">Memuat status 2FA...</p> }
+        </section>
+
         @if (message(); as messageText) {
           <Alert [variant]="failed() ? 'destructive' : 'default'">
             <AlertTitle>{{ failed() ? 'Gagal' : 'Status' }}</AlertTitle>
@@ -209,6 +230,8 @@ import {
 })
 export class PasskeysSettingsPage {
   private readonly passkey = inject(PasskeyService);
+  private readonly totp = inject(TotpService);
+  private readonly totpQr = inject(TotpQrService);
 
   protected readonly layout = inject(LayoutService);
   protected readonly maxPasskeys = MAX_PASSKEYS;
@@ -223,6 +246,12 @@ export class PasskeysSettingsPage {
   protected readonly full = computed(
     () => this.passkeys().length >= MAX_PASSKEYS,
   );
+  protected readonly totpStatus = signal<TotpStatus | null>(null);
+  protected readonly totpSetup = signal<TotpEnrollment | null>(null);
+  protected readonly totpQrImage = signal<string | null>(null);
+  protected readonly totpRecoveryCodes = signal<string[]>([]);
+  protected readonly totpCode = signal('');
+  protected readonly totpBusy = signal(false);
 
   constructor() {
     void this.passkey
@@ -231,6 +260,96 @@ export class PasskeysSettingsPage {
         this.report(error, 'Daftar passkey gagal dimuat.'),
       )
       .finally(() => this.loading.set(false));
+    this.totp.status().subscribe({
+      next: (status) => this.totpStatus.set(status),
+    });
+  }
+
+  updateTotpCode(event: Event): void {
+    this.totpCode.set(
+      (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 6),
+    );
+  }
+
+  beginTotp(): void {
+    this.totpBusy.set(true);
+    this.totp.enroll().subscribe({
+      next: (setup) => {
+        this.totpSetup.set(setup);
+        void this.totpQr
+          .dataUrl(setup.otpauthUri, 180)
+          .then((qr) => this.totpQrImage.set(qr));
+        this.totpBusy.set(false);
+      },
+      error: () => {
+        this.note('Enrollment 2FA gagal dimulai.');
+        this.totpBusy.set(false);
+      },
+    });
+  }
+
+  confirmTotp(): void {
+    this.totpBusy.set(true);
+    this.totp.confirm(this.totpCode()).subscribe({
+      next: (result) => {
+        this.totpRecoveryCodes.set(result.recoveryCodes);
+        this.totpSetup.set(null);
+        this.totpCode.set('');
+        this.totpStatus.update((status) =>
+          status
+            ? { ...status, enabled: true, recoveryCodesRemaining: 10 }
+            : status,
+        );
+        this.totpBusy.set(false);
+      },
+      error: () => {
+        this.note('Kode 2FA tidak valid.');
+        this.totpBusy.set(false);
+      },
+    });
+  }
+
+  regenerateTotp(): void {
+    this.totpBusy.set(true);
+    this.totp.regenerateRecoveryCodes(this.totpCode()).subscribe({
+      next: (result) => {
+        this.totpRecoveryCodes.set(result.recoveryCodes);
+        this.totpCode.set('');
+        this.totpStatus.update((status) =>
+          status ? { ...status, recoveryCodesRemaining: 10 } : status,
+        );
+        this.totpBusy.set(false);
+      },
+      error: () => {
+        this.note('Kode 2FA tidak valid.');
+        this.totpBusy.set(false);
+      },
+    });
+  }
+
+  disableTotp(): void {
+    if (!this.totpCode()) {
+      this.note('Masukkan kode 2FA untuk mematikan 2FA.');
+      return;
+    }
+    this.totpBusy.set(true);
+    this.totp.disable(this.totpCode()).subscribe({
+      next: () => {
+        this.totpStatus.set({
+          enabled: false,
+          confirmedAt: null,
+          required: false,
+          recoveryCodesRemaining: 0,
+        });
+        this.totpCode.set('');
+        this.note('2FA dimatikan.');
+        this.totpBusy.set(false);
+      },
+      error: () => {
+        this.note('Kode 2FA tidak valid.');
+        this.totpBusy.set(false);
+      },
+    });
   }
 
   add(): void {

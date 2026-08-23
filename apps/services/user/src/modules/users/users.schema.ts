@@ -70,3 +70,10 @@ export const updateUserBody = t.Object({
 });
 
 export const statusActionBody = t.Object({ reason: reasonSchema });
+
+export const totpRequirementBody = t.Object({
+  required: t.Boolean(),
+  reason: reasonSchema,
+});
+
+export const totpRequirementResponse = t.Object({ ok: t.Literal(true) });

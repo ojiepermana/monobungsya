@@ -24,6 +24,19 @@ export const routes: Routes = [
       import('../auth/verify.page').then((m) => m.VerifyPage),
   },
   {
+    path: 'auth/two-factor',
+    title: 'MONOBUNGSYA · Two Factor',
+    loadComponent: () =>
+      import('../auth/two-factor.page').then((m) => m.TwoFactorPage),
+  },
+  {
+    path: 'auth/two-factor/enroll',
+    title: 'MONOBUNGSYA · Two Factor Enrollment',
+    data: { purpose: 'enroll' },
+    loadComponent: () =>
+      import('../auth/two-factor.page').then((m) => m.TwoFactorPage),
+  },
+  {
     path: 'login',
     redirectTo: 'auth/login',
     pathMatch: 'full',

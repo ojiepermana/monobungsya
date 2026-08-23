@@ -137,8 +137,31 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
           outcome: 'success',
           status: 200,
           actor: result.user,
-          sessionId: result.session.id,
+          sessionId: result.session?.id,
         });
+
+        if (result.status === 'mfa_required') {
+          return Response.json(
+            {
+              authenticated: false as const,
+              mfaRequired: true as const,
+              purpose: result.purpose,
+            },
+            {
+              headers: {
+                'Set-Cookie': serializeMfaCookie(
+                  'mfa_challenge',
+                  result.challengeToken ?? '',
+                  cookieSecure,
+                ),
+              },
+            },
+          );
+        }
+
+        if (!result.session) {
+          throw new UnauthorizedError('Passkey sign in failed');
+        }
 
         return Response.json(
           {
@@ -154,8 +177,8 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
             headers: {
               'Set-Cookie': serializeSessionCookie(
                 cookieName,
-                result.sessionToken,
-                result.session.absoluteExpiresAt,
+                result.sessionToken ?? '',
+                result.session?.absoluteExpiresAt ?? new Date(),
                 cookieSecure,
               ),
             },
@@ -251,4 +274,22 @@ function originOf(value: string): string {
   } catch {
     return 'http://localhost:4200';
   }
+}
+
+function serializeMfaCookie(
+  name: string,
+  value: string,
+  secure: boolean,
+): string {
+  return [
+    `${name}=${value}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Expires=${new Date(Date.now() + 300_000).toUTCString()}`,
+    'Max-Age=300',
+    secure ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }

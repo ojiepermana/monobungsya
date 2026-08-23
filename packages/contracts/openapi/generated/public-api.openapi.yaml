@@ -447,6 +447,233 @@ paths:
             format: uuid
             type: string
       operationId: deleteApiV1AuthPasskeysById
+  /api/v1/auth/2fa/enroll:
+    post:
+      tags:
+        - Auth
+      summary: Start TOTP enrollment
+      operationId: postApiV1Auth2faEnroll
+  /api/v1/auth/2fa/enroll/confirm:
+    post:
+      tags:
+        - Auth
+      summary: Confirm TOTP enrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+      operationId: postApiV1Auth2faEnrollConfirm
+  /api/v1/auth/2fa/verify:
+    post:
+      tags:
+        - Auth
+      summary: Verify a TOTP login challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+      operationId: postApiV1Auth2faVerify
+  /api/v1/auth/2fa/status:
+    get:
+      tags:
+        - Auth
+      summary: Read the current TOTP status
+      operationId: getApiV1Auth2faStatus
+  /api/v1/auth/2fa/disable:
+    post:
+      tags:
+        - Auth
+      summary: Disable TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+                recoveryCode:
+                  minLength: 8
+                  maxLength: 32
+                  type: string
+      operationId: postApiV1Auth2faDisable
+  /api/v1/auth/2fa/recovery-codes:
+    post:
+      tags:
+        - Auth
+      summary: Regenerate TOTP recovery codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  pattern: ^[0-9]{6}$
+                  type: string
+      operationId: postApiV1Auth2faRecovery-codes
+  /api/v1/auth/admin/users/{id}/2fa:
+    get:
+      tags:
+        - Auth
+      summary: Read a user TOTP status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: getApiV1AuthAdminUsersById2fa
+  /api/v1/auth/admin/users/{id}/2fa/reset:
+    post:
+      tags:
+        - Auth
+      summary: Reset a user TOTP credential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: postApiV1AuthAdminUsersById2faReset
   /api/v1/users/status:
     get:
       tags:
@@ -870,6 +1097,61 @@ paths:
                   maxLength: 500
                   type: string
       operationId: postApiV1UsersByIdRestore
+  /api/v1/users/{id}/2fa-requirement:
+    put:
+      tags:
+        - Users
+      summary: Require or release TOTP for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - required
+                - reason
+              properties:
+                required:
+                  type: boolean
+                reason:
+                  minLength: 3
+                  maxLength: 500
+                  type: string
+      operationId: putApiV1UsersById2fa-requirement
   /api/v1/logs/audit-trails:
     get:
       tags:

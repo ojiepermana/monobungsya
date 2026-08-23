@@ -182,7 +182,9 @@ export class LoginPage {
 
     void this.passkey
       .signIn()
-      .then(() => this.router.navigateByUrl('/'))
+      .then((user) =>
+        this.router.navigateByUrl(user ? '/' : '/auth/two-factor'),
+      )
       .catch((error: unknown) => {
         this.message.set(
           this.passkey.messageFrom(error, 'Login dengan passkey gagal.'),

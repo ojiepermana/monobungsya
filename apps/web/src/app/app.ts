@@ -130,7 +130,9 @@ export class App {
       url === '/verify' ||
       url === '/auth/login' ||
       url === '/auth/callback-complete' ||
-      url === '/auth/callback-error'
+      url === '/auth/callback-error' ||
+      url === '/auth/two-factor' ||
+      url === '/auth/two-factor/enroll'
     );
   }
 

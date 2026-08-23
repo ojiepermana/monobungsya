@@ -52,6 +52,8 @@ const app = createApp(
     cookieSecure: env.AUTH_COOKIE_SECURE,
     signingSecret: env.INTERNAL_AUTH_SIGNING_SECRET,
     clockSkewSeconds: env.AUTH_CLOCK_SKEW_SECONDS,
+    totpEncryptionKey: env.TOTP_ENCRYPTION_KEY,
+    totpIssuer: env.TOTP_ISSUER,
   },
   {
     rpId: env.WEBAUTHN_RP_ID,
