@@ -7,6 +7,15 @@ import {
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
+import {
+  TableBodyComponent,
+  TableCaptionComponent,
+  TableCellComponent,
+  TableComponent,
+  TableHeadComponent,
+  TableHeaderComponent,
+  TableRowComponent,
+} from '@ojiepermana/angular/component/table';
 import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
 import {
   PageComponent,
@@ -30,6 +39,13 @@ import {
     ButtonComponent,
     IconComponent,
     InputComponent,
+    TableBodyComponent,
+    TableCaptionComponent,
+    TableCellComponent,
+    TableComponent,
+    TableHeadComponent,
+    TableHeaderComponent,
+    TableRowComponent,
     PageComponent,
     PageContentComponent,
     PageFooterComponent,
@@ -62,13 +78,7 @@ import {
         }
       </PageHeader>
 
-      <PageContent class="grid min-h-0 content-start gap-6 p-6">
-        <p class="max-w-2xl text-sm text-muted-foreground">
-          Passkey membuat Anda bisa masuk dengan sidik jari, face unlock, atau kunci keamanan,
-          tanpa menunggu email. Magic link tetap bisa dipakai kapan saja, jadi menghapus semua
-          passkey aman.
-        </p>
-
+      <PageContent class="grid min-h-0 content-start gap-6">
         @if (message(); as messageText) {
           <Alert [variant]="failed() ? 'destructive' : 'default'">
             <AlertTitle>{{ failed() ? 'Gagal' : 'Status' }}</AlertTitle>
@@ -101,20 +111,20 @@ import {
             Belum ada passkey terdaftar.
           </p>
         } @else {
-          <div class="overflow-auto border border-border bg-card">
-            <table class="min-w-full text-left text-sm">
-              <thead class="border-b border-border text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th scope="col" class="px-4 py-3">Nama</th>
-                  <th scope="col" class="px-4 py-3">Dibuat</th>
-                  <th scope="col" class="px-4 py-3">Terakhir dipakai</th>
-                  <th scope="col" class="px-4 py-3 text-right">Aksi</th>
+          <Table class="min-w-full bg-card">
+            <caption TableCaption class="sr-only">Daftar passkey</caption>
+              <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                <tr TableRow>
+                  <th TableHead scope="col">Nama</th>
+                  <th TableHead scope="col">Dibuat</th>
+                  <th TableHead scope="col">Terakhir dipakai</th>
+                  <th TableHead scope="col" class="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody TableBody>
                 @for (passkey of passkeys(); track passkey.id) {
-                  <tr class="border-b border-border last:border-0">
-                    <td class="px-4 py-3">
+                  <tr TableRow class="align-top">
+                    <td TableCell>
                       @if (editingId() === passkey.id) {
                         <label class="sr-only" [attr.for]="'passkey-label-' + passkey.id">
                           Nama passkey
@@ -137,11 +147,11 @@ import {
                         }
                       }
                     </td>
-                    <td class="px-4 py-3 text-muted-foreground">{{ asDate(passkey.createdAt) }}</td>
-                    <td class="px-4 py-3 text-muted-foreground">
+                    <td TableCell class="text-muted-foreground">{{ asDate(passkey.createdAt) }}</td>
+                    <td TableCell class="text-muted-foreground">
                       {{ passkey.lastUsedAt ? asDate(passkey.lastUsedAt) : 'Belum pernah' }}
                     </td>
-                    <td class="px-4 py-3">
+                    <td TableCell>
                       <div class="flex justify-end gap-2">
                         @if (editingId() === passkey.id) {
                           <button Button size="xs" type="button" [disabled]="busy()" (click)="saveLabel(passkey)">
@@ -181,8 +191,7 @@ import {
                   </tr>
                 }
               </tbody>
-            </table>
-          </div>
+            </Table>
         }
         </section>
       </PageContent>

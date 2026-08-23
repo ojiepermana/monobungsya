@@ -79,8 +79,17 @@ describe('PasskeysSettingsPage page composition (spec 0006, AC 11)', () => {
     expect(
       header.querySelector('button[button]')?.getAttribute('data-size'),
     ).toBe('xs');
-    expect(content.textContent).toContain('Passkey membuat Anda bisa masuk');
-    expect(content.querySelector('table')).not.toBeNull();
+    expect(content.classList.contains('p-6')).toBe(false);
+    expect(content.textContent).not.toContain(
+      'Passkey membuat Anda bisa masuk',
+    );
+    expect(content.querySelector('thead[tableheader]')).not.toBeNull();
+    expect(content.querySelector('tbody[tablebody]')).not.toBeNull();
+    expect(content.querySelector('caption[tablecaption]')).not.toBeNull();
+    expect(content.querySelector('table')?.classList.contains('border')).toBe(
+      false,
+    );
+    expect(content.querySelector('div.overflow-auto.border')).toBeNull();
     expect(content.querySelector('button[button]')).not.toBeNull();
     expect(footer.textContent).toContain('1 dari 5 passkey terpakai');
     expect(footer.textContent).toContain('Magic link tetap tersedia');
