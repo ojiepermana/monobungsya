@@ -91,3 +91,13 @@ Passwordless magic-link login (spec `docs/specs/0003`): tokens stored only as SH
 - `docs/scope/scope.md` — living scope with feature status (maintained by `/scope`).
 - `docs/specs/NNNN-*.md` — numbered build specs with acceptance criteria (owned by `/architect`). Check the relevant spec before building; features in progress list which acceptance criteria each task covers.
 - Prose in README/specs is partly Indonesian; code, identifiers, and commit content are English.
+
+## Spec slice completion
+
+Treat a slice from a governing `docs/specs/` build plan as complete only after its implementation tasks and required validation pass. Close the slice in this order:
+
+1. Identify the exact files belonging to the slice, including any spec or scope progress updates. Keep unrelated pre-existing work out of the slice.
+2. Run `graphify update .` (the `/graphify . --update` equivalent) and confirm that it succeeds, so the graph re-extracts the new or changed files.
+3. Stage and commit only the slice files with a one-line English Conventional Commit subject. Do not stage `graphify-out/` unless a tracked graph artifact is explicitly part of the slice.
+
+If the Graphify update fails, leave the slice uncommitted, report the failure, and retry the update before committing.
