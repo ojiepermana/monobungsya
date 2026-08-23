@@ -2,7 +2,7 @@
  * Frees the ports `bun run dev` needs before the dev servers start.
  *
  * The port list is derived from package.json: every `dev:*` script the `dev`
- * script runs is scanned for a `PORT=<n>` or `--port <n>` value, so adding a
+ * script runs is scanned for a `*_PORT=<n>` or `--port <n>` value, so adding a
  * new service to `dev` needs no change here. Ports can also be passed as
  * arguments (`bun run scripts/kill-dev-ports.ts 3000 4200`), and `--dry-run`
  * reports what would be stopped without stopping anything.
@@ -10,7 +10,7 @@
 
 type PackageJson = { scripts?: Record<string, string> };
 
-const PORT_PATTERN = /(?:\bPORT=|--port[= ])(\d{2,5})/g;
+const PORT_PATTERN = /(?:\b(?:[A-Z][A-Z0-9_]*_)?PORT=|--port[= ])(\d{2,5})/g;
 const SCRIPT_PATTERN = /\bdev:[a-z0-9:-]+/g;
 const SHUTDOWN_TIMEOUT_MS = 3000;
 const POLL_INTERVAL_MS = 100;

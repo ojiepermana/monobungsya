@@ -74,10 +74,13 @@ Prasyarat: Bun 1.4 atau lebih baru. Dependency dikelola hanya dengan Bun.
 ```bash
 bun install
 cp .env.example .env
+bun run doctor
 bun run dev:web
 bun run dev:gateway
 bun run dev:user
 ```
+
+`bun run doctor` memeriksa versi Bun, dependency, entrypoint dan port seluruh dev stack. Jika `ENABLE_INFRASTRUCTURE=true`, doctor juga memeriksa konfigurasi serta konektivitas PostgreSQL, schema hasil migrasi, NATS, dan SMTP.
 
 `bun run dev` menjalankan seluruh app secara paralel. Untuk development lokal tanpa PostgreSQL dan NATS, biarkan `ENABLE_INFRASTRUCTURE=false`. Koneksi Bun SQL dan NATS dibuat oleh `main.ts` hanya ketika flag tersebut diaktifkan.
 
@@ -87,6 +90,7 @@ Script utama:
 
 ```bash
 bun run dev
+bun run doctor
 bun run dev:web
 bun run dev:tauri
 bun run test

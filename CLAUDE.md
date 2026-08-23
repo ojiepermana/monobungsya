@@ -11,6 +11,7 @@ bun install
 cp .env.example .env          # ENABLE_INFRASTRUCTURE=false runs services without PostgreSQL/NATS
 
 bun run dev                   # web + gateway + auth + user
+bun run doctor                # verify local runtime, dependencies, and infrastructure
 bun run dev:gateway           # or one app: dev:web, dev:auth, dev:user
 bun run dev:tauri             # Angular dev server + Tauri desktop window
 
