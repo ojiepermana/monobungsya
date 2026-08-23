@@ -1,4 +1,4 @@
-# Verify: auth passkey login · spec 0006 · updated 2026-08-22
+# Verify: auth passkey login · spec 0006 · updated 2026-08-23
 
 _Steps derived from spec 0006 acceptance criteria and its Value sourcing table. `/check verify` runs these; `/test` locks the durable ones._
 
@@ -7,6 +7,8 @@ Run the stack first: `bun run dev` (web on 4200, gateway on 3000, auth on 3101).
 ## Run record
 
 **2026-08-22 · PASS.** 36 of the 37 steps below ran and passed against the live stack (web on 4200, gateway on 3000, auth on 3101, with PostgreSQL and NATS up). Every criterion AC-1 to AC-10 is met, and all seven passkey endpoints exist in the auth service, the public gateway spec, and the generated SDK. The live `auth` schema carries `passkey_credentials`, `webauthn_challenges`, and the `passkey_ip` rate limit key, so migration 0009 is applied, not just committed.
+
+**2026-08-23 · SPEC UPDATE.** AC-11 adds the passkey settings page recomposition. The earlier run record remains valid for AC-1 to AC-10. The new layout steps stay open until the recomposition is built and verified.
 
 Ceremonies were driven with the software authenticator in `apps/services/auth/src/tests/passkey.authenticator.ts` over real HTTP through the gateway, so registration, sign in, counter handling, challenge safety, rate limits, and cleanup were exercised in the running app. The two platform dialog ceremonies were then driven for real in Chrome for Testing with a CDP virtual authenticator, so the only step still open is the Tauri shell, which carries a note saying what covered it instead and what running it properly would take.
 
@@ -33,11 +35,22 @@ Ceremonies were driven with the software authenticator in `apps/services/auth/sr
 - [x] Cancel the platform passkey dialog mid ceremony → a soft message appears, no error page, and you stay signed out → AC-7
   - Run on 2026-08-22 with `navigator.credentials.get` rejecting `NotAllowedError`, which is what a cancel produces. The login page showed "Passkey dibatalkan." as a soft status, stayed on the page, and left you signed out.
 
+### Page composition update 2026-08-23
+
+- [ ] Open `/setting/passkeys` in the authenticated shell → one stacked `Page` contains exactly one `PageHeader`, one `PageContent`, and one `PageFooter`, with no `PageFilter` → AC-11
+- [ ] Inspect landmarks and scrolling → no `<main>` exists inside the page template, exactly one `role="main"` exists in the screen, only content scrolls, and the header plus footer remain pinned → AC-11
+- [ ] Switch the shell appearance setting → header and footer section treatment follows `LayoutService.appearance()` → AC-11
+- [ ] In a supported browser with fewer than five credentials → the header shows `Tambah passkey`; while busy or at five credentials it is disabled; in an unsupported runtime it is absent → AC-11
+- [ ] Exercise loading, empty, unsupported, success, failure, populated, inline rename, and delete states → every state appears inside content and the existing behavior remains unchanged → AC-11
+- [ ] Read the footer before and after adding or deleting a passkey → it shows the current `N dari 5` count and keeps the magic link fallback note → AC-11
+
 ## Commands
 
 - [x] `bun test apps/services/auth` → 30 pass, 0 fail → AC-2, AC-3, AC-4, AC-6, AC-7, AC-8, AC-9, AC-10
 - [x] `bun run test:web` → 15 pass, 0 fail → AC-1, AC-5
 - [x] `bun run typecheck` and `bun run openapi:generate && bun run openapi:validate` → clean, and no diff appears in `apps/*/openapi.yaml`, `packages/contracts/openapi`, or `packages/angular-sdk/src/generated` → AC-2, AC-3, AC-6
+- [ ] `bun run test:web` → `passkeys.page.test.ts` proves the Page slot contract and preserved register, rename, and delete interactions → AC-11
+- [ ] `bun run lint` and `bun run typecheck` → clean after the page recomposition → AC-11
 
 ### One step per Value sourcing row
 
@@ -80,3 +93,4 @@ Ceremonies were driven with the software authenticator in `apps/services/auth/sr
 - AC-8 covered by the rate limit step and the suspended user step
 - AC-9 covered by the counter decision step and the concurrent verification step
 - AC-10 covered by the cleanup step
+- AC-11 covered by the page composition steps and the new `passkeys.page.test.ts` command step

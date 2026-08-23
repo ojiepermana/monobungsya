@@ -7,6 +7,8 @@
 
 Web app mendapat metode login kedua berupa passkey (WebAuthn, login dengan sidik jari, face unlock, atau hardware key yang terikat ke domain). Magic link tetap ada tanpa perubahan dan menjadi jalur recovery universal, sehingga tidak dibutuhkan alur pemulihan akun baru. Login passkey membuat session yang sama persis dengan session magic link, jadi gateway, cookie, dan authorization tidak berubah. Desktop Tauri tetap memakai magic link karena WebAuthn di webview desktop belum andal.
 
+Updated 2026-08-23: halaman `/setting/passkeys` mengikuti komposisi `Page` yang sudah dipakai halaman user. Halaman memakai header, content, dan footer yang tetap terlihat sesuai kebutuhan passkey, tanpa filter atau paging. Perilaku register, rename, delete, batas lima passkey, dan fallback magic link tidak berubah.
+
 ## Requirements
 
 **User stories**:
@@ -28,12 +30,15 @@ Web app mendapat metode login kedua berupa passkey (WebAuthn, login dengan sidik
 - **AC-8**: Public passkey endpoints are rate limited to 10 attempts per 15 minutes per hashed source IP, atomically, reusing `auth.auth_rate_limits`. A suspended user can neither register nor sign in with a passkey.
 - **AC-9**: A signature counter regression (possible cloned authenticator) rejects the login and writes a warning log without deleting the credential. Two concurrent verifications of the same challenge create at most one session or one credential.
 - **AC-10**: The daily cleanup job also removes expired or used WebAuthn challenges without touching credentials, active sessions, or users.
+- **AC-11** (added 2026-08-23): The `/setting/passkeys` page composes `Page` from `@ojiepermana/angular/theme/page` with `variant="stacked"`, `scroll="content"`, and live layout appearance. It renders one `PageHeader`, one `PageContent`, and one `PageFooter`, with no `PageFilter` because the list holds at most five items and has no search or paging. The header shows the settings context, title, and supported registration action. The content keeps the explanation, alerts, loading and empty states, table, inline rename, and delete controls. The footer shows the current count against the five passkey limit and states that magic link remains available. There is no page level `<main>`, exactly one `role="main"` landmark exists, only the content region scrolls, and existing passkey behavior remains unchanged.
 
 ## Decision
 
 **Chosen option**: Option 1: SimpleWebAuthn on the existing auth service
 
 Implement passkey registration, login, and management inside the existing auth service with `@simplewebauthn/server`, `@simplewebauthn/browser` in the web app, two new `auth` schema tables, and full reuse of the session, cookie, rate limit, and cleanup machinery from spec 0003. Magic link stays untouched as the universal fallback.
+
+The settings page fixes its layout in place by replacing the hand rolled `<main>` frame with the package `Page` composition already proven by the user pages. The page keeps its current service and interactions, and only changes where the existing states and controls are placed.
 
 **Implementation skills**: `elysiajs` (`project/elysiajs`, `/Users/ojiepermana/.agents/skills/elysiajs/`) · `angular-developer` (`/Users/ojiepermana/.agents/skills/angular-developer/`)
 
@@ -83,6 +88,10 @@ One user has many passkey credentials and many challenges. A passkey login creat
 | Post login prompt | Show or hide decision | Passkey count from the list endpoint plus a dismissal flag in browser localStorage |
 | Rate limit | Allow or reject decision | SHA 256 hash of the source IP with key type `passkey_ip` in `auth.auth_rate_limits` |
 | Cleanup | Removed challenge rows | `expires_at` and `used_at` in `auth.webauthn_challenges` |
+| Passkey page header | Registration action availability | WebAuthn support from `PasskeyService.supported()`, current `busy` state, and the five item cap |
+| Passkey page content | Explanation, alerts, states, rows, and inline actions | Existing component signals and `PasskeyService.passkeys` |
+| Passkey page footer | Current count and limit | `PasskeyService.passkeys.length` and `MAX_PASSKEYS` |
+| Passkey page appearance | Flat or bordered section treatment | `LayoutService.appearance()` from the active shell settings |
 
 **Key invariants**:
 
@@ -93,6 +102,10 @@ One user has many passkey credentials and many challenges. A passkey login creat
 - The magic link flow, its routes, and its tests remain behavior identical; this feature only adds code paths.
 - RP ID and expected origin come from server configuration; the client never supplies them.
 - The server validates everything regardless of UI gating; hiding the button is convenience, not security.
+- The passkey settings route keeps host class `block h-full min-h-0`; its template root is `Page`, and no local `<main>` or outer scroll frame remains.
+- `PageHeader`, `PageContent`, and `PageFooter` always exist. Loading, error, empty, unsupported, and populated states render inside `PageContent`, because the package projects known slot selectors.
+- The registration action remains hidden when WebAuthn is unavailable, and remains disabled while busy or when five credentials exist. The recomposition does not change passkey gating.
+- Inline rename and native delete confirmation remain unchanged. This slice does not replace working interactions with new dialogs.
 
 **Security model**:
 
@@ -102,6 +115,18 @@ Registration and management require an authenticated session of any role and ope
 
 - `WEBAUTHN_RP_ID`: optional override of the relying party id; default is the hostname of the existing `WEB_APP_URL`.
 - `WEBAUTHN_RP_NAME`: display name shown by authenticators during the ceremony; default `Monobungsya`.
+
+**Page composition (web)** (added 2026-08-23):
+
+The routed `PasskeysSettingsPage` keeps host class `block h-full min-h-0`. Its template root is `Page` from `@ojiepermana/angular/theme/page` with `variant="stacked"`, `scroll="content"`, `[appearance]="layout.appearance()"`, and class `h-full min-h-0`. Height stays at the package `auto` default so the natural header and footer height is not clamped.
+
+| Slot | Passkey content |
+|---|---|
+| `PageHeader` | Eyebrow `Settings`, title `Passkey`, and `Tambah passkey` as a compact `xs` action when WebAuthn is supported |
+| `PageContent` | Short explanation, success or failure alert, unsupported alert, loading and empty states, limit message, table, inline rename controls, and delete controls |
+| `PageFooter` | Current count in the form `N dari 5 passkey terpakai` and a short note that magic link remains available |
+
+No `PageFilter` is rendered. Five items do not justify search or filter controls, and there is no paging state to control. The header and footer remain pinned while the content owns scrolling. All three slots render unconditionally, and conditionals stay inside `PageContent`. The existing table, inline rename flow, and native delete confirmation remain behavior identical. Header and row actions use `Button size="xs"`. The layout wrapper remains the only source of the `role="main"` landmark.
 
 **Critical test scenarios**:
 
@@ -113,6 +138,7 @@ Registration and management require an authenticated session of any role and ope
 - Gating: Tauri runtime and a browser without WebAuthn support never render the passkey button, verifies **AC-1**.
 - Ownership: renaming or deleting another user's credential returns not found, verifies **AC-6**.
 - Cleanup: the daily job removes only expired or used challenges, verifies **AC-10**.
+- Page composition: the settings page renders the stacked header, content, and footer slots with live appearance, no filter, no local `<main>`, and one content scroll owner while all existing passkey interactions still work, verifies **AC-11**.
 
 ## Build plan
 
@@ -125,6 +151,7 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 5. [x] Thicken the web surface: the passkey management list with rename and delete, and the one time dismissible prompt after magic link login with localStorage persistence, satisfies **AC-5**, **AC-6**.
 6. [x] Hardening: the 5 passkey cap and duplicate credential rejection, `passkey_ip` rate limiting, suspension checks, counter regression rejection with warning logs, and structured logs for register, delete, and login, satisfies **AC-2**, **AC-8**, **AC-9**.
 7. [x] Extend the daily cleanup worker for expired or used challenges, add unit and integration tests for every critical scenario, and document the two optional env vars in `.env.example`, satisfies **AC-7**, **AC-10**.
+8. [ ] Recompose `/setting/passkeys` onto `Page`, `PageHeader`, `PageContent`, and `PageFooter`; bind live layout appearance; move all current states and controls into their assigned slots; remove the local `<main>` and outer scroll frame; add `passkeys.page.test.ts` for the composition and preserved interactions; then run `bun run lint`, `bun run typecheck`, and `bun run test:web`, satisfies **AC-11**.
 
 ## Consequences
 
@@ -133,6 +160,7 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 - Users gain a phishing resistant login that does not depend on email delivery or SMTP health.
 - Session, gateway, authorization, and identity forwarding are untouched, so the blast radius is small.
 - Magic link as the permanent fallback removes the need for a separate account recovery flow.
+- The passkey settings page gains the same pinned shell rhythm and single main landmark as the user pages.
 
 **Negative / tradeoffs**:
 
@@ -140,6 +168,7 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 - Passkeys bind to the web origin: changing the production domain of `WEB_APP_URL` invalidates every registered passkey, while magic link survives such a move.
 - Browser and platform authenticator variability becomes a support surface (differing dialogs, sync behavior, cancellations).
 - The SimpleWebAuthn dependency must be kept current as the WebAuthn spec evolves.
+- The page becomes coupled to the package slot contract, so markup outside a known slot can disappear silently. The component test must assert the slot structure as well as the interactions.
 
 **Neutral**:
 
@@ -147,6 +176,7 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 - Localhost development works because WebAuthn treats localhost as a secure context.
 - Conditional UI autofill (passkey suggestions inside the email field) is deliberately deferred.
 - Role authorization and the single organization boundary are unchanged.
+- This layout slice needs no API, database, service, route, or data migration.
 
 ## Follow-up
 
@@ -154,4 +184,6 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 - [ ] Revisit passkey support in the Tauri desktop shell when webview WebAuthn support matures (separate decision).
 - [ ] WebAuthn community agent skills were offered and skipped; record the skip in a future root `AGENTS.md` so they are not offered again, along with the installed `elysiajs` and `angular-developer` skills this project relies on.
 
-Decision history (context, options, rationale) lives in [rationale.md](rationale.md). Verification steps live in [verify.md](verify.md).
+## Rationale
+
+Reasoning and options live in [rationale.md](rationale.md). Verification steps live in [verify.md](verify.md).
