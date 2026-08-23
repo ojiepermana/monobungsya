@@ -332,6 +332,9 @@ describe('UsersPage page composition (spec docs/specs/0007-user-management, AC-1
     expect(content.querySelector('thead[tableheader]')).not.toBeNull();
     expect(content.querySelector('tbody[tablebody]')).not.toBeNull();
     expect(content.querySelector('caption[tablecaption]')).not.toBeNull();
+    expect(content.querySelector('table')?.classList.contains('border')).toBe(
+      false,
+    );
     expect(root.querySelectorAll('pagefooter')).toHaveLength(1);
     expect(footer.className).toContain('min-h-(--layout-topbar-height)');
     expect(root.querySelector('pagecontent app-reason-dialog')).not.toBeNull();

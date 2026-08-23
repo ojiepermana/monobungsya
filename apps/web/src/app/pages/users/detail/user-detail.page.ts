@@ -194,7 +194,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             @if (auditRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada audit trail untuk user ini.</p>
             } @else {
-              <Table class="min-w-full border border-border bg-card">
+              <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Audit trail user</caption>
                 <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>
@@ -231,7 +231,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             @if (accessRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada access log untuk user ini.</p>
             } @else {
-              <Table class="min-w-full border border-border bg-card">
+              <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Access log user</caption>
                 <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>
@@ -259,7 +259,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             @if (applicationRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log untuk user ini.</p>
             } @else {
-              <Table class="min-w-full border border-border bg-card">
+              <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Application log user</caption>
                 <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>

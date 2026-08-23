@@ -98,7 +98,7 @@ const EMPTY_META: PermissionListMeta = {
         } @else if (rows().length === 0) {
           <p class="border border-border bg-card p-5 text-sm text-muted-foreground">No permissions found.</p>
         } @else {
-          <Table class="min-w-full border border-border bg-card">
+          <Table class="min-w-full bg-card">
             <caption TableCaption class="sr-only">Permission catalog</caption>
             <thead TableHeader class="text-xs uppercase text-muted-foreground">
               <tr TableRow>

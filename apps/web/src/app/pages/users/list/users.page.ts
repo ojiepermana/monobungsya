@@ -180,7 +180,7 @@ interface DraftUser {
         } @else if (rows().length === 0) {
           <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada user yang cocok.</p>
         } @else {
-          <Table class="min-w-full border border-border bg-card">
+          <Table class="min-w-full bg-card">
             <caption TableCaption class="sr-only">Daftar user</caption>
             <thead TableHeader class="text-xs uppercase text-muted-foreground">
               <tr TableRow>
