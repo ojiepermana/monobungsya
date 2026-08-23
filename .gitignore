@@ -9,7 +9,6 @@ apps/web/.angular/
 apps/tauri/src/target/
 graphify-out/
 .angular/
-.claude/
 e2e/.auth/
 test-results/
 playwright-report/

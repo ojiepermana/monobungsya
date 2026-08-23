@@ -347,7 +347,7 @@ async function checkDatabase(
     const rows = (await database`
       SELECT schema_name
       FROM information_schema.schemata
-      WHERE schema_name IN ${DATABASE_SCHEMAS}
+      WHERE schema_name = ANY(${database.array(DATABASE_SCHEMAS, 'text')})
     `) as Array<{ schema_name: string }>;
     return new Set(rows.map((row) => row.schema_name));
   } catch {

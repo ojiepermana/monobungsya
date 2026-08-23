@@ -6,6 +6,12 @@
 - When `graphify-out/graph.json` exists, query the graph before broad raw-file searches; cite the graph's `source_location` when using a specific fact.
 - When the graph does not exist or does not contain enough context, run `/graphify .` or continue with targeted repository searches as needed.
 
+## Docker Usage
+
+- Do not use Docker or Docker Compose to run local development infrastructure or services.
+- Use the local development services and commands documented by the repository for development and runtime verification.
+- Use Docker only to test Dockerfiles and validate built images, including image-level smoke tests.
+
 ## Completed Spec Slices
 
 - When a slice from a `docs/specs/` build plan is complete and its required validation passes, identify the exact files belonging to that slice, including spec or scope progress updates. Keep unrelated pre-existing changes out of the slice.
