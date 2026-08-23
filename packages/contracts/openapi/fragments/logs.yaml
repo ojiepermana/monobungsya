@@ -232,14 +232,43 @@ paths:
                       required:
                         - event
                         - outcome
+                        - routeName
+                        - path
+                        - method
+                        - httpStatus
+                        - requestId
                         - actorEmail
                         - failureReason
-                        - createdAt
+                        - accessedAt
                       properties:
                         event:
                           type: string
                         outcome:
                           type: string
+                        routeName:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        path:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        method:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        httpStatus:
+                          anyOf:
+                            - anyOf:
+                                - format: integer
+                                  default: 0
+                                  type: string
+                                - type: integer
+                            - type: "null"
+                        requestId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
                         actorEmail:
                           anyOf:
                             - type: string
@@ -248,7 +277,7 @@ paths:
                           anyOf:
                             - type: string
                             - type: "null"
-                        createdAt:
+                        accessedAt:
                           type: string
                   meta:
                     type: object

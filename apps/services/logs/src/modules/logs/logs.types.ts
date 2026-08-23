@@ -40,9 +40,14 @@ export interface AccessLogFilters {
 export interface AccessLogItem {
   event: string;
   outcome: string;
+  routeName: string | null;
+  path: string | null;
+  method: string | null;
+  httpStatus: number | null;
+  requestId: string | null;
   actorEmail: string | null;
   failureReason: string | null;
-  createdAt: string;
+  accessedAt: string;
 }
 
 export interface AccessLogsResult {

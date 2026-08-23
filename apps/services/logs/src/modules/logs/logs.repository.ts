@@ -27,6 +27,10 @@ const AUDIT_SEARCH_COLUMNS = [
 const ACCESS_SEARCH_COLUMNS = [
   'event',
   'outcome',
+  'route_name',
+  'path',
+  'method',
+  'request_id',
   'actor_email',
   'failure_reason',
 ] as const;
@@ -175,7 +179,8 @@ export class LogsRepository {
     ]);
     const rows = await this.listRows(
       '"logs"."access_logs"',
-      'event, outcome, actor_email, failure_reason, accessed_at::text AS accessed_at',
+      'event, outcome, route_name, path, method, http_status, request_id, ' +
+        'actor_email, failure_reason, accessed_at::text AS accessed_at',
       'accessed_at',
       clause,
       query.page,
@@ -185,9 +190,17 @@ export class LogsRepository {
       items: rows.items.map((row) => ({
         event: String(row.event),
         outcome: String(row.outcome),
+        routeName: textOrNull(row.route_name),
+        path: textOrNull(row.path),
+        method: textOrNull(row.method),
+        httpStatus:
+          row.http_status === null || row.http_status === undefined
+            ? null
+            : Number(row.http_status),
+        requestId: textOrNull(row.request_id),
         actorEmail: textOrNull(row.actor_email),
         failureReason: textOrNull(row.failure_reason),
-        createdAt: isoFromDbTimestamp(String(row.accessed_at)),
+        accessedAt: isoFromDbTimestamp(String(row.accessed_at)),
       })),
       total: rows.total,
     };

@@ -204,9 +204,9 @@ type TabKey = 'audit' | 'access' | 'application';
                     </tr>
                   </thead>
                   <tbody>
-                    @for (row of accessRows(); track row.createdAt + row.event) {
+                    @for (row of accessRows(); track row.accessedAt + row.event) {
                       <tr class="border-b border-border align-top last:border-0">
-                        <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.createdAt) }}</td>
+                        <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.accessedAt) }}</td>
                         <td class="px-4 py-3">{{ row.event }}</td>
                         <td class="px-4 py-3">{{ row.outcome }}</td>
                         <td class="px-4 py-3 text-muted-foreground">{{ row.failureReason ?? '-' }}</td>

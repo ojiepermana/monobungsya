@@ -1,4 +1,3 @@
-import { ActivityLog } from '#project/logger';
 import { LOGS_PER_PAGE, type LogsRepository } from './logs.repository';
 import type {
   AccessLogsResult,
@@ -98,10 +97,6 @@ export class LogsService {
     actorUserId?: string;
     page?: string;
   }): Promise<ApplicationLogsResult> {
-    // Drain queued best effort writes first, so a log written just before
-    // this read is visible in the result (AC-8).
-    await ActivityLog.flush();
-
     const filters = {
       search: squish(query.search),
       level: squish(query.level),

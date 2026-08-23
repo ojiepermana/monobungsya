@@ -78,6 +78,10 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
                 <th class="px-4 py-3">Time</th>
                 <th class="px-4 py-3">Event</th>
                 <th class="px-4 py-3">Outcome</th>
+                <th class="px-4 py-3">Route</th>
+                <th class="px-4 py-3">Method</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">Request ID</th>
                 <th class="px-4 py-3">Actor</th>
                 <th class="px-4 py-3">Reason</th>
               </tr>
@@ -85,11 +89,18 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
             <tbody>
               @for (row of rows(); track $index) {
                 <tr class="border-b border-border align-top last:border-0">
-                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.createdAt) }}</td>
+                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.accessedAt) }}</td>
                   <td class="px-4 py-3">
                     <span Badge variant="secondary">{{ row.event }}</span>
                   </td>
                   <td class="px-4 py-3" [class.text-destructive]="row.outcome !== 'success'">{{ row.outcome }}</td>
+                  <td class="px-4 py-3">
+                    <p class="font-medium">{{ row.routeName ?? '-' }}</p>
+                    <p class="mt-1 font-mono text-xs text-muted-foreground">{{ row.path ?? '-' }}</p>
+                  </td>
+                  <td class="px-4 py-3 font-mono text-xs">{{ row.method ?? '-' }}</td>
+                  <td class="px-4 py-3 font-mono text-xs">{{ row.httpStatus ?? '-' }}</td>
+                  <td class="px-4 py-3 font-mono text-xs">{{ row.requestId ?? '-' }}</td>
                   <td class="px-4 py-3">{{ row.actorEmail ?? '-' }}</td>
                   <td class="px-4 py-3 text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
                 </tr>

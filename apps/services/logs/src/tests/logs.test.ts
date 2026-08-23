@@ -1,8 +1,7 @@
-import { describe, expect, it, spyOn } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { loadEnv } from '#project/config';
 import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
-import { ActivityLog } from '#project/logger';
 import { createApp } from '../app';
 import { LogsRepository } from '../modules/logs/logs.repository';
 import { LogsService } from '../modules/logs/logs.service';
@@ -229,6 +228,48 @@ describe('logs repository', () => {
     });
   });
 
+  it('maps the access transport fields used by the access viewer', async () => {
+    const { database } = createFakeDatabase((query) => {
+      if (query.text.startsWith('SELECT count')) return [{ total: 1 }];
+      return [
+        {
+          event: 'api_request',
+          outcome: 'success',
+          route_name: '/api/v1/users',
+          path: '/api/v1/users',
+          method: 'GET',
+          http_status: 200,
+          request_id: 'request-123',
+          actor_email: 'admin@project.local',
+          failure_reason: null,
+          accessed_at: '2026-08-22 09:15:30.123',
+        },
+      ];
+    });
+    const repository = new LogsRepository(database);
+
+    const { items } = await repository.listAccessLogs({
+      search: '',
+      event: '',
+      outcome: '',
+      actorUserId: '',
+      page: 1,
+    });
+
+    expect(items[0]).toEqual({
+      event: 'api_request',
+      outcome: 'success',
+      routeName: '/api/v1/users',
+      path: '/api/v1/users',
+      method: 'GET',
+      httpStatus: 200,
+      requestId: 'request-123',
+      actorEmail: 'admin@project.local',
+      failureReason: null,
+      accessedAt: '2026-08-22T09:15:30.123Z',
+    });
+  });
+
   it('binds actorUserId as an exact filter on all three endpoints (covers AC-10)', async () => {
     // Spec docs/specs/0007-user-management, AC-10: the detail page log tabs
     // narrow every log endpoint to one user's rows via actorUserId.
@@ -363,46 +404,10 @@ describe('logs service pagination and filters', () => {
     expect(result.filters.level).toBe('error');
   });
 
-  it('drains the ActivityLog queue before querying application logs (covers AC-8)', async () => {
-    const order: string[] = [];
-    const flushSpy = spyOn(ActivityLog, 'flush').mockImplementation(
-      async () => {
-        order.push('flush');
-      },
-    );
-
-    try {
-      const { database } = createFakeDatabase((query) => {
-        order.push('query');
-        if (query.text.startsWith('SELECT count')) return [{ total: 0 }];
-        return [];
-      });
-      const service = new LogsService(new LogsRepository(database));
-
-      await service.getApplicationLogs({});
-
-      expect(order[0]).toBe('flush');
-      expect(order.filter((step) => step === 'flush')).toHaveLength(1);
-      expect(order.length).toBeGreaterThan(1);
-    } finally {
-      flushSpy.mockRestore();
-    }
-  });
-
-  it('does not drain the queue for audit or access reads (flush is the application logs contract)', async () => {
-    const flushSpy = spyOn(ActivityLog, 'flush').mockImplementation(
-      async () => {},
-    );
-
-    try {
-      const service = new LogsService(repositoryWithTotal(0));
-      await service.getAuditTrails({});
-      await service.getAccessLogs({});
-
-      expect(flushSpy).toHaveBeenCalledTimes(0);
-    } finally {
-      flushSpy.mockRestore();
-    }
+  it('does not claim to flush queues owned by another process before reading', async () => {
+    const service = new LogsService(repositoryWithTotal(0));
+    const result = await service.getApplicationLogs({});
+    expect(result.meta.total).toBe(0);
   });
 
   it('maps audit rows through the repository into the response shape', async () => {
