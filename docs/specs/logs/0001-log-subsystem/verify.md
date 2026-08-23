@@ -12,6 +12,9 @@ _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs the
 - [ ] Open `/users`, then open Log Akses: one `GET /api/v1/users` row shows the verified actor, success, status 200, route, request id, and access time → AC-10, AC-11, AC-15
 - [ ] Search, filter, or change page on `/users`: each backend request adds one access row, while client navigation itself adds no `page_view` row → AC-10, AC-11
 - [ ] Log Akses displays and can search route name, path, method, status, request id, actor email, outcome, and failure reason → AC-15
+* [ ] Open `/users`, then narrow Log Akses to the trace shown on its session row: separate `/api/v1/auth/session` and `/api/v1/users` rows remain, both show client route `/users`, the trace source says `client supplied`, and no internal auth lookup appears → AC-17, AC-19
+* [ ] An authenticated `/api/v1/auth/session` row shows session id, state, role, and permission count plus the verified actor; it shows no permission names, expiry values, cookie, token, or raw body → AC-16, AC-19, AC-20
+* [ ] An invalid session still returns `{ authenticated: false }` to the browser while an operator with `logs.read` can see its stable internal reason on the access row → AC-16, AC-20
 
 ## Commands
 
@@ -24,6 +27,14 @@ _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs the
 - [ ] `bun test apps/services/auth/src` → magic link and passkey success or failure plus logout produce correlated access events without storing tokens or credential responses → AC-12, AC-14
 - [ ] `bun test apps/services/logs/src` → access mapping and search include route name, path, method, status, request id, actor email, outcome, and failure reason; the read service does not claim to drain another process queue → AC-8, AC-15
 - [ ] `bun run test:web` → the access pages render the extended fields, and the `/users` page still issues one initial users request → AC-11, AC-15
+* [ ] `bun test apps/services/auth/src` → session inspection distinguishes missing cookie, unknown session, revoked, absolute expiry, idle expiry, missing user, deleted user, blocked user, and suspended user with the specified precedence; every non active public result remains `{ authenticated: false }` → AC-16, AC-20
+* [ ] `bun test apps/services/auth/src` → session state classification and sliding expiry refresh use one database decision at database `now()`; a session crossing expiry is never refreshed after being classified invalid → AC-16
+* [ ] `bun test apps/gateway/erp/src` → the public session handler stores only metadata version 1 fields, enriches actor and session only when verified, strips the internal observation, and falls back safely for invalid client correlation or route headers → AC-16, AC-18, AC-20
+* [ ] `bun test apps/gateway/erp/src` → CORS permits `x-correlation-id` and `x-client-route`, and their preflight OPTIONS request produces no access row → AC-17
+* [ ] `bun test apps/gateway/erp/src` → anonymous and invalid session results remain HTTP 200 access successes with their state in details, while malformed or unavailable auth responses have null details and the mapped failure → AC-16, AC-20
+* [ ] `bun test apps/services/logs/src` → version 1 metadata maps to trace, client route, and session summary; old, malformed, unknown version, and unknown detail metadata map to null; exact trace filtering is parameter bound → AC-19, AC-20
+* [ ] `bun run test:web` → one router navigation UUID is sent to the gateway origin for the guard and first page request, a later navigation gets another UUID, foreign origins receive no client context headers, and the access viewer can narrow to one trace → AC-17, AC-18, AC-19
+* [ ] Run the `/users` E2E flow → the public session row and users row have different request ids, one shared trace id, client route `/users`, and exactly one row each → AC-17, AC-19
 - [ ] Start a writer, enqueue application and access rows, send SIGTERM, and verify its local queue drains before the log database client closes or the configured timeout reports a warning → AC-8
 - [ ] Hold a gateway write queue open while reading through the logs service and verify the logs service cannot flush that foreign queue; release and flush the gateway queue, then verify the row becomes visible → AC-8
 - [x] Insert with a timestamp in a year that has no partition child (for example 2031) via `withLogPartitionRecovery` → the child `partition.logging_2031` is created under an advisory lock and the retried insert lands → AC-3
@@ -39,7 +50,11 @@ _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs the
 - [ ] Status 200 and 302 map to `success`; status 400, 401, 403, and 500 map to `failure`; 401 maps to `authentication_required` and 403 to `permission_denied` → AC-10, AC-12
 - [x] `page=abc`, `page=0`, and `page=-3` all return page 1
 - [x] `/api/v1/auth/session` for an admin or manager carries `permissions: ["users.manage", "logs.read"]`; for staff, bi, and legacy it carries `[]` → AC-5
+* [ ] Session access metadata stores only `schemaVersion`, duration, capability, correlation source, client route, detail kind, state, reason, role, and permission count; extra internal result fields are absent → AC-16, AC-20
+* [ ] `x-correlation-id=trace-456` is accepted, a value over 100 characters or with unsafe characters falls back to request id, and a missing value also falls back to request id → AC-18
+* [ ] `x-client-route=/users?search=email#section` stores `/users`, while an invalid URL or value over 255 characters stores null → AC-18
+* [ ] An authenticated session summary gets role and permission count from the server result, not from a client header; unauthenticated rows keep actor and session null → AC-16, AC-18
 
 ## Acceptance-criteria coverage
 
-- AC-1 covered by best effort writer and Logger tests · AC-2 by strict audit tests · AC-3 by migration, partition boundary, and recovery checks · AC-4 by pagination and gateway checks · AC-5 by role checks · AC-6 by injection checks · AC-7 by timestamp checks · AC-8 by process isolation and shutdown drain checks · AC-9 by existing viewer checks · AC-10 by gateway access integration · AC-11 by the `/users` E2E flow · AC-12 by auth and denial events · AC-13 by Logger persistence · AC-14 by redaction checks · AC-15 by API and viewer field checks
+AC-1 is covered by best effort writer and Logger tests. AC-2 is covered by strict audit tests. AC-3 is covered by migration, partition boundary, and recovery checks. AC-4 is covered by pagination and gateway checks. AC-5 is covered by role checks. AC-6 is covered by injection checks. AC-7 is covered by timestamp checks. AC-8 is covered by process isolation and shutdown drain checks. AC-9 is covered by existing viewer checks. AC-10 is covered by gateway access integration. AC-11 is covered by the `/users` E2E flow. AC-12 is covered by auth and denial events. AC-13 is covered by Logger persistence. AC-14 is covered by redaction checks. AC-15 is covered by API and viewer field checks. AC-16 is covered by typed session summary and invalid state tests. AC-17 is covered by Angular navigation and `/users` flow tests. AC-18 is covered by forged context tests. AC-19 is covered by logs projection, exact trace filtering, viewer, and E2E checks. AC-20 is covered by public response, compatibility, and allowlist tests.

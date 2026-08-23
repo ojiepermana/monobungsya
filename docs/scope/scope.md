@@ -101,14 +101,17 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
 **Done when:** Log rows land in yearly partitions automatically, audit writes fail visibly while application log writes never block a request, and an admin or manager can browse, search, filter, and page all three log types in the web UI.
 
 - [x] Design it (spec): imported reference design, adapted to this repo
-- [x] Build it: `/develop log subsystem`
+- [ ] Build it: `/develop log subsystem`
   - [x] Partitioned migration and grants (AC-3, AC-7)
   - [x] Shared partition helpers and ActivityLog writer (AC-1, AC-2, AC-3, AC-8)
   - [x] Logs service, gateway wiring, and session permissions (AC-4, AC-5, AC-6)
   - [x] Web viewer pages with search, filters, and paging (AC-9)
   - [x] Tests and regenerated OpenAPI artifacts
-- [x] Verify it: `/check verify log subsystem`
-- [x] Test it: `/test log subsystem`
+  - [ ] Safe session details from auth through the gateway, logs API, and viewer (AC-16, AC-19, AC-20)
+  - [ ] Angular navigation correlation, gateway validation, CORS, and trace filtering (AC-17, AC-18, AC-19)
+  - [ ] Production regression coverage, E2E flow proof, and generated contracts (AC-1, AC-8, AC-10 to AC-20)
+- [ ] Verify it: `/check verify log subsystem`
+- [ ] Test it: `/test log subsystem`
 
 Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 

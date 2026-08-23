@@ -4,74 +4,75 @@ This file holds the reasoning behind [index.md](index.md). Builds read the index
 
 ## Context
 
-> ⚠️ Premise note: an Angular route change is not reliable security evidence. The browser can cache, repeat, omit, or forge a `page_view` event. The authoritative event is the public API request that actually releases protected data. Opening `/users` therefore records `GET /api/v1/users`, while product analytics for client route views remains a separate concern.
+> ⚠️ Premise note: `/api/v1/auth/session` must not be nested inside or merged into the `/api/v1/users` row. They are separate public requests and each is independently relevant to security. The right framing is to relate their separate rows with one trace identifier, then add a safe endpoint summary only to the session row.
 
-The storage, partitioning, read service, gateway proxy, and Angular viewers are already built. The production write integration is not. `ActivityLog.writeAccess` and `ActivityLog.writeLog` have no production call sites, so normal use leaves Log Akses and Log Aplikasi empty even though their pages work.
+The production access writer now records every completed public API request. When Angular opens `/users`, its guard first calls `/api/v1/auth/session`, then the page calls `/api/v1/users`. Both calls receive different server request and trace identifiers, so the viewer cannot show that they belong to one navigation.
 
-The application already has a shared `Logger`, request identifiers, gateway session resolution, and one PostgreSQL log writer. A replacement platform would add infrastructure without fixing a storage limitation. The real decision is where public access becomes authoritative, how application events reach the existing writer, and how to avoid duplicates or credential leakage.
+The access table already has indexed `trace_id` and JSONB `metadata`. The gateway currently stores only duration and capability in metadata. Its generic session proxy forwards the auth response without adding verified actor, session, or a safe summary to the public session access row. The logs service and Angular viewer also omit trace and metadata from their read contract.
+
+Endpoint details touch authentication data. Raw body capture would turn the access table into an uncontrolled copy of session and credential fields. Client route context is also forgeable. The design therefore needs a closed server owned detail contract, a stable public response, and an explicit label that navigation data is only a diagnostic hint.
 
 ## Current state evidence
 
-* `packages/logger/src/activity-log.ts` implements access, application, and audit writes.
-* `apps/services/user/src/modules/users/users.service.ts` is the only production `ActivityLog` caller, and it writes audit rows only.
-* `packages/logger/src/index.ts` sends `Logger` output to the console only.
-* `packages/elysia/src/logger.plugin.ts` records request start before the final status and does not persist it.
-* `apps/web/src/app/pages/users/list/users.page.ts` calls `GET /api/v1/users` when `/users` opens.
-* `apps/gateway/erp/src/main.ts` has no log database configuration.
-* `ActivityLog.flush()` owns one process local queue, so calling it in the logs service cannot drain gateway, auth, or user queues.
+* `packages/elysia/src/access-log.plugin.ts` writes one row in a global `onAfterResponse` hook and owns mutable request context.
+* `apps/gateway/erp/src/routes/proxy.route.ts` forwards public session requests and performs a separate internal session lookup for protected users requests.
+* `apps/services/auth/src/modules/auth/auth.service.ts` returns the safe public session shape, while `findSession` currently collapses every invalid state to null.
+* `packages/logger/src/activity-log.ts` already sanitizes and stores access metadata plus `trace_id`.
+* `apps/web/src/app/auth/auth.guard.ts` calls the public session endpoint during navigation, and the users page calls the users endpoint after activation.
+* `apps/services/logs/src/modules/logs/logs.repository.ts` omits metadata, session id, and trace id from access rows.
+* `apps/web/src/app/pages/logs/access/access-logs.page.ts` cannot display or filter a related request flow.
 
 ## Options considered
 
-### Option 1: Fix the existing subsystem in place
+### Option 1: Enrich the existing access rows in place
 
-Keep the current tables, writer, APIs, and viewers. Add one gateway completion hook for public access, bridge the shared `Logger` to application storage, add explicit auth events, and drain each local queue during shutdown.
-
-**Pros**:
-
-* Reuses code and operations the project already owns.
-* Gives one authoritative request row without downstream duplicates.
-* Needs no schema or historical data migration.
-
-**Cons**:
-
-* Gateway processes need a least privilege PostgreSQL logging connection.
-* Request volume now consumes primary database capacity.
-* Several applications must adopt the updated shared logger together.
-
-### Option 2: Strangle direct writes through a logs ingestion service
-
-Add an internal write API or NATS consumer beside current direct writes, move producers gradually, then retire direct database access.
+Keep one row per public request. Reuse `trace_id` for Angular navigation correlation and store one versioned, endpoint owned detail union in the existing metadata column. Project only safe typed fields through the logs API.
 
 **Pros**:
 
-* Centralizes write policy and credentials.
-* Can add batching and back pressure in one place later.
+* Needs no table or historical data migration.
+* Preserves the current writer, permissions, partitions, and viewer.
+* Keeps request evidence separate while making related rows easy to find.
 
 **Cons**:
 
-* Adds a network or broker dependency to a best effort path.
-* Creates retry, ordering, authentication, and self logging concerns that do not exist today.
-* Keeps two write paths during migration.
+* JSONB needs a defensive parser and version policy.
+* Client navigation correlation remains forgeable diagnostic context.
 
-### Option 3: Replace PostgreSQL logging directly
+### Option 2: Add a journey stream beside access logs
 
-Send access and application events to an external log platform and retire the current write and read surfaces.
+Write separate client journey events beside access logs, relate both stores, then move flow analysis to the new stream after it is proven.
 
 **Pros**:
 
-* Purpose built search, retention, alerting, and high volume ingestion.
-* Removes log traffic from the primary database.
+* Separates product navigation from security access evidence.
+* Supports richer future interaction analytics.
 
 **Cons**:
 
-* Discards working partitions, APIs, permissions, and viewers.
-* Adds service cost, deployment configuration, and another security boundary.
-* Requires a coordinated replacement and historical data decision for a gap that is only missing integration.
+* Adds a second writer, read model, and reconciliation problem for one current page flow.
+* Still needs access metadata for the safe session summary.
+
+### Option 3: Add dedicated access columns directly
+
+Add client route and each session summary field as columns on `logs.access_logs`, backfill nulls, and update every reader and writer together.
+
+**Pros**:
+
+* Gives strong database types and straightforward SQL filters.
+* Makes the current session fields obvious to ad hoc queries.
+
+**Cons**:
+
+* Couples the shared access table to one endpoint and repeats migrations for every future detail kind.
+* Changes every yearly partition and adds coordination risk for nullable information.
 
 ## Rationale
 
-Option 1 is the right fit because the existing subsystem is maintainable and already covers storage, partition recovery, authorization, querying, and display. The gateway is the only boundary that sees one public request, its verified identity, and its final result. Logging again in downstream services would duplicate the same access under one request id.
+Option 1 fits because the required storage and correlation fields already exist. A versioned union gives endpoint details a strict shape without turning the access table into an auth specific schema. Reusing `trace_id` also preserves existing propagation through gateway and services instead of introducing another identity for the same flow.
 
-The shared `Logger` is already used for technical events. Connecting it once to `ActivityLog.writeLog` gives consistent application persistence without adding manual calls throughout the codebase. A failed request may create an access row and an application error row because those records answer different questions.
+Option 3 is the runner up. Dedicated columns become appropriate if several stable endpoint fields need indexed filtering at measured volume. That condition does not exist yet, so changing every partition now would create schema coupling without a proven query benefit.
 
-The Elysia lifecycle must be registered before route plugins with global scope. `onAfterResponse` is the appropriate point because the response has already been produced and logging cannot alter it. The rollout stays guarded because one row per API request changes database volume even though it does not change request success.
+The gateway remains the authoritative public access boundary, but it must not inspect response bodies generically. The auth service can produce a typed internal observation. The session gateway handler then maps the unchanged public body explicitly and enriches request context before the global Elysia completion hook writes the row. This respects plugin order, global lifecycle scope, and one write per public request.
+
+Angular supplies the navigation correlation because only the client knows that two public calls belong to the same route transition. That value helps diagnosis but does not prove intent. Authentication, actor, session, status, and invalid reason continue to come from server controlled sources.
