@@ -320,13 +320,19 @@ describe('UsersPage page composition (spec docs/specs/0007-user-management, AC-1
     const filterToggle = root.querySelector(
       '[data-page-control="filter-toggle"] button',
     ) as HTMLButtonElement;
+    const headerAction = header.querySelector(
+      'button[button]',
+    ) as HTMLButtonElement;
 
     expect(root.querySelectorAll('pageheader')).toHaveLength(1);
     expect(header.className).toContain('min-h-(--layout-topbar-height)');
+    expect(headerAction.getAttribute('data-size')).toBe('xs');
     expect(root.querySelectorAll('pagefilter')).toHaveLength(1);
-    expect(filter.getAttribute('data-page-filter-open')).toBe('true');
+    expect(filter.getAttribute('data-page-filter-open')).toBe('false');
     expect(filterToggle).not.toBeNull();
-    expect(filterToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(filter.className).toContain('hidden');
+    expect(filter.hasAttribute('hidden')).toBe(true);
     expect(root.querySelectorAll('pagecontent')).toHaveLength(1);
     expect(content.classList.contains('p-6')).toBe(false);
     expect(content.querySelector('thead[tableheader]')).not.toBeNull();
@@ -344,18 +350,18 @@ describe('UsersPage page composition (spec docs/specs/0007-user-management, AC-1
     filterToggle.click();
     fixture.detectChanges();
 
-    expect(filter.getAttribute('data-page-filter-open')).toBe('false');
-    expect(filter.className).toContain('hidden');
-    expect(filterToggle.getAttribute('aria-expanded')).toBe('false');
-    expect(filter.hasAttribute('hidden')).toBe(true);
+    expect(filter.getAttribute('data-page-filter-open')).toBe('true');
+    expect(filter.className).not.toContain('hidden');
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(filter.hasAttribute('hidden')).toBe(false);
 
     filterToggle.click();
     fixture.detectChanges();
 
-    expect(filter.getAttribute('data-page-filter-open')).toBe('true');
-    expect(filter.className).not.toContain('hidden');
-    expect(filter.hasAttribute('hidden')).toBe(false);
-    expect(filterToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(filter.getAttribute('data-page-filter-open')).toBe('false');
+    expect(filter.className).toContain('hidden');
+    expect(filter.hasAttribute('hidden')).toBe(true);
+    expect(filterToggle.getAttribute('aria-expanded')).toBe('false');
   });
 });
 

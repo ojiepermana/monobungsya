@@ -124,8 +124,6 @@ interface DraftUser {
       variant="stacked"
       scroll="content"
       [appearance]="layout.appearance()"
-      [filterOpen]="filterOpen()"
-      (filterOpenChange)="filterOpen.set($event)"
       class="h-full min-h-0"
     >
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
@@ -140,7 +138,7 @@ interface DraftUser {
           >
             <span>Filter</span>
           </PageFilterToggle>
-          <button Button type="button" (click)="openCreate()">Tambah User</button>
+          <button Button size="xs" type="button" (click)="openCreate()">Tambah User</button>
         </div>
       </PageHeader>
 
@@ -300,7 +298,7 @@ export class UsersPage {
   protected readonly layout = inject(LayoutService);
   private readonly reasonDialog = viewChild(ReasonDialog);
 
-  protected readonly filterOpen = signal(true);
+  protected readonly filterOpen = signal(false);
 
   /** Used to hide the status actions on the caller's own row (AC-6). */
   protected readonly callerId = computed(() => this.auth.user()?.id ?? null);

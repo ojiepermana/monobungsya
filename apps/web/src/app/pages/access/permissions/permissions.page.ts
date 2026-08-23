@@ -25,6 +25,7 @@ import {
   PageComponent,
   PageContentComponent,
   PageFilterComponent,
+  PageFilterToggleComponent,
   PageFooterComponent,
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
@@ -64,6 +65,7 @@ const EMPTY_META: PermissionListMeta = {
     PageComponent,
     PageContentComponent,
     PageFilterComponent,
+    PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
     TableBodyComponent,
@@ -75,16 +77,34 @@ const EMPTY_META: PermissionListMeta = {
     TableRowComponent,
   ],
   template: `
-    <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
+    <Page
+      variant="stacked"
+      scroll="content"
+      [appearance]="layout.appearance()"
+      class="h-full min-h-0"
+    >
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Permission Catalog</h1>
         </div>
-        <button Button type="button" (click)="openCreate()">Create permission</button>
+        <div class="flex shrink-0 items-center gap-2">
+          <PageFilterToggle
+            ariaLabel="Show or hide filters"
+            (toggled)="filterOpen.set($event)"
+          >
+            <span>Filter</span>
+          </PageFilterToggle>
+          <button Button size="xs" type="button" (click)="openCreate()">Create permission</button>
+        </div>
       </PageHeader>
 
-      <PageFilter class="grid shrink-0 gap-3 px-6 py-4 md:flex md:items-center">
+      <PageFilter
+        placement="stacked"
+        collapsible
+        [hidden]="!filterOpen()"
+        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:items-center"
+      >
         <input Input type="search" placeholder="Search name or code..." [value]="search()" (input)="setSearch($event)" />
         <input Input placeholder="Namespace" [value]="namespace()" (input)="setNamespace($event)" class="md:max-w-xs" />
       </PageFilter>
@@ -175,6 +195,7 @@ const EMPTY_META: PermissionListMeta = {
 export class PermissionsPage {
   private readonly api = inject(ApiService);
   protected readonly layout = inject(LayoutService);
+  protected readonly filterOpen = signal(false);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly dialogError = signal<string | null>(null);
