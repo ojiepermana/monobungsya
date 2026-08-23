@@ -35,6 +35,12 @@ bun run db:reset --confirm --seed   # requires DATABASE_RESET_ALLOWED=true
 bun run db:migrate:down --steps 1
 ```
 
+## Docker Usage
+
+- Do not use Docker or Docker Compose to run local development infrastructure or services.
+- Use the local development services and commands documented by the repository for development and runtime verification.
+- Use Docker only to test Dockerfiles and validate built images, including image-level smoke tests.
+
 CI (`.github/workflows/ci.yml`) runs db reset/seed + idempotence check, tests, typecheck, lint, dependency check, OpenAPI generate + validate, then fails if generated artifacts (`apps/*/openapi.yaml`, `packages/contracts/openapi`, `packages/angular-sdk/src/generated`) have uncommitted diffs — always commit regenerated output.
 
 ## Architecture
