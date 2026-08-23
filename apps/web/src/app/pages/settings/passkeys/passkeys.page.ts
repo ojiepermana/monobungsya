@@ -7,6 +7,13 @@ import {
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
+import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
+import {
+  PageComponent,
+  PageContentComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
 import {
   MAX_PASSKEYS,
   type Passkey,
@@ -23,55 +30,63 @@ import {
     ButtonComponent,
     IconComponent,
     InputComponent,
+    PageComponent,
+    PageContentComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
   ],
   template: `
-    <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
-      <header>
-        <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Settings</p>
-        <h1 class="mt-2 text-2xl font-semibold text-foreground">Passkey</h1>
-        <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
+    <Page
+      variant="stacked"
+      scroll="content"
+      [appearance]="layout.appearance()"
+      class="h-full min-h-0"
+    >
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Settings</p>
+          <h1 class="truncate text-lg font-semibold text-foreground">Passkey</h1>
+        </div>
+        @if (supported) {
+          <button
+            Button
+            size="xs"
+            type="button"
+            class="gap-1.5"
+            [disabled]="busy() || full()"
+            (click)="add()"
+          >
+            <Icon name="fingerprint" [size]="14" />
+            {{ busy() ? 'Menunggu passkey...' : 'Tambah passkey' }}
+          </button>
+        }
+      </PageHeader>
+
+      <PageContent class="grid min-h-0 content-start gap-6 p-6">
+        <p class="max-w-2xl text-sm text-muted-foreground">
           Passkey membuat Anda bisa masuk dengan sidik jari, face unlock, atau kunci keamanan,
           tanpa menunggu email. Magic link tetap bisa dipakai kapan saja, jadi menghapus semua
           passkey aman.
         </p>
-      </header>
 
-      @if (message(); as messageText) {
-        <Alert [variant]="failed() ? 'destructive' : 'default'">
-          <AlertTitle>{{ failed() ? 'Gagal' : 'Status' }}</AlertTitle>
-          <AlertDescription>{{ messageText }}</AlertDescription>
-        </Alert>
-      }
+        @if (message(); as messageText) {
+          <Alert [variant]="failed() ? 'destructive' : 'default'">
+            <AlertTitle>{{ failed() ? 'Gagal' : 'Status' }}</AlertTitle>
+            <AlertDescription>{{ messageText }}</AlertDescription>
+          </Alert>
+        }
 
-      @if (!supported) {
-        <Alert>
-          <AlertTitle>Passkey belum tersedia di perangkat ini</AlertTitle>
-          <AlertDescription>
-            Aplikasi desktop dan browser tanpa dukungan WebAuthn tetap memakai magic link.
-            Passkey yang sudah terdaftar masih bisa dilihat dan dihapus di sini.
-          </AlertDescription>
-        </Alert>
-      }
+        @if (!supported) {
+          <Alert>
+            <AlertTitle>Passkey belum tersedia di perangkat ini</AlertTitle>
+            <AlertDescription>
+              Aplikasi desktop dan browser tanpa dukungan WebAuthn tetap memakai magic link.
+              Passkey yang sudah terdaftar masih bisa dilihat dan dihapus di sini.
+            </AlertDescription>
+          </Alert>
+        }
 
-      <section class="grid gap-3">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-muted-foreground">
-            {{ passkeys().length }} dari {{ maxPasskeys }} passkey terpakai.
-          </p>
-          @if (supported) {
-            <button
-              Button
-              size="xs"
-              type="button"
-              class="gap-1.5"
-              [disabled]="busy() || full()"
-              (click)="add()"
-            >
-              <Icon name="fingerprint" [size]="14" />
-              {{ busy() ? 'Menunggu passkey...' : 'Tambah passkey' }}
-            </button>
-          }
-        </div>
+        <section class="grid gap-3">
 
         @if (full()) {
           <p class="text-xs text-muted-foreground">
@@ -169,13 +184,24 @@ import {
             </table>
           </div>
         }
-      </section>
-    </main>
+        </section>
+      </PageContent>
+
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <p class="text-sm text-muted-foreground">
+          {{ passkeys().length }} dari {{ maxPasskeys }} passkey terpakai
+        </p>
+        <p class="text-xs text-muted-foreground">
+          Magic link tetap tersedia sebagai metode masuk dan pemulihan.
+        </p>
+      </PageFooter>
+    </Page>
   `,
 })
 export class PasskeysSettingsPage {
   private readonly passkey = inject(PasskeyService);
 
+  protected readonly layout = inject(LayoutService);
   protected readonly maxPasskeys = MAX_PASSKEYS;
   protected readonly supported = this.passkey.supported();
   protected readonly passkeys = this.passkey.passkeys;

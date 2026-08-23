@@ -85,13 +85,13 @@ Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the
 **Done when:** A user can register up to 5 passkeys, sign in with one and receive a session identical to a magic link session, manage (rename, delete) their own passkeys on a settings page that follows the shared Page pattern, and magic link login still works unchanged for everyone.
 
 - [x] Design it (spec): `/architect auth passkey login`
-- [ ] Build it: `/develop auth passkey login`
+- [x] Build it: `/develop auth passkey login`
   - [x] Migration, ceremony core, and challenge safety in the auth service (AC-2, AC-3, AC-7, AC-9)
   - [x] Public routes, gateway wiring, and regenerated OpenAPI plus SDK (AC-2, AC-3, AC-6, AC-7)
   - [x] Web thread: gated login button, registration, and passkey sign in end to end (AC-1, AC-3, AC-4)
   - [x] Management UI, post login prompt, rate limits, caps, and logging (AC-2, AC-5, AC-6, AC-8, AC-9)
   - [x] Cleanup worker extension, tests, and env documentation (AC-7, AC-10)
-  - [ ] Passkey settings page recomposition with shared header, content, footer, appearance, one main landmark, and preserved interactions (AC-11)
+  - [x] Passkey settings page recomposition with shared header, content, footer, appearance, one main landmark, and preserved interactions (AC-11)
 - [ ] Verify it: `/check verify auth passkey login` (re-run for the page recomposition)
 - [ ] Test it: `/test auth passkey login`
 
