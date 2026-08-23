@@ -59,6 +59,17 @@ Routes handle HTTP only and never call repositories directly. Schemas do validat
 
 `main.ts` only loads config, creates infrastructure connections (database, NATS, mailer) **when `ENABLE_INFRASTRUCTURE=true`**, injects them into `createApp(env, deps)`, starts the server, and handles graceful shutdown. `app.ts` must be constructible without a live server — `scripts/openapi-generate.ts` imports each `createApp` and calls `/openapi/json` in-process to produce specs.
 
+### Logging system (mandatory for every backend service)
+
+Every backend service, including the gateway and every service under `apps/services/` such as `auth`, `user`, and `logs`, must implement the shared logging system. When adding a new service, treat logging as part of the service contract; the service is incomplete until all of the following are present:
+
+- `app.ts` creates a `Logger` with the service name and configured `LOG_LEVEL`, registers `requestIdPlugin`, `createLoggerPlugin`, and `createErrorHandler`, and passes the logger to modules that need to emit domain events.
+- `main.ts` configures `ActivityLog` with the least-privilege `LOG_DATABASE_URL` connection when infrastructure is enabled, uses `BEST_EFFORT_LOGGING_ENABLED`, and calls `ActivityLog.flush(LOG_FLUSH_TIMEOUT_MS)` before closing the log database during graceful shutdown.
+- Application logs use structured event keys and sanitized context through `#project/logger`; credentials, cookies, authorization values, tokens, secrets, passwords, and passkey responses must never be persisted. Logging failures must not fail a request for best-effort application/access logs.
+- Business mutations that require an audit trail call `ActivityLog.writeAudit` and await it inside the business operation. Do not expose a public log-write endpoint; log writes are server-side only.
+- The gateway records one access log for each completed public API request, excluding CORS `OPTIONS`. Authentication/security events and domain audit events are emitted at their authoritative server boundary, not by the Angular client. Internal service requests do not create duplicate public access rows.
+- Tests for a service cover logger wiring, redaction, failure behavior, and graceful-shutdown flushing. When a service emits access or audit events, tests also prove correlation fields and the required event classification.
+
 ### Cross-service rules (enforced)
 
 Services may import shared packages and event contracts, never another service's package or source. `scripts/check-dependencies.ts` and CI enforce this. Inter-service communication is NATS events (contracts in `packages/contracts/src/events`, handlers live in the owning service) or HTTP through the gateway. The goal: any service folder can be extracted to its own repo unchanged.
