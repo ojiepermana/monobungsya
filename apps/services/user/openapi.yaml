@@ -108,7 +108,6 @@ paths:
                         - id
                         - name
                         - email
-                        - role
                         - status
                         - emailVerifiedAt
                         - suspendedAt
@@ -124,14 +123,6 @@ paths:
                           type: string
                         email:
                           type: string
-                        role:
-                          type: string
-                          enum:
-                            - admin
-                            - manager
-                            - bi
-                            - staff
-                            - legacy
                         status:
                           type: string
                           enum:
@@ -213,19 +204,8 @@ paths:
                   options:
                     type: object
                     required:
-                      - roles
                       - statuses
                     properties:
-                      roles:
-                        type: array
-                        items:
-                          type: string
-                          enum:
-                            - admin
-                            - manager
-                            - bi
-                            - staff
-                            - legacy
                       statuses:
                         type: array
                         items:
@@ -250,7 +230,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -264,14 +243,6 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -279,7 +250,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -293,14 +263,6 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
           multipart/form-data:
             schema:
               type: object
@@ -308,7 +270,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -322,14 +283,6 @@ paths:
                   minLength: 3
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
       responses:
         "200":
           description: Response for status 200
@@ -341,7 +294,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -357,14 +309,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -418,7 +362,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -434,14 +377,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -475,7 +410,7 @@ paths:
     patch:
       tags:
         - Users
-      summary: Update a user's name and role
+      summary: Update a user's name
       parameters:
         - name: id
           in: path
@@ -494,14 +429,6 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -510,14 +437,6 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
           multipart/form-data:
             schema:
               type: object
@@ -526,14 +445,6 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
-                role:
-                  type: string
-                  enum:
-                    - admin
-                    - manager
-                    - bi
-                    - staff
-                    - legacy
       responses:
         "200":
           description: Response for status 200
@@ -545,7 +456,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -561,14 +471,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -654,7 +556,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -670,14 +571,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -764,7 +657,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -780,14 +672,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -874,7 +758,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -890,14 +773,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -984,7 +859,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -1000,14 +874,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -1094,7 +960,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -1110,14 +975,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:
@@ -1204,7 +1061,6 @@ paths:
                   - id
                   - name
                   - email
-                  - role
                   - status
                   - emailVerifiedAt
                   - suspendedAt
@@ -1220,14 +1076,6 @@ paths:
                     type: string
                   email:
                     type: string
-                  role:
-                    type: string
-                    enum:
-                      - admin
-                      - manager
-                      - bi
-                      - staff
-                      - legacy
                   status:
                     type: string
                     enum:

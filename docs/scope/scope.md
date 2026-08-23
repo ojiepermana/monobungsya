@@ -122,12 +122,12 @@ Permission first access control without roles: a new access service owns a permi
 **Done when:** A bootstrap admin (from env) can grant and revoke permissions per user through the web UI, every protected route allows or denies purely by permission names (manage wildcard included), a permission change takes effect within the cache window, no code path reads a role anymore, and a lookup failure denies instead of allowing.
 
 - [x] Design it (spec): `/architect permission access control`
-- [ ] Build it: `/develop permission access control`
-  - [ ] Thin thread: acl package, access schema and seeds, access service lookup, gateway permission check on one users route (AC-1, AC-2, AC-4, AC-5, AC-6)
-  - [ ] Full cutover: permission route table, session enrichment, role removal across services and web (AC-3, AC-9, AC-11, AC-12, AC-13)
-  - [ ] Admin API: catalog CRUD, grants, lockout guards, audit writes, cache invalidation events (AC-7, AC-8, AC-10, AC-15)
-  - [ ] Admin UI: catalog pages and the user detail access tab (AC-14)
-  - [ ] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, env docs (AC-16)
+- [x] Build it: `/develop permission access control`
+  - [x] Thin thread: acl package, access schema and seeds, access service lookup, gateway permission check on one users route (AC-1, AC-2, AC-4, AC-5, AC-6)
+  - [x] Full cutover: permission route table, session enrichment, role removal across services and web (AC-3, AC-9, AC-11, AC-12, AC-13)
+  - [x] Admin API: catalog CRUD, grants, lockout guards, audit writes, cache invalidation events (AC-7, AC-8, AC-10, AC-15)
+  - [x] Admin UI: catalog pages and the user detail access tab (AC-14)
+  - [x] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, env docs (AC-16)
 - [ ] Verify it: `/check verify permission access control`
 - [ ] Test it: `/test permission access control`
 
@@ -147,8 +147,8 @@ Full user management owned by the user service: create and update users, suspend
   - [x] Status lifecycle: suspend, block, soft delete, restore, guards, and extended auth login checks (AC-4, AC-5, AC-6, AC-7)
   - [x] Invitation event and the auth magic link handler (AC-2)
   - [x] Detail page log tabs, actorUserId filter, and cutover off the auth users endpoint (AC-9, AC-10, AC-11)
-  - [ ] Recompose the two user pages on the package Page scaffold: stacked variant, header, filter, content, footer (AC-12, spec update 2026-08-23)
-- [ ] Verify it: `/check verify user lifecycle management` (re-run for AC-12; AC-1 to AC-11 passed 2026-08-22)
+  - [x] Recompose the two user pages on the package Page scaffold: stacked variant, header, filter, content, footer (AC-12, spec update 2026-08-23)
+- [x] Verify it: `/check verify user lifecycle management` (re-run for AC-12; AC-1 to AC-11 passed 2026-08-22)
 - [ ] Test it: `/test user lifecycle management` (re-run for the recomposed page tests)
 
 Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/user`, `apps/services/auth`, `apps/services/logs`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`

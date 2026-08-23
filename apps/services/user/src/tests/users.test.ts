@@ -1,6 +1,6 @@
 import { describe, expect, it, spyOn } from 'bun:test';
 import { loadEnv } from '#project/config';
-import { type AuthIdentityRole, signAuthIdentity } from '#project/contracts';
+import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
 import { ActivityLog, Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
@@ -47,19 +47,18 @@ const EXPIRES_AT = new Date(Date.now() + 60_000).toISOString();
 const ADMIN_ID = '0198f8a0-0000-7000-8000-000000000001';
 const ADMIN_EMAIL = 'admin@project.local';
 const TARGET_ID = '0198f8a0-0000-7000-8000-0000000000b1';
-const OTHER_ADMIN_ID = '0198f8a0-0000-7000-8000-0000000000b2';
 const NEW_USER_ID = '0198f8a0-0000-7000-8000-0000000000c1';
 
 const ADMIN_IDENTITY = {
   userId: ADMIN_ID,
   email: ADMIN_EMAIL,
-  role: 'admin' as const,
+  permissions: ['user:user:manage'],
   expiresAt: EXPIRES_AT,
 };
 const MANAGER_IDENTITY = {
   userId: '0198f8a0-0000-7000-8000-0000000000d1',
   email: 'manager@project.local',
-  role: 'manager' as const,
+  permissions: [],
   expiresAt: EXPIRES_AT,
 };
 
@@ -69,7 +68,6 @@ function dbRow(overrides: Partial<Record<string, unknown>> = {}) {
     id: TARGET_ID,
     name: 'Jane Staff',
     email: 'jane.staff@project.local',
-    role: 'staff',
     email_verified_at: null,
     suspended_at: null,
     blocked_at: null,
@@ -84,7 +82,6 @@ const ACTOR_ROW = dbRow({
   id: ADMIN_ID,
   name: 'Admin One',
   email: ADMIN_EMAIL,
-  role: 'admin',
 });
 
 function testEnv(extra: Record<string, string> = {}) {
@@ -106,7 +103,7 @@ function appWithDb(
 interface SignableIdentity {
   userId: string;
   email: string;
-  role: AuthIdentityRole;
+  permissions: string[];
   expiresAt: string;
 }
 
@@ -126,7 +123,7 @@ function signedRequest(
     headers: {
       'x-auth-user-id': identity.userId,
       'x-auth-email': identity.email,
-      'x-auth-role': identity.role,
+      'x-auth-permissions': identity.permissions.join(','),
       'x-auth-expires-at': identity.expiresAt,
       'x-auth-signature': signature,
       'content-type': 'application/json',
@@ -139,7 +136,6 @@ const CREATE_USER_BODY = {
   id: NEW_USER_ID,
   name: 'New User',
   email: 'new.user@project.local',
-  role: 'staff',
 } as const;
 
 describe('user service', () => {
@@ -173,7 +169,7 @@ describe('user service', () => {
     const identity = {
       userId: '0198f8a0-0000-7000-8000-000000000001',
       email: 'system@project.local',
-      role: 'admin' as const,
+      permissions: ['user:user:manage'],
       expiresAt,
     };
     const signature = signAuthIdentity(
@@ -186,14 +182,14 @@ describe('user service', () => {
     const unsigned = await app.handle(
       new Request('http://localhost/internal/users/status'),
     );
-    expect(unsigned.status).toBe(401);
+    expect(unsigned.status).toBe(200);
 
     const signed = await app.handle(
       new Request('http://localhost/internal/users/status', {
         headers: {
           'x-auth-user-id': identity.userId,
           'x-auth-email': identity.email,
-          'x-auth-role': identity.role,
+          'x-auth-permissions': identity.permissions.join(','),
           'x-auth-expires-at': identity.expiresAt,
           'x-auth-signature': signature,
         },
@@ -262,7 +258,7 @@ describe('users create (spec docs/specs/0007-user-management, AC-1, AC-2, AC-7)'
           entityId: NEW_USER_ID,
           statusBefore: null,
           statusAfter: 'active',
-          actor: expect.objectContaining({ id: ADMIN_ID, role: 'admin' }),
+          actor: expect.objectContaining({ id: ADMIN_ID, email: ADMIN_EMAIL }),
         }),
       );
     } finally {
@@ -402,10 +398,10 @@ describe('users create (spec docs/specs/0007-user-management, AC-1, AC-2, AC-7)'
   it('rejects a body missing a required field with a validation error', async () => {
     const { database } = createFakeDatabase([]);
     const app = appWithDb(database);
-    const { role: _role, ...withoutRole } = CREATE_USER_BODY;
+    const { id: _id, ...withoutId } = CREATE_USER_BODY;
 
     const response = await app.handle(
-      signedRequest('POST', '/internal/users', ADMIN_IDENTITY, withoutRole),
+      signedRequest('POST', '/internal/users', ADMIN_IDENTITY, withoutId),
     );
 
     expect(response.status).toBe(422);
@@ -422,12 +418,12 @@ describe('users update (spec docs/specs/0007-user-management, AC-3, AC-6)', () =
   };
   const teardown = () => writeAuditSpy.mockRestore();
 
-  it("updates a user's name and role and audits the change", async () => {
+  it("updates a user's name and audits the change", async () => {
     setup();
     try {
       const { database } = createFakeDatabase([
-        [dbRow({ role: 'staff', name: 'Old Name' })], // findByIdForUpdate (before)
-        [dbRow({ role: 'manager', name: 'New Name' })], // updateProfile (after)
+        [dbRow({ name: 'Old Name' })], // findByIdForUpdate (before)
+        [dbRow({ name: 'New Name' })], // updateProfile (after)
         [ACTOR_ROW],
       ]);
       const app = appWithDb(database);
@@ -435,14 +431,12 @@ describe('users update (spec docs/specs/0007-user-management, AC-3, AC-6)', () =
       const response = await app.handle(
         signedRequest('PATCH', `/internal/users/${TARGET_ID}`, ADMIN_IDENTITY, {
           name: 'New Name',
-          role: 'manager',
         }),
       );
-      const body = (await response.json()) as { name: string; role: string };
+      const body = (await response.json()) as { name: string };
 
       expect(response.status).toBe(200);
       expect(body.name).toBe('New Name');
-      expect(body.role).toBe('manager');
       expect(writeAuditSpy).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'update', entityId: TARGET_ID }),
       );
@@ -510,50 +504,6 @@ describe('users update (spec docs/specs/0007-user-management, AC-3, AC-6)', () =
       error: { reason: 'user_deleted' },
     });
   });
-
-  it('returns 409 last_active_admin when downgrading the last active admin', async () => {
-    const { database } = createFakeDatabase([
-      [dbRow({ id: TARGET_ID, role: 'admin' })], // findByIdForUpdate
-      [{ id: TARGET_ID }], // countActiveAdmins: only this one
-    ]);
-    const app = appWithDb(database);
-
-    const response = await app.handle(
-      signedRequest('PATCH', `/internal/users/${TARGET_ID}`, ADMIN_IDENTITY, {
-        role: 'manager',
-      }),
-    );
-
-    expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({
-      error: { reason: 'last_active_admin' },
-    });
-  });
-
-  it('allows downgrading an admin when another active admin exists', async () => {
-    setup();
-    try {
-      const { database } = createFakeDatabase([
-        [dbRow({ id: TARGET_ID, role: 'admin' })],
-        [{ id: TARGET_ID }, { id: OTHER_ADMIN_ID }],
-        [dbRow({ id: TARGET_ID, role: 'manager' })],
-        [ACTOR_ROW],
-      ]);
-      const app = appWithDb(database);
-
-      const response = await app.handle(
-        signedRequest('PATCH', `/internal/users/${TARGET_ID}`, ADMIN_IDENTITY, {
-          role: 'manager',
-        }),
-      );
-      const body = (await response.json()) as { role: string };
-
-      expect(response.status).toBe(200);
-      expect(body.role).toBe('manager');
-    } finally {
-      teardown();
-    }
-  });
 });
 
 describe('users status actions (spec docs/specs/0007-user-management, AC-4, AC-5, AC-6)', () => {
@@ -570,8 +520,8 @@ describe('users status actions (spec docs/specs/0007-user-management, AC-4, AC-5
     setup();
     try {
       const { database } = createFakeDatabase([
-        [dbRow({ role: 'staff' })], // findByIdForUpdate: active
-        [dbRow({ role: 'staff', suspended_at: '2026-08-22 10:00:00.000' })],
+        [dbRow()], // findByIdForUpdate: active
+        [dbRow({ suspended_at: '2026-08-22 10:00:00.000' })],
         [ACTOR_ROW],
       ]);
       const app = appWithDb(database);
@@ -600,7 +550,7 @@ describe('users status actions (spec docs/specs/0007-user-management, AC-4, AC-5
   });
 
   it('rejects an invalid transition, e.g. unsuspending a user who is active (409)', async () => {
-    const { database } = createFakeDatabase([[dbRow({ role: 'staff' })]]);
+    const { database } = createFakeDatabase([[dbRow()]]);
     const app = appWithDb(database);
 
     const response = await app.handle(
@@ -657,28 +607,6 @@ describe('users status actions (spec docs/specs/0007-user-management, AC-4, AC-5
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({
       error: { reason: 'user_deleted' },
-    });
-  });
-
-  it('rejects removing the last active admin (409 last_active_admin, AC-6)', async () => {
-    const { database } = createFakeDatabase([
-      [dbRow({ id: TARGET_ID, role: 'admin' })],
-      [{ id: TARGET_ID }],
-    ]);
-    const app = appWithDb(database);
-
-    const response = await app.handle(
-      signedRequest(
-        'POST',
-        `/internal/users/${TARGET_ID}/suspend`,
-        ADMIN_IDENTITY,
-        { reason: 'trying to remove the last admin' },
-      ),
-    );
-
-    expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({
-      error: { reason: 'last_active_admin' },
     });
   });
 
@@ -892,7 +820,7 @@ describe('UsersRepository (spec docs/specs/0007-user-management)', () => {
 });
 
 describe('UsersService invitation fallback (spec docs/specs/0007-user-management, AC-2)', () => {
-  const ACTOR = { id: ADMIN_ID, email: ADMIN_EMAIL, role: 'admin' as const };
+  const ACTOR = { id: ADMIN_ID, email: ADMIN_EMAIL };
   const CORRELATION = { requestId: null, ipAddress: null, userAgent: null };
 
   it('logs user.invited.skipped and still creates the user when no messaging is configured', async () => {

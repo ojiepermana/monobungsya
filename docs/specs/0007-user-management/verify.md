@@ -74,12 +74,12 @@ are reachable. A second throwaway admin is handy for the last admin steps.
 
 The spec update adds AC-12 (both pages compose the package `Page` scaffold). These steps stay unchecked until the recomposition ships.
 
-- [ ] Open `/users` → the header (title plus "Tambah User"), the filter bar (search, status, clear), and the paging footer stay pinned while only the table region scrolls → AC-12
-- [ ] Open `/users/:id` → the header (name plus back link) and the paging footer stay pinned while the profile card and log tabs scroll in the content region → AC-12
-- [ ] Inspect both pages in devtools → no `<main>` element inside the page templates, exactly one `role="main"` landmark per screen (the layout wrapper's), and the content region is keyboard focusable (`tabindex="0"`) → AC-12
-- [ ] Switch the shell appearance in the settings surface → the page header and footer section borders follow the flat or border rail setting → AC-12
-- [ ] Open the create, edit, and reason dialogs from both pages → all still open and close normally from inside `PageContent` → AC-12
-- [ ] `bun run test:web` → the updated composition assertions in `users.page.test.ts` and `user-detail.page.test.ts` pass → AC-12
+- [x] Open `/users` → the header (title plus "Tambah User"), the filter bar (search, status, clear), and the paging footer stay pinned while only the table region scrolls → AC-12
+- [x] Open `/users/:id` → the header (name plus back link) and the paging footer stay pinned while the profile card and log tabs scroll in the content region → AC-12
+- [x] Inspect both pages in devtools → no `<main>` element inside the page templates, exactly one `role="main"` landmark per screen (the layout wrapper's), and the content region is keyboard focusable (`tabindex="0"`) → AC-12
+- [x] Switch the shell appearance in the settings surface → the page header and footer section borders follow the flat or border rail setting → AC-12
+- [x] Open the create, edit, and reason dialogs from both pages → all still open and close normally from inside `PageContent` → AC-12
+- [x] `bun run test:web` → the updated composition assertions in `users.page.test.ts` and `user-detail.page.test.ts` pass → AC-12
 
 ## Value sourcing
 

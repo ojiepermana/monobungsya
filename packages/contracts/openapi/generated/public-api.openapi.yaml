@@ -14,6 +14,8 @@ tags:
     description: Public users boundary
   - name: Logs
     description: Public log viewer boundary
+  - name: Access
+    description: Public permission access boundary
 paths:
   /health:
     get:
@@ -455,7 +457,7 @@ paths:
     get:
       tags:
         - Users
-      summary: List users (requires the admin role)
+      summary: List users (requires user:user:list)
       parameters:
         - name: search
           in: query
@@ -487,7 +489,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -500,10 +501,6 @@ paths:
                   format: email
                   minLength: 3
                   maxLength: 255
-                  type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
                   type: string
           application/x-www-form-urlencoded:
             schema:
@@ -512,7 +509,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -525,10 +521,6 @@ paths:
                   format: email
                   minLength: 3
                   maxLength: 255
-                  type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
                   type: string
           multipart/form-data:
             schema:
@@ -537,7 +529,6 @@ paths:
                 - id
                 - name
                 - email
-                - role
               properties:
                 id:
                   format: uuid
@@ -550,10 +541,6 @@ paths:
                   format: email
                   minLength: 3
                   maxLength: 255
-                  type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
                   type: string
       operationId: postApiV1Users
   /api/v1/users/{id}:
@@ -572,7 +559,7 @@ paths:
     patch:
       tags:
         - Users
-      summary: Update a user's name and role
+      summary: Update a user's profile
       parameters:
         - name: id
           in: path
@@ -591,10 +578,6 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
-                  type: string
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -603,10 +586,6 @@ paths:
                   minLength: 1
                   maxLength: 255
                   type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
-                  type: string
           multipart/form-data:
             schema:
               type: object
@@ -614,10 +593,6 @@ paths:
                 name:
                   minLength: 1
                   maxLength: 255
-                  type: string
-                role:
-                  minLength: 1
-                  maxLength: 50
                   type: string
       operationId: patchApiV1UsersById
     delete:
@@ -899,7 +874,7 @@ paths:
     get:
       tags:
         - Logs
-      summary: List audit trails (requires logs.read)
+      summary: List audit trails (requires logs:log:read)
       parameters:
         - name: search
           in: query
@@ -932,7 +907,7 @@ paths:
     get:
       tags:
         - Logs
-      summary: List access logs (requires logs.read)
+      summary: List access logs (requires logs:log:read)
       parameters:
         - name: search
           in: query
@@ -965,7 +940,7 @@ paths:
     get:
       tags:
         - Logs
-      summary: List application logs (requires logs.read)
+      summary: List application logs (requires logs:log:read)
       parameters:
         - name: search
           in: query
@@ -999,5 +974,287 @@ paths:
           schema:
             type: string
       operationId: getApiV1LogsApplication-logs
+  /api/v1/access/permissions:
+    get:
+      tags:
+        - Access
+      summary: List the permission catalog
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+      operationId: getApiV1AccessPermissions
+    post:
+      tags:
+        - Access
+      summary: Create a permission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  minLength: 5
+                  maxLength: 100
+                  type: string
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  minLength: 5
+                  maxLength: 100
+                  type: string
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  minLength: 5
+                  maxLength: 100
+                  type: string
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+      operationId: postApiV1AccessPermissions
+  /api/v1/access/permissions/{id}:
+    get:
+      tags:
+        - Access
+      summary: Read a permission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: getApiV1AccessPermissionsById
+    put:
+      tags:
+        - Access
+      summary: Update a permission description
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - description
+              properties:
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - description
+              properties:
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - description
+              properties:
+                description:
+                  anyOf:
+                    - maxLength: 2000
+                      type: string
+                    - type: "null"
+      operationId: putApiV1AccessPermissionsById
+    delete:
+      tags:
+        - Access
+      summary: Delete a permission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: deleteApiV1AccessPermissionsById
+  /api/v1/access/users/{userId}/permissions:
+    get:
+      tags:
+        - Access
+      summary: List a user permissions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: getApiV1AccessUsersByUserIdPermissions
+    post:
+      tags:
+        - Access
+      summary: Grant permissions to a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permissionIds
+              properties:
+                permissionIds:
+                  minItems: 1
+                  maxItems: 100
+                  type: array
+                  items:
+                    format: uuid
+                    type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - permissionIds
+              properties:
+                permissionIds:
+                  minItems: 1
+                  maxItems: 100
+                  type: array
+                  items:
+                    format: uuid
+                    type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - permissionIds
+              properties:
+                permissionIds:
+                  minItems: 1
+                  maxItems: 100
+                  type: array
+                  items:
+                    format: uuid
+                    type: string
+      operationId: postApiV1AccessUsersByUserIdPermissions
+  /api/v1/access/users/{userId}/permissions/copy:
+    post:
+      tags:
+        - Access
+      summary: Copy permissions from another user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sourceUserId
+              properties:
+                sourceUserId:
+                  format: uuid
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - sourceUserId
+              properties:
+                sourceUserId:
+                  format: uuid
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - sourceUserId
+              properties:
+                sourceUserId:
+                  format: uuid
+                  type: string
+      operationId: postApiV1AccessUsersByUserIdPermissionsCopy
+  /api/v1/access/users/{userId}/permissions/{permissionId}:
+    delete:
+      tags:
+        - Access
+      summary: Revoke a user permission
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      operationId: deleteApiV1AccessUsersByUserIdPermissionsByPermissionId
 components:
   schemas: {}

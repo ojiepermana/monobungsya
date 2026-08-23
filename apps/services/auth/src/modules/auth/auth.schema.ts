@@ -39,7 +39,6 @@ export const sessionResponse = t.Object({
         t.Literal('user_suspended'),
         t.Null(),
       ]),
-      role: t.Union([t.String(), t.Null()]),
       permissionCount: t.Integer(),
     }),
   ),
@@ -48,7 +47,6 @@ export const sessionResponse = t.Object({
       id: t.String(),
       email: t.String(),
       name: t.String(),
-      role: t.String(),
       permissions: t.Array(t.String()),
     }),
   ),
@@ -64,6 +62,5 @@ export const sessionResponse = t.Object({
 export const identityResponse = t.Object({
   userId: t.String(),
   email: t.String(),
-  role: t.String(),
   expiresAt: t.String(),
 });

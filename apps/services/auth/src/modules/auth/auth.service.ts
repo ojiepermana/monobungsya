@@ -8,8 +8,6 @@ import { createSecret, hashSecret, normalizeEmail } from './auth.crypto';
 import { AuthRepository } from './auth.repository';
 import type {
   AuthMailer,
-  AuthPermission,
-  AuthRole,
   SessionIdentity,
   SessionObservation,
 } from './auth.types';
@@ -26,29 +24,13 @@ export interface SessionResult {
     id: string;
     email: string;
     name: string;
-    role: string;
-    permissions: AuthPermission[];
+    permissions: string[];
   };
   session?: {
     id: string;
     idleExpiresAt: string;
     absoluteExpiresAt: string;
   };
-}
-
-/**
- * Permissions derived from the global role. Log rows carry PII, so the admin
- * and manager roles hold logs.read. User management is admin only
- * (spec docs/specs/0007-user-management, AC-8), so the web menu and route guard
- * agree with the gateway instead of showing a manager a page every call would
- * refuse. Manager level read access to the user pages is a follow up.
- */
-export function permissionsForRole(role: AuthRole): AuthPermission[] {
-  if (role === 'admin') {
-    return ['users.manage', 'logs.read'];
-  }
-
-  return role === 'manager' ? ['logs.read'] : [];
 }
 
 export class AuthService {
@@ -189,7 +171,6 @@ export class AuthService {
         sessionObservation: {
           state: 'anonymous',
           reason: 'missing_cookie',
-          role: null,
           permissionCount: 0,
         },
       };
@@ -213,8 +194,7 @@ export class AuthService {
         id: identity.id,
         email: identity.email,
         name: identity.name,
-        role: identity.role,
-        permissions: permissionsForRole(identity.role),
+        permissions: [],
       },
       session: {
         id: identity.sessionId,

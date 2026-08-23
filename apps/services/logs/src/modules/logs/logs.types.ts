@@ -51,7 +51,6 @@ export interface SessionSummary {
     | 'user_blocked'
     | 'user_suspended'
     | null;
-  role: string | null;
   permissionCount: number;
 }
 

@@ -169,7 +169,6 @@ export type PostApiV1UsersData = {
         id: string;
         name: string;
         email: string;
-        role: string;
     };
     path?: never;
     query?: never;
@@ -199,7 +198,6 @@ export type GetApiV1UsersByIdData = {
 export type PatchApiV1UsersByIdData = {
     body: {
         name?: string;
-        role?: string;
     };
     path: {
         id: string;
@@ -301,4 +299,96 @@ export type GetApiV1LogsApplicationLogsData = {
         page?: string;
     };
     url: '/api/v1/logs/application-logs';
+};
+
+export type GetApiV1AccessPermissionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: string;
+        pageSize?: string;
+        search?: string;
+        namespace?: string;
+    };
+    url: '/api/v1/access/permissions';
+};
+
+export type PostApiV1AccessPermissionsData = {
+    body: {
+        name: string;
+        description?: string | unknown;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/access/permissions';
+};
+
+export type DeleteApiV1AccessPermissionsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/permissions/{id}';
+};
+
+export type GetApiV1AccessPermissionsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/permissions/{id}';
+};
+
+export type PutApiV1AccessPermissionsByIdData = {
+    body: {
+        description: string | unknown;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/permissions/{id}';
+};
+
+export type GetApiV1AccessUsersByUserIdPermissionsData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/users/{userId}/permissions';
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsData = {
+    body: {
+        permissionIds: Array<string>;
+    };
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/users/{userId}/permissions';
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsCopyData = {
+    body: {
+        sourceUserId: string;
+    };
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/users/{userId}/permissions/copy';
+};
+
+export type DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData = {
+    body?: never;
+    path: {
+        userId: string;
+        permissionId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/users/{userId}/permissions/{permissionId}';
 };

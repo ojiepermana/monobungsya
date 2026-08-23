@@ -12,7 +12,6 @@ import {
   type CreateUserInput,
   type RequestCorrelation,
   type UpdateUserInput,
-  USER_ROLES,
   USER_STATUSES,
   type UserActor,
   type UserRecord,
@@ -32,8 +31,6 @@ interface StatusTransition {
   /** Statuses the action may run from; anything else is a 409. */
   from: readonly UserStatus[];
   patch: StatusTimestampPatch;
-  /** Whether removing this user could leave the system without an admin. */
-  guardsLastAdmin: boolean;
 }
 
 /**
@@ -45,34 +42,28 @@ const TRANSITIONS: Record<UserStatusAction, StatusTransition> = {
   suspend: {
     from: ['active'],
     patch: { suspendedAt: 'now' },
-    guardsLastAdmin: true,
   },
   unsuspend: {
     from: ['suspended'],
     patch: { suspendedAt: null },
-    guardsLastAdmin: false,
   },
   // An escalation from suspended keeps suspended_at, so unblocking later
   // returns the user to suspended rather than straight to active.
   block: {
     from: ['active', 'suspended'],
     patch: { blockedAt: 'now' },
-    guardsLastAdmin: true,
   },
   unblock: {
     from: ['blocked'],
     patch: { blockedAt: null },
-    guardsLastAdmin: false,
   },
   delete: {
     from: ['active', 'suspended', 'blocked'],
     patch: { deletedAt: 'now' },
-    guardsLastAdmin: true,
   },
   restore: {
     from: ['deleted'],
     patch: { deletedAt: null },
-    guardsLastAdmin: false,
   },
 };
 
@@ -87,10 +78,6 @@ function summarizeChange(before: UserRecord, after: UserRecord): string {
 
   if (before.name !== after.name) {
     parts.push(`name: ${before.name} to ${after.name}`);
-  }
-
-  if (before.role !== after.role) {
-    parts.push(`role: ${before.role} to ${after.role}`);
   }
 
   if (before.status !== after.status) {
@@ -144,7 +131,7 @@ export class UsersService {
         totalPages: Math.ceil(page.total / USERS_PER_PAGE),
       },
       filters: { search: resolved.search, status: resolved.status },
-      options: { roles: [...USER_ROLES], statuses: [...USER_STATUSES] },
+      options: { statuses: [...USER_STATUSES] },
     };
   }
 
@@ -202,7 +189,7 @@ export class UsersService {
         statusAfter: user.status,
         beforeState: null,
         afterState: user,
-        changeSummary: `created with role ${user.role}`,
+        changeSummary: 'user created',
       });
 
       return user;
@@ -233,14 +220,6 @@ export class UsersService {
           'A deleted user can only be restored',
           'user_deleted',
         );
-      }
-
-      if (
-        input.role !== undefined &&
-        input.role !== 'admin' &&
-        before.role === 'admin'
-      ) {
-        await this.assertNotLastActiveAdmin(before, transaction);
       }
 
       const after = await this.repository.updateProfile(id, input, transaction);
@@ -309,10 +288,6 @@ export class UsersService {
         );
       }
 
-      if (transition.guardsLastAdmin) {
-        await this.assertNotLastActiveAdmin(before, transaction);
-      }
-
       const after = await this.repository.setStatusTimestamps(
         id,
         transition.patch,
@@ -339,28 +314,6 @@ export class UsersService {
 
       return after;
     });
-  }
-
-  /**
-   * Runs inside the caller's transaction and locks every active admin row it
-   * counts, so the system can never be left without one.
-   */
-  private async assertNotLastActiveAdmin(
-    target: UserRecord,
-    transaction: DatabaseClient,
-  ): Promise<void> {
-    if (target.role !== 'admin' || target.status !== 'active') {
-      return;
-    }
-
-    const activeAdmins = await this.repository.countActiveAdmins(transaction);
-
-    if (activeAdmins <= 1) {
-      throw new ConflictError(
-        'The last active admin cannot be removed or downgraded',
-        'last_active_admin',
-      );
-    }
   }
 
   /**
@@ -402,7 +355,6 @@ export class UsersService {
         id: input.actor.id,
         name: actorRow?.name ?? null,
         email: input.actor.email,
-        role: input.actor.role,
       },
       requestId: input.correlation.requestId,
       ipAddress: input.correlation.ipAddress,

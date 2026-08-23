@@ -1,42 +1,17 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-
-export type AuthIdentityRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
-export type AuthCapability =
-  | 'admin'
-  | 'operational'
-  | 'read'
-  /**
-   * User lifecycle management (spec docs/specs/0007-user-management, AC-8):
-   * admin only, deliberately narrower than 'admin', which also lets a manager
-   * through. Manager level read access to the user pages is a follow up that
-   * would need its own tier here and in the web menu gating.
-   */
-  | 'user-management';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { normalizePermissions } from '#project/acl';
 
 export interface AuthIdentity {
   userId: string;
   email: string;
-  role: AuthIdentityRole;
+  permissions: string[];
   expiresAt: string;
 }
 
-export function canAccessAuthCapability(
-  role: AuthIdentityRole,
-  capability: AuthCapability,
-): boolean {
-  if (capability === 'read') {
-    return true;
-  }
-
-  if (capability === 'operational') {
-    return role !== 'legacy';
-  }
-
-  if (capability === 'user-management') {
-    return role === 'admin';
-  }
-
-  return role === 'admin' || role === 'manager';
+export function permissionsHash(permissions: readonly string[]): string {
+  return createHash('sha256')
+    .update(normalizePermissions(permissions).join(','), 'utf8')
+    .digest('hex');
 }
 
 export function canonicalIdentityInput(
@@ -48,7 +23,7 @@ export function canonicalIdentityInput(
     method.toUpperCase(),
     path,
     identity.userId,
-    identity.role,
+    permissionsHash(identity.permissions),
     identity.expiresAt,
   ].join('\n');
 }
@@ -75,7 +50,7 @@ export function readAndVerifyAuthIdentity(
   const identity: AuthIdentity = {
     userId: headers.get('x-auth-user-id') ?? '',
     email: headers.get('x-auth-email') ?? '',
-    role: (headers.get('x-auth-role') ?? '') as AuthIdentityRole,
+    permissions: normalizePermissions(headers.get('x-auth-permissions')),
     expiresAt: headers.get('x-auth-expires-at') ?? '',
   };
   const receivedSignature = headers.get('x-auth-signature') ?? '';
@@ -87,7 +62,6 @@ export function readAndVerifyAuthIdentity(
   if (
     !identity.userId ||
     !identity.email ||
-    !['admin', 'manager', 'bi', 'staff', 'legacy'].includes(identity.role) ||
     !Number.isFinite(expiresAt) ||
     expiresAt <= now - clockSkewSeconds * 1000 ||
     expected.length !== received.length ||

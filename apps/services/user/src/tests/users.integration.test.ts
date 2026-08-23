@@ -14,7 +14,7 @@ function signedHeaders(method: string, path: string): Record<string, string> {
   const identity = {
     userId: ADMIN_ID,
     email: 'system@project.local',
-    role: 'admin' as const,
+    permissions: ['user:user:manage'],
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
   };
 
@@ -22,7 +22,7 @@ function signedHeaders(method: string, path: string): Record<string, string> {
     'content-type': 'application/json',
     'x-auth-user-id': identity.userId,
     'x-auth-email': identity.email,
-    'x-auth-role': identity.role,
+    'x-auth-permissions': identity.permissions.join(','),
     'x-auth-expires-at': identity.expiresAt,
     'x-auth-signature': signAuthIdentity(
       method,
@@ -88,7 +88,6 @@ describe('user audit trail integration', () => {
               id: Bun.randomUUIDv7(),
               name: 'Audit Rollback Probe',
               email: PROBE_EMAIL,
-              role: 'staff',
             }),
           }),
         );
@@ -110,7 +109,6 @@ describe('user audit trail integration', () => {
             id: Bun.randomUUIDv7(),
             name: 'Audit Rollback Probe',
             email: PROBE_EMAIL,
-            role: 'staff',
           }),
         }),
       );

@@ -58,7 +58,7 @@ export function parseCliArguments(argumentsList: string[]): CliArguments {
 
       if (!value || !isDatabaseScope(value)) {
         throw new Error(
-          `--service must be one of auth, user, employee, payroll, reporting, logs`,
+          `--service must be one of auth, access, user, employee, payroll, reporting, logs`,
         );
       }
 

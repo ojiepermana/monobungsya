@@ -6,7 +6,6 @@ export interface ActivityActor {
   id?: string | null;
   name?: string | null;
   email?: string | null;
-  role?: string | null;
 }
 
 export type SessionObservationState = 'authenticated' | 'anonymous' | 'invalid';
@@ -25,14 +24,13 @@ export interface AuthSessionDetail {
   kind: 'auth_session';
   state: SessionObservationState;
   reason: SessionObservationReason | null;
-  role: string | null;
   permissionCount: number;
 }
 
 export interface AccessMetadataV1 {
   schemaVersion: 1;
   durationMs: number;
-  capability: string | null;
+  requiredPermission: string | null;
   correlationSource: 'client_header' | 'request_id';
   client: { route: string; source: 'client_header' } | null;
   details: AuthSessionDetail | null;
@@ -410,7 +408,7 @@ export abstract class ActivityLog {
           ${encodeAmount(input.amount)}, ${input.currencyCode ?? 'IDR'},
           ${text(input.statusBefore)}, ${text(input.statusAfter)},
           ${text(input.actor?.id)}, ${text(input.actor?.name)},
-          ${text(input.actor?.email)}, ${text(input.actor?.role)},
+          ${text(input.actor?.email)}, ${null},
           ${text(input.reason)}, ${text(input.changeSummary)},
           ${encodeJson(input.beforeState)}, ${encodeJson(input.afterState)},
           ${encodeJson(input.metadata)},

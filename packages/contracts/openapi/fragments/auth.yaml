@@ -150,7 +150,6 @@ paths:
                     required:
                       - state
                       - reason
-                      - role
                       - permissionCount
                     properties:
                       state:
@@ -180,10 +179,6 @@ paths:
                           - const: user_suspended
                             type: string
                           - type: "null"
-                      role:
-                        anyOf:
-                          - type: string
-                          - type: "null"
                       permissionCount:
                         anyOf:
                           - format: integer
@@ -196,7 +191,6 @@ paths:
                       - id
                       - email
                       - name
-                      - role
                       - permissions
                     properties:
                       id:
@@ -204,8 +198,6 @@ paths:
                       email:
                         type: string
                       name:
-                        type: string
-                      role:
                         type: string
                       permissions:
                         type: array
@@ -565,15 +557,12 @@ paths:
                       - id
                       - email
                       - name
-                      - role
                     properties:
                       id:
                         type: string
                       email:
                         type: string
                       name:
-                        type: string
-                      role:
                         type: string
                   session:
                     type: object

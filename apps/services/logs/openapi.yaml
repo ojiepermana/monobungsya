@@ -304,7 +304,6 @@ paths:
                               required:
                                 - state
                                 - reason
-                                - role
                                 - permissionCount
                               properties:
                                 state:
@@ -316,10 +315,6 @@ paths:
                                     - const: invalid
                                       type: string
                                 reason:
-                                  anyOf:
-                                    - type: string
-                                    - type: "null"
-                                role:
                                   anyOf:
                                     - type: string
                                     - type: "null"

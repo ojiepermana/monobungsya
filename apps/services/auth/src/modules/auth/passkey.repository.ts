@@ -61,7 +61,7 @@ export class PasskeyRepository {
   async findActiveUser(userId: string): Promise<AuthUser | null> {
     const database = this.requireDatabase();
     const [row] = await database`
-      SELECT id, email, name, role, suspended_at
+      SELECT id, email, name, suspended_at
       FROM "user"."users"
       WHERE id = ${userId}
         AND suspended_at IS NULL
@@ -299,7 +299,7 @@ export class PasskeyRepository {
         credential.userId,
       );
       const [userRow] = await transaction`
-        SELECT id, email, name, role, suspended_at
+        SELECT id, email, name, suspended_at
         FROM "user"."users"
         WHERE id = ${credential.userId}
       `;

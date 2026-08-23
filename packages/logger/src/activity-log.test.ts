@@ -140,14 +140,14 @@ describe('ActivityLog.writeAudit', () => {
       module: 'users',
       entityType: 'user',
       entityId: 'user-1',
-      beforeState: { role: 'staff' },
-      afterState: { role: 'manager' },
+      beforeState: { name: 'Staff' },
+      afterState: { name: 'Manager' },
     });
 
     expect(record.action).toBe('update');
     expect(queries).toHaveLength(1);
     expect(queries[0]?.text).toContain('INSERT INTO "logs"."audit_trails"');
-    expect(queries[0]?.values).toContain('{"role":"staff"}');
+    expect(queries[0]?.values).toContain('{"name":"Staff"}');
     expect(queries[0]?.values).toContain('IDR');
   });
 

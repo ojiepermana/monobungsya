@@ -153,7 +153,6 @@ function accessMetadataProjection(
     detail.kind !== 'auth_session' ||
     !['authenticated', 'anonymous', 'invalid'].includes(String(detail.state)) ||
     (reason !== null && !SESSION_REASONS.has(String(reason))) ||
-    (detail.role !== null && typeof detail.role !== 'string') ||
     typeof permissionCount !== 'number' ||
     !Number.isInteger(permissionCount) ||
     permissionCount < 0
@@ -171,7 +170,6 @@ function accessMetadataProjection(
           ? R
           : never
         : never,
-      role: detail.role as string | null,
       permissionCount,
     },
   };

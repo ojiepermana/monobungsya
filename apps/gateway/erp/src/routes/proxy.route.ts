@@ -1,8 +1,9 @@
 import { Elysia, t } from 'elysia';
+import { hasAnyRequiredPermission, PERMISSIONS } from '#project/acl';
 import {
-  type AuthCapability,
+  ACCESS_PERMISSION_CHANGED_SUBJECT,
+  type AccessPermissionChangedEvent,
   type AuthIdentity,
-  canAccessAuthCapability,
   signAuthIdentity,
 } from '#project/contracts';
 import {
@@ -11,13 +12,16 @@ import {
   updateAccessLogContext,
 } from '#project/elysia';
 import {
+  AppError,
   ForbiddenError,
   ServiceUnavailableError,
   toErrorResponse,
   UnauthorizedError,
 } from '#project/errors';
 import type { AuthSessionDetail } from '#project/logger';
+import type { Subscriber } from '#project/messaging';
 import type { GatewayEnvironment } from '../config/env';
+import { GatewayPermissionCache } from '../shared/permission-cache';
 
 type ResponseTransform = (response: Response) => Promise<Response>;
 
@@ -29,7 +33,8 @@ async function forwardRequest(
   environment: GatewayEnvironment,
   requiresIdentity = false,
   requestBody?: unknown,
-  capability?: AuthCapability,
+  requiredPermissions: readonly string[] = [],
+  permissionCache?: GatewayPermissionCache,
   transformResponse?: ResponseTransform,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
@@ -40,7 +45,7 @@ async function forwardRequest(
   );
   updateAccessLogContext(request, {
     routeName: normalizeRouteName(incomingUrl.pathname),
-    capability: capability ?? null,
+    requiredPermission: requiredPermissions[0] ?? null,
   });
   const headers = new Headers(request.headers);
   const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
@@ -69,7 +74,8 @@ async function forwardRequest(
       headers,
       upstreamUrl.pathname,
       environment,
-      capability,
+      requiredPermissions,
+      permissionCache,
     );
 
     if (identityError) {
@@ -90,14 +96,16 @@ async function forwardRequest(
             : JSON.stringify(requestBody),
     });
     return transformResponse ? transformResponse(response) : response;
-  } catch {
+  } catch (error) {
     updateAccessLogContext(request, {
       failureReason: 'service_unavailable',
     });
     const mapped = toErrorResponse(
-      new ServiceUnavailableError(
-        'The requested internal service is unavailable',
-      ),
+      error instanceof AppError
+        ? error
+        : new ServiceUnavailableError(
+            'The requested internal service is unavailable',
+          ),
       headers.get('x-request-id') ?? undefined,
     );
 
@@ -111,19 +119,25 @@ async function forwardRequest(
 async function mapPublicSessionResponse(
   request: Request,
   response: Response,
+  permissionCache: GatewayPermissionCache,
 ): Promise<Response> {
   if (!response.headers.get('content-type')?.includes('application/json')) {
     return response;
   }
 
   const body = (await response.json()) as InternalSessionResponse;
+  if (body.authenticated === true && body.user?.id) {
+    body.user.permissions = await permissionCache.get(
+      body.user.id,
+      request.headers.get('x-request-id') ?? crypto.randomUUID(),
+    );
+  }
   const observation = body.sessionObservation;
   if (isSessionObservation(observation)) {
     const detail: AuthSessionDetail = {
       kind: 'auth_session',
       state: observation.state,
       reason: observation.reason,
-      role: observation.role,
       permissionCount: observation.permissionCount,
     };
     updateAccessLogContext(request, {
@@ -134,7 +148,6 @@ async function mapPublicSessionResponse(
               id: body.user.id,
               name: body.user.name,
               email: body.user.email,
-              role: body.user.role,
             }
           : null,
       sessionId:
@@ -159,7 +172,6 @@ interface InternalSessionResponse {
     id: string;
     name: string;
     email: string;
-    role: string;
     permissions?: unknown;
   };
   session?: {
@@ -170,7 +182,6 @@ interface InternalSessionResponse {
   sessionObservation?: {
     state: 'authenticated' | 'anonymous' | 'invalid';
     reason: AuthSessionDetail['reason'];
-    role: string | null;
     permissionCount: number;
   };
 }
@@ -188,7 +199,6 @@ function publicSessionBody(
       id: body.user.id,
       email: body.user.email,
       name: body.user.name,
-      role: body.user.role,
       permissions: Array.isArray(body.user.permissions)
         ? body.user.permissions.filter(
             (permission): permission is string =>
@@ -215,7 +225,6 @@ function isSessionObservation(
       (value.state === 'authenticated' ||
         value.state === 'anonymous' ||
         value.state === 'invalid') &&
-      (value.role === null || typeof value.role === 'string') &&
       Number.isInteger(value.permissionCount) &&
       value.permissionCount >= 0,
   );
@@ -226,7 +235,8 @@ async function addIdentityHeaders(
   headers: Headers,
   normalizedPath: string,
   environment: GatewayEnvironment,
-  capability?: AuthCapability,
+  requiredPermissions: readonly string[],
+  permissionCache?: GatewayPermissionCache,
 ): Promise<Response | undefined> {
   if (!environment.INTERNAL_AUTH_SIGNING_SECRET) {
     return undefined;
@@ -267,7 +277,7 @@ async function addIdentityHeaders(
 
   const session = (await response.json()) as {
     authenticated?: boolean;
-    user?: { id?: string; email?: string; role?: AuthIdentity['role'] };
+    user?: { id?: string; email?: string; permissions?: unknown };
     session?: { id?: string; absoluteExpiresAt?: string };
   };
 
@@ -275,7 +285,10 @@ async function addIdentityHeaders(
     !session.authenticated ||
     !session.user?.id ||
     !session.user.email ||
-    !session.user.role ||
+    !Array.isArray(session.user.permissions) ||
+    session.user.permissions.some(
+      (permission) => typeof permission !== 'string',
+    ) ||
     !session.session?.absoluteExpiresAt
   ) {
     updateAccessLogContext(request, {
@@ -306,18 +319,41 @@ async function addIdentityHeaders(
   const identity: AuthIdentity = {
     userId: session.user.id,
     email: session.user.email,
-    role: session.user.role,
+    permissions: session.user.permissions,
     expiresAt,
   };
 
-  // Checked here as well as inside the service, so a role that may not reach a
-  // domain never gets a signed identity for it in the first place.
-  if (capability && !canAccessAuthCapability(identity.role, capability)) {
+  const cache =
+    permissionCache ??
+    new GatewayPermissionCache(
+      environment.serviceUrls.access,
+      environment.GATEWAY_PERMISSION_CACHE_TTL_MS,
+      environment.GATEWAY_PERMISSION_CACHE_MAX_ENTRIES,
+    );
+  let effectivePermissions: string[];
+  try {
+    effectivePermissions = await cache.get(identity.userId, requestId);
+  } catch (error) {
+    updateAccessLogContext(request, {
+      failureReason: 'permission_lookup_failed',
+    });
+    return mappedGatewayError(error, requestId);
+  }
+
+  identity.permissions = effectivePermissions;
+
+  if (
+    requiredPermissions.length > 0 &&
+    !hasAnyRequiredPermission(identity.permissions, requiredPermissions)
+  ) {
     updateAccessLogContext(request, {
       failureReason: 'permission_denied',
     });
     return mappedGatewayError(
-      new ForbiddenError('The current role cannot access this resource'),
+      new ForbiddenError(
+        'The current identity does not have the required permission',
+        'insufficient_permissions',
+      ),
       requestId,
     );
   }
@@ -331,11 +367,11 @@ async function addIdentityHeaders(
 
   headers.set('x-auth-user-id', identity.userId);
   headers.set('x-auth-email', identity.email);
-  headers.set('x-auth-role', identity.role);
+  headers.set('x-auth-permissions', identity.permissions.join(','));
   headers.set('x-auth-expires-at', identity.expiresAt);
   headers.set('x-auth-signature', signature);
   updateAccessLogContext(request, {
-    actor: { id: identity.userId, email: identity.email, role: identity.role },
+    actor: { id: identity.userId, email: identity.email },
     authenticationMethod: 'session_cookie',
     sessionId: session.session?.id ?? null,
   });
@@ -379,12 +415,25 @@ function statusActionRoute(summary: string) {
   };
 }
 
-export function createProxyRoute(environment: GatewayEnvironment) {
-  /**
-   * The whole user domain is admin only (spec docs/specs/0007-user-management,
-   * AC-8): a non admin is refused here, before an identity is ever signed.
-   */
-  const forwardUser = (request: Request, body?: unknown) =>
+export function createProxyRoute(
+  environment: GatewayEnvironment,
+  options: { messaging?: Subscriber } = {},
+) {
+  const permissionCache = new GatewayPermissionCache(
+    environment.serviceUrls.access,
+    environment.GATEWAY_PERMISSION_CACHE_TTL_MS,
+    environment.GATEWAY_PERMISSION_CACHE_MAX_ENTRIES,
+  );
+  options.messaging?.subscribe<AccessPermissionChangedEvent>(
+    ACCESS_PERMISSION_CHANGED_SUBJECT,
+    (event) => permissionCache.invalidate(event.userId),
+  );
+
+  const forwardUser = (
+    request: Request,
+    body?: unknown,
+    requiredPermission: string = PERMISSIONS.userUserList,
+  ) =>
     forwardRequest(
       request,
       environment.serviceUrls.user,
@@ -393,7 +442,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
       environment,
       true,
       body,
-      'user-management',
+      [requiredPermission],
+      permissionCache,
     );
 
   return new Elysia({ name: 'gateway-proxy-routes' })
@@ -458,7 +508,9 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           false,
           undefined,
           undefined,
-          (response) => mapPublicSessionResponse(request, response),
+          permissionCache,
+          (response) =>
+            mapPublicSessionResponse(request, response, permissionCache),
         ),
       {
         detail: { tags: ['Auth'], summary: 'Read the current auth session' },
@@ -611,79 +663,104 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         },
       },
     )
-    .get('/api/v1/users/status', ({ request }) => forwardUser(request), {
-      detail: { tags: ['Users'], summary: 'Forward users status request' },
-    })
-    .get('/api/v1/users', ({ request }) => forwardUser(request), {
-      query: t.Object({
-        search: t.Optional(t.String()),
-        status: t.Optional(t.String()),
-        page: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['Users'],
-        summary: 'List users (requires the admin role)',
+    .get(
+      '/api/v1/users/status',
+      ({ request }) =>
+        forwardUser(request, undefined, PERMISSIONS.userUserRead),
+      {
+        detail: { tags: ['Users'], summary: 'Forward users status request' },
       },
-    })
-    .post('/api/v1/users', ({ body, request }) => forwardUser(request, body), {
-      body: t.Object({
-        id: t.String({ format: 'uuid' }),
-        name: t.String({ minLength: 1, maxLength: 255 }),
-        email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
-        role: t.String({ minLength: 1, maxLength: 50 }),
-      }),
-      detail: {
-        tags: ['Users'],
-        summary: 'Create a user with a client generated UUIDv7 id',
+    )
+    .get(
+      '/api/v1/users',
+      ({ request }) =>
+        forwardUser(request, undefined, PERMISSIONS.userUserList),
+      {
+        query: t.Object({
+          search: t.Optional(t.String()),
+          status: t.Optional(t.String()),
+          page: t.Optional(t.String()),
+        }),
+        detail: {
+          tags: ['Users'],
+          summary: 'List users (requires user:user:list)',
+        },
       },
-    })
-    .get('/api/v1/users/:id', ({ request }) => forwardUser(request), {
-      params: userIdParams,
-      detail: { tags: ['Users'], summary: 'Read one user' },
-    })
+    )
+    .post(
+      '/api/v1/users',
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserCreate),
+      {
+        body: t.Object({
+          id: t.String({ format: 'uuid' }),
+          name: t.String({ minLength: 1, maxLength: 255 }),
+          email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
+        }),
+        detail: {
+          tags: ['Users'],
+          summary: 'Create a user with a client generated UUIDv7 id',
+        },
+      },
+    )
+    .get(
+      '/api/v1/users/:id',
+      ({ request }) =>
+        forwardUser(request, undefined, PERMISSIONS.userUserRead),
+      {
+        params: userIdParams,
+        detail: { tags: ['Users'], summary: 'Read one user' },
+      },
+    )
     .patch(
       '/api/v1/users/:id',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserUpdate),
       {
         params: userIdParams,
         body: t.Object({
           name: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
-          role: t.Optional(t.String({ minLength: 1, maxLength: 50 })),
         }),
         detail: {
           tags: ['Users'],
-          summary: "Update a user's name and role",
+          summary: "Update a user's profile",
         },
       },
     )
     .post(
       '/api/v1/users/:id/suspend',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserSuspend),
       statusActionRoute('Suspend a user'),
     )
     .post(
       '/api/v1/users/:id/unsuspend',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserSuspend),
       statusActionRoute('Unsuspend a user'),
     )
     .post(
       '/api/v1/users/:id/block',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserBlock),
       statusActionRoute('Block a user'),
     )
     .post(
       '/api/v1/users/:id/unblock',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserBlock),
       statusActionRoute('Unblock a user'),
     )
     .post(
       '/api/v1/users/:id/restore',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserRestore),
       statusActionRoute('Restore a soft deleted user'),
     )
     .delete(
       '/api/v1/users/:id',
-      ({ body, request }) => forwardUser(request, body),
+      ({ body, request }) =>
+        forwardUser(request, body, PERMISSIONS.userUserDelete),
       statusActionRoute('Soft delete a user'),
     )
     .get(
@@ -697,7 +774,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           environment,
           true,
           undefined,
-          'admin',
+          [PERMISSIONS.logsLogRead],
+          permissionCache,
         ),
       {
         query: t.Object({
@@ -709,7 +787,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         }),
         detail: {
           tags: ['Logs'],
-          summary: 'List audit trails (requires logs.read)',
+          summary: 'List audit trails (requires logs:log:read)',
         },
       },
     )
@@ -724,7 +802,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           environment,
           true,
           undefined,
-          'admin',
+          [PERMISSIONS.logsLogRead],
+          permissionCache,
         ),
       {
         query: t.Object({
@@ -736,7 +815,7 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         }),
         detail: {
           tags: ['Logs'],
-          summary: 'List access logs (requires logs.read)',
+          summary: 'List access logs (requires logs:log:read)',
         },
       },
     )
@@ -751,7 +830,8 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           environment,
           true,
           undefined,
-          'admin',
+          [PERMISSIONS.logsLogRead],
+          permissionCache,
         ),
       {
         query: t.Object({
@@ -764,8 +844,208 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         }),
         detail: {
           tags: ['Logs'],
-          summary: 'List application logs (requires logs.read)',
+          summary: 'List application logs (requires logs:log:read)',
         },
+      },
+    )
+    .get(
+      '/api/v1/access/permissions',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionList],
+          permissionCache,
+        ),
+      {
+        query: t.Object({
+          page: t.Optional(t.String()),
+          pageSize: t.Optional(t.String()),
+          search: t.Optional(t.String()),
+          namespace: t.Optional(t.String()),
+        }),
+        detail: { tags: ['Access'], summary: 'List the permission catalog' },
+      },
+    )
+    .post(
+      '/api/v1/access/permissions',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionCreate],
+          permissionCache,
+        ),
+      {
+        body: t.Object({
+          name: t.String({ minLength: 5, maxLength: 100 }),
+          description: t.Optional(
+            t.Union([t.String({ maxLength: 2000 }), t.Null()]),
+          ),
+        }),
+        detail: { tags: ['Access'], summary: 'Create a permission' },
+      },
+    )
+    .get(
+      '/api/v1/access/permissions/:id',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionRead],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ id: t.String({ format: 'uuid' }) }),
+        detail: { tags: ['Access'], summary: 'Read a permission' },
+      },
+    )
+    .put(
+      '/api/v1/access/permissions/:id',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionUpdate],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ id: t.String({ format: 'uuid' }) }),
+        body: t.Object({
+          description: t.Union([t.String({ maxLength: 2000 }), t.Null()]),
+        }),
+        detail: {
+          tags: ['Access'],
+          summary: 'Update a permission description',
+        },
+      },
+    )
+    .delete(
+      '/api/v1/access/permissions/:id',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionDelete],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ id: t.String({ format: 'uuid' }) }),
+        detail: { tags: ['Access'], summary: 'Delete a permission' },
+      },
+    )
+    .get(
+      '/api/v1/access/users/:userId/permissions',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionUserList],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ userId: t.String({ format: 'uuid' }) }),
+        detail: { tags: ['Access'], summary: 'List a user permissions' },
+      },
+    )
+    .post(
+      '/api/v1/access/users/:userId/permissions',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionUserCreate],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ userId: t.String({ format: 'uuid' }) }),
+        body: t.Object({
+          permissionIds: t.Array(t.String({ format: 'uuid' }), {
+            minItems: 1,
+            maxItems: 100,
+          }),
+        }),
+        detail: { tags: ['Access'], summary: 'Grant permissions to a user' },
+      },
+    )
+    .post(
+      '/api/v1/access/users/:userId/permissions/copy',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionUserCreate],
+          permissionCache,
+        ),
+      {
+        params: t.Object({ userId: t.String({ format: 'uuid' }) }),
+        body: t.Object({ sourceUserId: t.String({ format: 'uuid' }) }),
+        detail: {
+          tags: ['Access'],
+          summary: 'Copy permissions from another user',
+        },
+      },
+    )
+    .delete(
+      '/api/v1/access/users/:userId/permissions/:permissionId',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionUserDelete],
+          permissionCache,
+        ),
+      {
+        params: t.Object({
+          userId: t.String({ format: 'uuid' }),
+          permissionId: t.String({ format: 'uuid' }),
+        }),
+        detail: { tags: ['Access'], summary: 'Revoke a user permission' },
       },
     )
     .all(
@@ -782,7 +1062,30 @@ export function createProxyRoute(environment: GatewayEnvironment) {
         detail: { hide: true },
       },
     )
-    .all('/api/v1/users/*', ({ request }) => forwardUser(request), {
-      detail: { hide: true },
-    });
+    .all(
+      '/api/v1/access/*',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionRead],
+          permissionCache,
+        ),
+      {
+        detail: { hide: true },
+      },
+    )
+    .all(
+      '/api/v1/users/*',
+      ({ request }) =>
+        forwardUser(request, undefined, PERMISSIONS.userUserRead),
+      {
+        detail: { hide: true },
+      },
+    );
 }

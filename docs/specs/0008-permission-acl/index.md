@@ -1,7 +1,7 @@
 # 0008. Permission first access control without roles
 
 **Date**: 2026-08-23
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 

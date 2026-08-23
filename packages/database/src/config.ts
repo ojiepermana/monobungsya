@@ -12,6 +12,7 @@ export interface DatabaseToolConfig {
   lockPollMs: number;
   migrationsDir: string;
   seedsDir: string;
+  accessBootstrapAdminEmails: string;
 }
 
 export interface DatabaseToolConfigOverrides {
@@ -64,6 +65,7 @@ export function loadDatabaseToolConfig(
       overrides.seedsDir ??
       source.DATABASE_SEEDS_DIR ??
       join(import.meta.dir, '..', 'seeds'),
+    accessBootstrapAdminEmails: source.ACCESS_BOOTSTRAP_ADMIN_EMAILS ?? '',
   };
 }
 

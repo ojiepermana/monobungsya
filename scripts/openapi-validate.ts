@@ -5,6 +5,7 @@ const files = [
   'apps/services/auth/openapi.yaml',
   'apps/services/user/openapi.yaml',
   'apps/services/logs/openapi.yaml',
+  'apps/services/access/openapi.yaml',
 ];
 
 for (const file of files) {

@@ -57,7 +57,6 @@ export const passkeyLoginResponse = t.Object({
     id: t.String(),
     email: t.String(),
     name: t.String(),
-    role: t.String(),
   }),
   session: t.Object({
     id: t.String(),

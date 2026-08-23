@@ -1,9 +1,5 @@
 import type { DatabaseClient } from '#project/database';
 
-export type AuthRole = 'admin' | 'manager' | 'bi' | 'staff' | 'legacy';
-
-export type AuthPermission = 'users.manage' | 'logs.read';
-
 export type SessionObservationState = 'authenticated' | 'anonymous' | 'invalid';
 export type SessionObservationReason =
   | 'missing_cookie'
@@ -19,7 +15,6 @@ export type SessionObservationReason =
 export interface SessionObservation {
   state: SessionObservationState;
   reason: SessionObservationReason | null;
-  role: AuthRole | null;
   permissionCount: number;
 }
 
@@ -27,7 +22,6 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: AuthRole;
   suspendedAt: Date | null;
 }
 

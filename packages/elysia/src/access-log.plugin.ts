@@ -18,7 +18,7 @@ export interface AccessLogContext {
   traceSource: TraceSource;
   clientRoute: string | null;
   routeName: string | null;
-  capability: string | null;
+  requiredPermission: string | null;
   actor: ActivityActor | null;
   sessionId: string | null;
   authenticationMethod: string | null;
@@ -62,7 +62,7 @@ export function createAccessLogPlugin() {
           lifecycleContext.request.headers.get('x-client-route'),
         ),
         routeName: null,
-        capability: null,
+        requiredPermission: null,
         actor: null,
         sessionId: null,
         authenticationMethod: null,
@@ -114,7 +114,7 @@ export function createAccessLogPlugin() {
               performance.now() - (context?.startedAt ?? performance.now()),
             ),
           ),
-          capability: context?.capability ?? null,
+          requiredPermission: context?.requiredPermission ?? null,
           correlationSource: context?.traceSource ?? 'request_id',
           client: context?.clientRoute
             ? { route: context.clientRoute, source: 'client_header' }

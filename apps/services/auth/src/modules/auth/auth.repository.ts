@@ -1,7 +1,6 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
 import type {
   AuthRepositoryDependencies,
-  AuthRole,
   AuthUser,
   SessionIdentity,
   SessionObservation,
@@ -74,7 +73,7 @@ export class AuthRepository {
       }
 
       const [userRow] = await transaction`
-        SELECT id, email, name, role, suspended_at
+        SELECT id, email, name, suspended_at
         FROM "user"."users"
         WHERE lower(email) = ${email}
           AND suspended_at IS NULL
@@ -110,7 +109,7 @@ export class AuthRepository {
 
     return withTransaction(database, async (transaction) => {
       const [userRow] = await transaction`
-        SELECT id, email, name, role, suspended_at
+        SELECT id, email, name, suspended_at
         FROM "user"."users"
         WHERE id = ${userId}
           AND suspended_at IS NULL
@@ -162,7 +161,7 @@ export class AuthRepository {
         String(tokenRow.user_id),
       );
       const [userRow] = await transaction`
-        SELECT id, email, name, role, suspended_at
+        SELECT id, email, name, suspended_at
         FROM "user"."users"
         WHERE id = ${tokenRow.user_id}
       `;
@@ -192,7 +191,6 @@ export class AuthRepository {
           user_record.id,
           user_record.email,
           user_record.name,
-          user_record.role,
           user_record.suspended_at,
           user_record.blocked_at,
           user_record.deleted_at,
@@ -236,7 +234,6 @@ export class AuthRepository {
         observation: {
           state: 'invalid',
           reason: 'unknown_session',
-          role: null,
           permissionCount: 0,
         },
       };
@@ -249,7 +246,6 @@ export class AuthRepository {
         observation: {
           state: 'invalid',
           reason,
-          role: null,
           permissionCount: 0,
         },
       };
@@ -267,9 +263,7 @@ export class AuthRepository {
       observation: {
         state: 'authenticated',
         reason: 'unknown_session',
-        role: identity.role,
-        permissionCount:
-          identity.role === 'admin' ? 2 : identity.role === 'manager' ? 1 : 0,
+        permissionCount: 0,
       },
     };
   }
@@ -413,7 +407,6 @@ export function mapUser(row: Record<string, unknown>): AuthUser {
     id: String(row.id),
     email: String(row.email),
     name: String(row.name),
-    role: String(row.role) as AuthRole,
     suspendedAt: row.suspended_at ? new Date(String(row.suspended_at)) : null,
   };
 }

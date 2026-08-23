@@ -57,8 +57,11 @@ export class UnauthorizedError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = 'You do not have permission to perform this action') {
-    super('FORBIDDEN', 403, message);
+  constructor(
+    message = 'You do not have permission to perform this action',
+    reason?: string,
+  ) {
+    super('FORBIDDEN', 403, message, undefined, reason);
   }
 }
 
@@ -90,8 +93,8 @@ export class InternalServerError extends AppError {
 }
 
 export class ServiceUnavailableError extends AppError {
-  constructor(message = 'An internal service is unavailable') {
-    super('SERVICE_UNAVAILABLE', 503, message);
+  constructor(message = 'An internal service is unavailable', reason?: string) {
+    super('SERVICE_UNAVAILABLE', 503, message, undefined, reason);
   }
 }
 

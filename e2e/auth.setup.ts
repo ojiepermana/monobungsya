@@ -4,7 +4,7 @@ import { expect, request, test as setup } from '@playwright/test';
 /**
  * Seeds the database (users, tokens, log rows) through bun, then consumes
  * each magic-link token against the real gateway verify endpoint and saves
- * the resulting session cookie as a storage state per role.
+ * the resulting session cookie as a storage state per user.
  *
  * The gateway is always addressed as localhost (not 127.0.0.1) so the
  * session cookie lands on the same host the web app is served from.

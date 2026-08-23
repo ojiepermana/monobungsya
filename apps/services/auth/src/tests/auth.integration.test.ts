@@ -21,7 +21,7 @@ describe('auth magic link integration', () => {
       },
     };
     const ipAddress = '198.51.100.42';
-    const emailHash = hashSecret('system@project.local');
+    const emailHash = hashSecret('admin@local.app');
     const ipHash = hashSecret(ipAddress);
 
     await database`
@@ -53,7 +53,7 @@ describe('auth magic link integration', () => {
             'content-type': 'application/json',
             'x-forwarded-for': ipAddress,
           },
-          body: JSON.stringify({ email: 'SYSTEM@PROJECT.LOCAL' }),
+          body: JSON.stringify({ email: 'ADMIN@LOCAL.APP' }),
         }),
       );
 
@@ -84,7 +84,7 @@ describe('auth magic link integration', () => {
 
       expect(session.status).toBe(200);
       expect(sessionBody.authenticated).toBe(true);
-      expect(sessionBody.user.email).toBe('system@project.local');
+      expect(sessionBody.user.email).toBe('admin@local.app');
 
       const replay = await app.handle(
         new Request(
@@ -123,7 +123,7 @@ describe('auth magic link integration', () => {
     const database = createDatabaseClient(databaseUrl);
     const mailer: AuthMailer = { async sendMagicLink() {} };
     const ipAddress = '198.51.100.43';
-    const emailHash = hashSecret('system@project.local');
+    const emailHash = hashSecret('admin@local.app');
     const ipHash = hashSecret(ipAddress);
     const app = createApp(
       loadAuthEnv({
@@ -143,7 +143,7 @@ describe('auth magic link integration', () => {
               'content-type': 'application/json',
               'x-forwarded-for': ipAddress,
             },
-            body: JSON.stringify({ email: 'system@project.local' }),
+            body: JSON.stringify({ email: 'admin@local.app' }),
           }),
         );
         expect(response.status).toBe(200);
@@ -156,7 +156,7 @@ describe('auth magic link integration', () => {
             'content-type': 'application/json',
             'x-forwarded-for': ipAddress,
           },
-          body: JSON.stringify({ email: 'system@project.local' }),
+          body: JSON.stringify({ email: 'admin@local.app' }),
         }),
       );
 
@@ -169,7 +169,7 @@ describe('auth magic link integration', () => {
       `;
       await database`
         DELETE FROM "auth"."login_tokens"
-        WHERE user_id = (SELECT id FROM "user"."users" WHERE email = 'system@project.local')
+        WHERE user_id = (SELECT id FROM "user"."users" WHERE email = 'admin@local.app')
           AND used_at IS NULL
       `;
       await closeDatabaseClient(database);

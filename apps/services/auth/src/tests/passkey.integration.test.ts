@@ -198,11 +198,10 @@ beforeAll(async () => {
   for (const email of [OWNER_EMAIL, OTHER_EMAIL, SUSPENDED_EMAIL]) {
     await database`DELETE FROM "user"."users" WHERE email = ${email}`;
     await database`
-      INSERT INTO "user"."users" (email, name, role, suspended_at)
+      INSERT INTO "user"."users" (email, name, suspended_at)
       VALUES (
         ${email},
         ${'Passkey Integration'},
-        ${'staff'},
         ${email === SUSPENDED_EMAIL ? new Date() : null}
       )
     `;

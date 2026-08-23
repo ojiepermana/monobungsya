@@ -1,9 +1,6 @@
 import { Elysia } from 'elysia';
-import {
-  type AuthCapability,
-  canAccessAuthCapability,
-  readAndVerifyAuthIdentity,
-} from '#project/contracts';
+import { hasAnyRequiredPermission, PERMISSIONS } from '#project/acl';
+import { readAndVerifyAuthIdentity } from '#project/contracts';
 import {
   ForbiddenError,
   toErrorResponse,
@@ -11,13 +8,11 @@ import {
 } from '#project/errors';
 
 /**
- * The logs service defaults to the 'admin' capability: only the admin and
- * manager roles hold the `logs.read` permission, because log rows carry PII.
+ * The logs service has one read permission because log rows carry PII.
  */
 export function createAuthIdentityPlugin(
   secret: string,
   clockSkewSeconds: number,
-  capability: AuthCapability = 'admin',
 ) {
   return new Elysia({ name: 'logs-auth-identity' }).onBeforeHandle(
     { as: 'scoped' },
@@ -44,9 +39,16 @@ export function createAuthIdentityPlugin(
         return mapped.body;
       }
 
-      if (!canAccessAuthCapability(identity.role, capability)) {
+      if (
+        !hasAnyRequiredPermission(identity.permissions, [
+          PERMISSIONS.logsLogRead,
+        ])
+      ) {
         const mapped = toErrorResponse(
-          new ForbiddenError('The current role cannot read logs'),
+          new ForbiddenError(
+            'The current identity does not have the required permission',
+            'insufficient_permissions',
+          ),
           request.headers.get('x-request-id') ?? undefined,
         );
         set.status = mapped.status;

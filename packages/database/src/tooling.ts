@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const DATABASE_SCOPES = {
   auth: 'auth',
+  access: 'access',
   user: 'user',
   employee: 'employee',
   payroll: 'payroll',

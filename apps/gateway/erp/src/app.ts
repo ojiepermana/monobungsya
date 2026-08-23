@@ -8,11 +8,19 @@ import {
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
+import type { Subscriber } from '#project/messaging';
 import type { GatewayEnvironment } from './config/env';
 import { loadGatewayEnv } from './config/env';
 import { createProxyRoute } from './routes/proxy.route';
 
-export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
+export interface GatewayAppOptions {
+  messaging?: Subscriber;
+}
+
+export function createApp(
+  environment: GatewayEnvironment = loadGatewayEnv(),
+  options: GatewayAppOptions = {},
+) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
     persist: environment.BEST_EFFORT_LOGGING_ENABLED,
   });
@@ -50,6 +58,7 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
           },
           { name: 'Users', description: 'Public users boundary' },
           { name: 'Logs', description: 'Public log viewer boundary' },
+          { name: 'Access', description: 'Public permission access boundary' },
         ],
       }),
     )
@@ -63,5 +72,5 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
         detail: { tags: ['Health'], summary: 'Check gateway health' },
       },
     )
-    .use(createProxyRoute(environment));
+    .use(createProxyRoute(environment, options));
 }

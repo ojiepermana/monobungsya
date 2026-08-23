@@ -48,7 +48,7 @@ export interface PasskeyServiceOptions {
 }
 
 export interface PasskeyLoginResult {
-  user: { id: string; email: string; name: string; role: string };
+  user: { id: string; email: string; name: string };
   session: { id: string; idleExpiresAt: Date; absoluteExpiresAt: Date };
   sessionToken: string;
 }
@@ -237,7 +237,6 @@ export class PasskeyService {
             id: outcome.user.id,
             email: outcome.user.email,
             name: outcome.user.name,
-            role: outcome.user.role,
           },
           session: {
             id: outcome.session.sessionId,

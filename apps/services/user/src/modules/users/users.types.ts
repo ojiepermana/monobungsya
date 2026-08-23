@@ -8,16 +8,6 @@
  * being rewritten. A user row is never hard deleted.
  */
 
-export const USER_ROLES = [
-  'admin',
-  'manager',
-  'bi',
-  'staff',
-  'legacy',
-] as const;
-
-export type UserRole = (typeof USER_ROLES)[number];
-
 export const USER_STATUSES = [
   'active',
   'suspended',
@@ -58,7 +48,6 @@ export interface UserRecord extends UserStatusTimestamps {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
   status: UserStatus;
   emailVerifiedAt: string | null;
   createdAt: string;
@@ -82,26 +71,23 @@ export interface UsersListResult {
   data: UserRecord[];
   meta: UsersListMeta;
   filters: { search: string; status: UserStatusFilter };
-  options: { roles: UserRole[]; statuses: UserStatus[] };
+  options: { statuses: UserStatus[] };
 }
 
 export interface CreateUserInput {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
 }
 
 export interface UpdateUserInput {
   name?: string;
-  role?: UserRole;
 }
 
 /** The verified caller, used as the audit actor on every mutation. */
 export interface UserActor {
   id: string;
   email: string;
-  role: UserRole;
 }
 
 /** Correlation fields the route reads off the request for the audit trail. */

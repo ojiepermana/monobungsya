@@ -340,7 +340,27 @@ export class DatabaseRunner {
     for (const seed of pending) {
       const source = readFileSync(seed.path, 'utf8');
 
+      // The first reference user seed predates the permission cutover and is
+      // intentionally immutable because its checksum may already be tracked
+      // in an existing database. Once user.role is gone, mark that legacy seed
+      // as skipped and let the follow-up cutover seed converge the row.
+      if (await this.shouldSkipRetiredRoleSeed(seed, database)) {
+        await database`
+          INSERT INTO "public"."seed_migrations" (name, scope, checksum, batch)
+          VALUES (${seed.name}, ${seed.scope}, ${sha256Hex(source)}, ${batch})
+        `;
+        skipped.push(seed.name);
+        continue;
+      }
+
       await database.begin(async (transaction) => {
+        await transaction`
+          SELECT set_config(
+            'app.access_bootstrap_admin_emails',
+            ${this.config.accessBootstrapAdminEmails},
+            true
+          )
+        `;
         if (seed.extension === 'csv') {
           await applyCsvSeed(transaction, seed, source);
         } else {
@@ -358,6 +378,22 @@ export class DatabaseRunner {
     }
 
     return { applied, skipped };
+  }
+
+  private async shouldSkipRetiredRoleSeed(
+    seed: SeedFile,
+    database: SQL,
+  ): Promise<boolean> {
+    if (seed.name !== 'reference/user/0001_user.users.sql') return false;
+
+    const rows = await database`
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'user'
+        AND table_name = 'users'
+        AND column_name = 'role'
+    `;
+    return rows.length === 0;
   }
 
   private async dryRunTracking(

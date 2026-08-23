@@ -1,19 +1,9 @@
 import { t } from 'elysia';
 import { enumSchema } from '#project/elysia';
-import { USER_ROLES, USER_STATUS_FILTERS, USER_STATUSES } from './users.types';
+import { USER_STATUS_FILTERS, USER_STATUSES } from './users.types';
 
 const nullableString = t.Union([t.String(), t.Null()]);
 
-/**
- * The role list is the single source of truth for the create and update forms:
- * it matches the CHECK constraint on "user"."users".role, reaches the client
- * through the generated SDK types, and is echoed in the list response options.
- *
- * `enumSchema` rather than `t.UnionEnum`: the latter carries a default of the
- * first value, which Elysia would fill in for an absent optional property, so a
- * PATCH sending only a name would silently set the role to admin.
- */
-export const userRoleSchema = enumSchema(USER_ROLES);
 export const userStatusSchema = enumSchema(USER_STATUSES);
 const userStatusFilterSchema = enumSchema(USER_STATUS_FILTERS);
 
@@ -29,7 +19,6 @@ export const userResponse = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String(),
   email: t.String(),
-  role: userRoleSchema,
   status: userStatusSchema,
   emailVerifiedAt: nullableString,
   suspendedAt: nullableString,
@@ -58,7 +47,6 @@ export const usersListResponse = t.Object({
     status: userStatusFilterSchema,
   }),
   options: t.Object({
-    roles: t.Array(userRoleSchema),
     statuses: t.Array(userStatusSchema),
   }),
 });
@@ -74,13 +62,11 @@ export const createUserBody = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String({ minLength: 1, maxLength: 255 }),
   email: t.String({ format: 'email', minLength: 3, maxLength: 255 }),
-  role: userRoleSchema,
 });
 
 /** Email is deliberately absent: it cannot be changed through the API. */
 export const updateUserBody = t.Object({
   name: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
-  role: t.Optional(userRoleSchema),
 });
 
 export const statusActionBody = t.Object({ reason: reasonSchema });

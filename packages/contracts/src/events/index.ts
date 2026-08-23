@@ -5,6 +5,14 @@
  * so publisher and subscriber can never drift.
  */
 export const USER_INVITED_SUBJECT = 'user.invited';
+export const ACCESS_PERMISSION_CHANGED_SUBJECT = 'access.permission.changed';
+
+export type AccessPermissionChangedEvent = {
+  type: 'access.permission.changed';
+  version: 1;
+  occurredAt: string;
+  userId?: string;
+};
 
 export type UserInvitedEvent = {
   type: 'user.invited';

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1AuthPasskeysByIdData, DeleteApiV1UsersByIdData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersByIdData, GetApiV1UsersData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1UsersByIdData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersData } from './types.gen';
+import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1UsersByIdData, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsData, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1AuthPasskeysData, GetApiV1AuthSessionData, GetApiV1AuthStatusData, GetApiV1AuthVerifyData, GetApiV1LogsAccessLogsData, GetApiV1LogsApplicationLogsData, GetApiV1LogsAuditTrailsData, GetApiV1UsersByIdData, GetApiV1UsersData, GetApiV1UsersStatusData, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1UsersByIdData, PostApiV1AccessPermissionsData, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1AuthLogoutData, PostApiV1AuthMagicLinkData, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersData, PutApiV1AccessPermissionsByIdData } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -117,7 +117,7 @@ export const patchApiV1AuthPasskeysById = <ThrowOnError extends boolean = false>
 export const getApiV1UsersStatus = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersStatusData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users/status', ...options });
 
 /**
- * List users (requires the admin role)
+ * List users (requires user:user:list)
  */
 export const getApiV1Users = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1UsersData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users', ...options });
 
@@ -151,7 +151,7 @@ export const deleteApiV1UsersById = <ThrowOnError extends boolean = false>(optio
 export const getApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1UsersByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/users/{id}', ...options });
 
 /**
- * Update a user's name and role
+ * Update a user's profile
  */
 export const patchApiV1UsersById = <ThrowOnError extends boolean = false>(options: Options<PatchApiV1UsersByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).patch<unknown, unknown, ThrowOnError>({
     url: '/api/v1/users/{id}',
@@ -223,16 +223,89 @@ export const postApiV1UsersByIdRestore = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * List audit trails (requires logs.read)
+ * List audit trails (requires logs:log:read)
  */
 export const getApiV1LogsAuditTrails = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAuditTrailsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/audit-trails', ...options });
 
 /**
- * List access logs (requires logs.read)
+ * List access logs (requires logs:log:read)
  */
 export const getApiV1LogsAccessLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsAccessLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/access-logs', ...options });
 
 /**
- * List application logs (requires logs.read)
+ * List application logs (requires logs:log:read)
  */
 export const getApiV1LogsApplicationLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsApplicationLogsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/logs/application-logs', ...options });
+
+/**
+ * List the permission catalog
+ */
+export const getApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AccessPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions', ...options });
+
+/**
+ * Create a permission
+ */
+export const postApiV1AccessPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/access/permissions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a permission
+ */
+export const deleteApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
+
+/**
+ * Read a permission
+ */
+export const getApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/permissions/{id}', ...options });
+
+/**
+ * Update a permission description
+ */
+export const putApiV1AccessPermissionsById = <ThrowOnError extends boolean = false>(options: Options<PutApiV1AccessPermissionsByIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).put<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/access/permissions/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List a user permissions
+ */
+export const getApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).get<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions', ...options });
+
+/**
+ * Grant permissions to a user
+ */
+export const postApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/access/users/{userId}/permissions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Copy permissions from another user
+ */
+export const postApiV1AccessUsersByUserIdPermissionsCopy = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsCopyData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
+    url: '/api/v1/access/users/{userId}/permissions/copy',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a user permission
+ */
+export const deleteApiV1AccessUsersByUserIdPermissionsByPermissionId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).delete<unknown, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions/{permissionId}', ...options });

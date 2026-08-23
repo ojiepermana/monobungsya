@@ -36,7 +36,7 @@ const AUDIT_ROW = {
   entity_label: 'Jane Staff',
   actor_email: 'admin@project.local',
   actor_role: 'admin',
-  change_summary: 'role changed',
+  change_summary: 'permission changed',
   audited_at: '2026-08-22 09:15:30.123',
 };
 
@@ -67,15 +67,15 @@ describe('logs service app', () => {
     });
   });
 
-  it('requires a signed identity and denies roles without logs.read', async () => {
+  it('requires a signed identity and denies identities without logs:log:read', async () => {
     const secret = 'logs-service-signing-secret';
     const app = createApp(testEnv({ INTERNAL_AUTH_SIGNING_SECRET: secret }));
     const expiresAt = new Date(Date.now() + 60_000).toISOString();
-    const request = (role: 'admin' | 'manager' | 'staff') => {
+    const request = (permissions: string[]) => {
       const identity = {
         userId: '0198f8a0-0000-7000-8000-000000000001',
         email: 'operator@project.local',
-        role,
+        permissions,
         expiresAt,
       };
       const signature = signAuthIdentity(
@@ -89,7 +89,7 @@ describe('logs service app', () => {
         headers: {
           'x-auth-user-id': identity.userId,
           'x-auth-email': identity.email,
-          'x-auth-role': identity.role,
+          'x-auth-permissions': identity.permissions.join(','),
           'x-auth-expires-at': identity.expiresAt,
           'x-auth-signature': signature,
         },
@@ -101,14 +101,11 @@ describe('logs service app', () => {
     );
     expect(unsigned.status).toBe(401);
 
-    const staff = await app.handle(request('staff'));
-    expect(staff.status).toBe(403);
+    const denied = await app.handle(request([]));
+    expect(denied.status).toBe(403);
 
-    const admin = await app.handle(request('admin'));
+    const admin = await app.handle(request(['logs:log:read']));
     expect(admin.status).toBe(200);
-
-    const manager = await app.handle(request('manager'));
-    expect(manager.status).toBe(200);
   });
 });
 
@@ -297,16 +294,15 @@ describe('logs repository', () => {
           metadata: JSON.stringify({
             schemaVersion: 1,
             durationMs: 12,
-            capability: null,
+            requiredPermission: null,
             correlationSource: 'client_header',
             client: { route: '/users', source: 'client_header' },
             details: {
               kind: 'auth_session',
               state: 'authenticated',
               reason: null,
-              role: 'admin',
               permissionCount: 2,
-              permissionNames: ['users.manage', 'logs.read'],
+              permissions: ['user:user:manage', 'logs:log:read'],
             },
             rawResponse: 'should not escape',
           }),
@@ -333,7 +329,6 @@ describe('logs repository', () => {
     expect(items[0]?.sessionSummary).toEqual({
       state: 'authenticated',
       reason: null,
-      role: 'admin',
       permissionCount: 2,
     });
     expect(JSON.stringify(items[0])).not.toContain('permissionNames');
@@ -500,7 +495,7 @@ describe('logs service pagination and filters', () => {
       entityLabel: 'Jane Staff',
       actorEmail: 'admin@project.local',
       actorRole: 'admin',
-      changeSummary: 'role changed',
+      changeSummary: 'permission changed',
       auditedAt: '2026-08-22T09:15:30.123Z',
     });
   });

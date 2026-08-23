@@ -1,6 +1,6 @@
 /**
  * E2E fixture seeder, run with bun (never imported by Playwright directly).
- * Creates two users (admin and staff), a fresh magic-link token for each, and
+ * Creates two users, a fresh magic-link token for each, and
  * enough tagged log rows to exercise paging. Prints one JSON line to stdout:
  * { adminToken, staffToken }. cleanup.ts removes everything created here.
  */
@@ -12,11 +12,14 @@ const db = createDatabaseClient(
   process.env.DATABASE_URL ?? 'postgres://root@127.0.0.1:5432/monobungsia',
 );
 
-async function mintToken(email: string, role: string): Promise<string> {
+async function mintToken(email: string, label: string): Promise<string> {
   const [user] = await db`
-    INSERT INTO "user"."users" (role, name, email, email_verified_at)
-    VALUES (${role}, ${`E2E ${role}`}, ${email}, now())
-    ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role
+    INSERT INTO "user"."users" (name, email, email_verified_at)
+    VALUES (${`E2E ${label}`}, ${email}, now())
+    ON CONFLICT (email) DO UPDATE
+      SET name = EXCLUDED.name,
+          email_verified_at = EXCLUDED.email_verified_at,
+          updated_at = now()
     RETURNING id
   `;
   const token = randomBytes(32).toString('hex');
@@ -35,6 +38,20 @@ await db`DELETE FROM logs.access_logs WHERE guard = 'e2e'`;
 
 const adminToken = await mintToken('e2e-admin@local.test', 'admin');
 const staffToken = await mintToken('e2e-staff@local.test', 'staff');
+const [adminUser] = await db`
+  SELECT id
+  FROM "user"."users"
+  WHERE email = 'e2e-admin@local.test'
+  LIMIT 1
+`;
+
+await db`
+  INSERT INTO "access"."permission_user" (permission_id, user_id)
+  SELECT permission.id, ${adminUser.id}
+  FROM "access"."permission" AS permission
+  WHERE permission.name = 'logs:log:read'
+  ON CONFLICT (permission_id, user_id) DO NOTHING
+`;
 
 ActivityLog.configure(db);
 

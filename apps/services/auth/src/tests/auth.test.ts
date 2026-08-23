@@ -11,7 +11,7 @@ import { createApp } from '../app';
 import { subscribeUserInvited } from '../modules/auth/auth.events';
 import { SmtpAuthMailer } from '../modules/auth/auth.mailer';
 import type { AuthRepository } from '../modules/auth/auth.repository';
-import { AuthService, permissionsForRole } from '../modules/auth/auth.service';
+import { AuthService } from '../modules/auth/auth.service';
 import type {
   AuthMailer,
   AuthUser,
@@ -27,7 +27,6 @@ describe('auth service', () => {
       sessionObservation: {
         state: 'anonymous',
         reason: 'missing_cookie',
-        role: null,
         permissionCount: 0,
       },
     });
@@ -149,19 +148,6 @@ describe('auth service', () => {
   });
 });
 
-describe('permissionsForRole (covers AC-5 of spec logs/0001)', () => {
-  it('grants logs.read to admin and manager, users.manage to admin only', () => {
-    expect(permissionsForRole('admin')).toEqual(['users.manage', 'logs.read']);
-    expect(permissionsForRole('manager')).toEqual(['logs.read']);
-  });
-
-  it('grants no permissions to staff, bi, and legacy', () => {
-    expect(permissionsForRole('staff')).toEqual([]);
-    expect(permissionsForRole('bi')).toEqual([]);
-    expect(permissionsForRole('legacy')).toEqual([]);
-  });
-});
-
 describe('AuthService.sendInvitation (spec docs/specs/0007-user-management, AC-2)', () => {
   it('sends an invitation magic link for an active user and returns true', async () => {
     const sent: MagicLinkMessage[] = [];
@@ -169,7 +155,6 @@ describe('AuthService.sendInvitation (spec docs/specs/0007-user-management, AC-2
       id: '0198f8a0-0000-7000-8000-000000000010',
       email: 'new.hire@project.local',
       name: 'New Hire',
-      role: 'staff',
       suspendedAt: null,
     };
     const repository = {

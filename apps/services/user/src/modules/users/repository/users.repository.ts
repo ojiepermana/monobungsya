@@ -5,7 +5,6 @@ import {
   deriveUserStatus,
   type UpdateUserInput,
   type UserRecord,
-  type UserRole,
   type UserStatusFilter,
   type UsersListQuery,
 } from '../users.types';
@@ -27,7 +26,7 @@ export const USERS_PER_PAGE = 25;
  */
 
 /** Whitelist: the only columns free text search may reach. */
-const SEARCH_COLUMNS = ['name', 'email', 'role'] as const;
+const SEARCH_COLUMNS = ['name', 'email'] as const;
 
 /** Whitelist: the only sort the list supports, matching the previous list. */
 const ORDER_BY = 'name ASC, email ASC';
@@ -42,7 +41,6 @@ const SELECT_COLUMNS = [
   'id',
   'name',
   'email',
-  'role',
   "(email_verified_at AT TIME ZONE 'UTC')::text AS email_verified_at",
   "(suspended_at AT TIME ZONE 'UTC')::text AS suspended_at",
   "(blocked_at AT TIME ZONE 'UTC')::text AS blocked_at",
@@ -92,7 +90,6 @@ function mapUser(row: Record<string, unknown>): UserRecord {
     id: String(row.id),
     name: String(row.name),
     email: String(row.email),
-    role: String(row.role) as UserRole,
     status: deriveUserStatus(timestamps),
     emailVerifiedAt: isoOrNull(row.email_verified_at),
     ...timestamps,
@@ -207,10 +204,10 @@ export class UsersRepository {
     executor: DatabaseClient,
   ): Promise<UserRecord> {
     const rows = (await executor.unsafe(
-      `INSERT INTO "user"."users" (id, name, email, role)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO "user"."users" (id, name, email)
+       VALUES ($1, $2, $3)
        RETURNING ${SELECT_COLUMNS}`,
-      [input.id, input.name, input.email, input.role] as never[],
+      [input.id, input.name, input.email] as never[],
     )) as Array<Record<string, unknown>>;
     const row = rows[0];
 
@@ -221,7 +218,7 @@ export class UsersRepository {
     return mapUser(row);
   }
 
-  /** Name and role only; email is immutable through the API. */
+  /** Name only; email and access are immutable through the user API. */
   async updateProfile(
     id: string,
     input: UpdateUserInput,
@@ -230,11 +227,10 @@ export class UsersRepository {
     const rows = (await executor.unsafe(
       `UPDATE "user"."users"
        SET name = COALESCE($2, name),
-           role = COALESCE($3, role),
            updated_at = now()
        WHERE id = $1
        RETURNING ${SELECT_COLUMNS}`,
-      [id, input.name ?? null, input.role ?? null] as never[],
+      [id, input.name ?? null] as never[],
     )) as Array<Record<string, unknown>>;
     const row = rows[0];
 
@@ -284,24 +280,6 @@ export class UsersRepository {
     const row = rows[0];
 
     return row ? mapUser(row) : null;
-  }
-
-  /**
-   * Counts admins whose three status timestamps are all null, locking every row
-   * it counts so two concurrent transactions cannot each believe a second
-   * active admin exists and between them remove the last one.
-   */
-  async countActiveAdmins(executor: DatabaseClient): Promise<number> {
-    const rows = (await executor.unsafe(
-      `SELECT id FROM "user"."users"
-       WHERE role = 'admin'
-         AND suspended_at IS NULL
-         AND blocked_at IS NULL
-         AND deleted_at IS NULL
-       FOR UPDATE`,
-    )) as Array<Record<string, unknown>>;
-
-    return rows.length;
   }
 
   private requireDatabase(executor?: DatabaseClient): DatabaseClient {

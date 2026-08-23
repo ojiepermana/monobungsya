@@ -1,20 +1,57 @@
 import { expect, test } from 'bun:test';
-import { canAccessAuthCapability } from './auth-identity';
+import {
+  permissionsHash,
+  readAndVerifyAuthIdentity,
+  signAuthIdentity,
+} from './auth-identity';
 
-test('enforces the global role capability policy', () => {
-  expect(canAccessAuthCapability('admin', 'admin')).toBe(true);
-  expect(canAccessAuthCapability('manager', 'admin')).toBe(true);
-  expect(canAccessAuthCapability('bi', 'admin')).toBe(false);
-  expect(canAccessAuthCapability('staff', 'operational')).toBe(true);
-  expect(canAccessAuthCapability('legacy', 'operational')).toBe(false);
-  expect(canAccessAuthCapability('legacy', 'read')).toBe(true);
+const identity = {
+  userId: '0198f8a0-0000-7000-8000-000000000001',
+  email: 'admin@project.local',
+  permissions: ['user:user:manage', 'logs:log:read'],
+  expiresAt: new Date(Date.now() + 60_000).toISOString(),
+};
+
+test('hashes the normalized permission list', () => {
+  expect(permissionsHash([' user:user:manage ', 'logs:log:read'])).toBe(
+    permissionsHash(['user:user:manage', 'logs:log:read']),
+  );
 });
 
-test('restricts user-management to admin only (spec 0007, AC-8)', () => {
-  // Deliberately narrower than 'admin', which also lets a manager through.
-  expect(canAccessAuthCapability('admin', 'user-management')).toBe(true);
-  expect(canAccessAuthCapability('manager', 'user-management')).toBe(false);
-  expect(canAccessAuthCapability('bi', 'user-management')).toBe(false);
-  expect(canAccessAuthCapability('staff', 'user-management')).toBe(false);
-  expect(canAccessAuthCapability('legacy', 'user-management')).toBe(false);
+test('signs and verifies the extended identity header', () => {
+  const headers = new Headers({
+    'x-auth-user-id': identity.userId,
+    'x-auth-email': identity.email,
+    'x-auth-permissions': identity.permissions.join(','),
+    'x-auth-expires-at': identity.expiresAt,
+    'x-auth-signature': signAuthIdentity(
+      'GET',
+      '/internal/users',
+      identity,
+      'secret',
+    ),
+  });
+
+  expect(
+    readAndVerifyAuthIdentity(headers, 'GET', '/internal/users', 'secret'),
+  ).toEqual(identity);
+});
+
+test('rejects a permission list changed after signing', () => {
+  const headers = new Headers({
+    'x-auth-user-id': identity.userId,
+    'x-auth-email': identity.email,
+    'x-auth-permissions': `${identity.permissions.join(',')},access:permission:read`,
+    'x-auth-expires-at': identity.expiresAt,
+    'x-auth-signature': signAuthIdentity(
+      'GET',
+      '/internal/users',
+      identity,
+      'secret',
+    ),
+  });
+
+  expect(
+    readAndVerifyAuthIdentity(headers, 'GET', '/internal/users', 'secret'),
+  ).toBeNull();
 });

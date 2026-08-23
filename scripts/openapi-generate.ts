@@ -2,6 +2,8 @@ import { stringify } from 'yaml';
 import { loadEnv } from '#project/config';
 import { createApp as createGatewayApp } from '../apps/gateway/erp/src/app';
 import { loadGatewayEnv } from '../apps/gateway/erp/src/config/env';
+import { createApp as createAccessApp } from '../apps/services/access/src/app';
+import { loadAccessEnv } from '../apps/services/access/src/config/env';
 import { createApp as createAuthApp } from '../apps/services/auth/src/app';
 import { createApp as createLogsApp } from '../apps/services/logs/src/app';
 import { createApp as createUserApp } from '../apps/services/user/src/app';
@@ -41,6 +43,11 @@ const targets: SpecTarget[] = [
     fragment: 'packages/contracts/openapi/fragments/logs.yaml',
     createApp: () =>
       createLogsApp(loadEnv('logs', { NODE_ENV: 'test', PORT: '3103' })),
+  },
+  {
+    name: 'access',
+    output: 'apps/services/access/openapi.yaml',
+    createApp: () => createAccessApp(loadAccessEnv({ NODE_ENV: 'test' })),
   },
 ];
 

@@ -1,5 +1,6 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
 import { ActivityLog } from '#project/logger';
+import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
 import { env } from './config/env';
 
@@ -10,7 +11,15 @@ ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
 });
 
-const app = createApp(env);
+const messaging = env.ENABLE_INFRASTRUCTURE
+  ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
+      console.warn(
+        `${env.serviceName} could not reach NATS at ${env.NATS_URL}; permission cache invalidation will rely on TTL:`,
+        error instanceof Error ? error.message : error,
+      );
+    })
+  : undefined;
+const app = createApp(env, { messaging });
 const server = app.listen(env.PORT);
 
 console.log(
@@ -25,6 +34,7 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   await server.stop();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
+  await messaging?.close();
   if (logDatabase) await closeDatabaseClient(logDatabase);
 }
 

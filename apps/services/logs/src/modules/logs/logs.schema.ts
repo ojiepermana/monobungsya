@@ -9,7 +9,6 @@ const nullableSessionSummary = t.Union([
       t.Literal('invalid'),
     ]),
     reason: t.Union([t.String(), t.Null()]),
-    role: nullableString,
     permissionCount: t.Integer(),
   }),
   t.Null(),
