@@ -16,6 +16,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 5   | Auth passkey login                  | Foundation | in-progress |
 | 6   | Log subsystem                       | Foundation | in-progress |
 | 7   | User lifecycle management           | Domain     | in-progress |
+| 8   | Permission access control           | Foundation | in-progress |
 
 ## Foundations
 
@@ -115,6 +116,23 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
 
 Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 
+### 8. Permission access control · in-progress
+
+Permission first access control without roles: a new access service owns a permission catalog and direct per user grants, the gateway checks permission names on every protected route and forwards them in the signed identity header, services re check independently, and the role concept is removed from user, auth, gateway, and web. Admin pages manage the catalog and grants with multi select and copy from user.
+**Done when:** A bootstrap admin (from env) can grant and revoke permissions per user through the web UI, every protected route allows or denies purely by permission names (manage wildcard included), a permission change takes effect within the cache window, no code path reads a role anymore, and a lookup failure denies instead of allowing.
+
+- [x] Design it (spec): `/architect permission access control`
+- [ ] Build it: `/develop permission access control`
+  - [ ] Thin thread: acl package, access schema and seeds, access service lookup, gateway permission check on one users route (AC-1, AC-2, AC-4, AC-5, AC-6)
+  - [ ] Full cutover: permission route table, session enrichment, role removal across services and web (AC-3, AC-9, AC-11, AC-12, AC-13)
+  - [ ] Admin API: catalog CRUD, grants, lockout guards, audit writes, cache invalidation events (AC-7, AC-8, AC-10, AC-15)
+  - [ ] Admin UI: catalog pages and the user detail access tab (AC-14)
+  - [ ] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, env docs (AC-16)
+- [ ] Verify it: `/check verify permission access control`
+- [ ] Test it: `/test permission access control`
+
+Spec [0008](../specs/0008-permission-acl/index.md) · code in `apps/services/access`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/logs`, `apps/web`, `packages/acl`, `packages/contracts`, and `packages/database`
+
 ## Domain
 
 ### 7. User lifecycle management · in-progress
@@ -144,3 +162,6 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Passkey support in the Tauri desktop shell when webview WebAuthn support matures · from spec 0006
 - Resend invitation action for failed or expired invitation emails · from spec 0007
 - Manager level read access to the user pages · from spec 0007
+- Scoped permission variants (`:own`, `:scoped`) plus downstream ownership rules, when the first self service surface arrives · from spec 0008
+- Permission grouping (bundles) if per user granting becomes painful as user count grows · from spec 0008
+- Orphan grant sweep, only needed if user hard deletion is ever introduced · from spec 0008
