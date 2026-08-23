@@ -5,14 +5,21 @@ import {
   canAccessAuthCapability,
   signAuthIdentity,
 } from '#project/contracts';
-import { updateAccessLogContext } from '#project/elysia';
+import {
+  normalizeClientCorrelation,
+  normalizeClientRoute,
+  updateAccessLogContext,
+} from '#project/elysia';
 import {
   ForbiddenError,
   ServiceUnavailableError,
   toErrorResponse,
   UnauthorizedError,
 } from '#project/errors';
+import type { AuthSessionDetail } from '#project/logger';
 import type { GatewayEnvironment } from '../config/env';
+
+type ResponseTransform = (response: Response) => Promise<Response>;
 
 async function forwardRequest(
   request: Request,
@@ -23,6 +30,7 @@ async function forwardRequest(
   requiresIdentity = false,
   requestBody?: unknown,
   capability?: AuthCapability,
+  transformResponse?: ResponseTransform,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
   const suffix = incomingUrl.pathname.slice(publicPrefix.length);
@@ -35,16 +43,21 @@ async function forwardRequest(
     capability: capability ?? null,
   });
   const headers = new Headers(request.headers);
-  headers.set(
-    'x-request-id',
-    request.headers.get('x-request-id') ?? crypto.randomUUID(),
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  const correlation = normalizeClientCorrelation(
+    request.headers.get('x-correlation-id'),
+    requestId,
   );
-  headers.set(
-    'x-correlation-id',
-    request.headers.get('x-correlation-id') ??
-      headers.get('x-request-id') ??
-      '',
+  headers.set('x-request-id', requestId);
+  headers.set('x-correlation-id', correlation.value);
+  const clientRoute = normalizeClientRoute(
+    request.headers.get('x-client-route'),
   );
+  if (clientRoute) {
+    headers.set('x-client-route', clientRoute);
+  } else {
+    headers.delete('x-client-route');
+  }
 
   if (requestBody !== undefined) {
     headers.delete('content-length');
@@ -65,7 +78,7 @@ async function forwardRequest(
   }
 
   try {
-    return await fetch(upstreamUrl, {
+    const response = await fetch(upstreamUrl, {
       method: request.method,
       headers,
       redirect: 'manual',
@@ -76,6 +89,7 @@ async function forwardRequest(
             ? await request.arrayBuffer()
             : JSON.stringify(requestBody),
     });
+    return transformResponse ? transformResponse(response) : response;
   } catch {
     updateAccessLogContext(request, {
       failureReason: 'service_unavailable',
@@ -92,6 +106,119 @@ async function forwardRequest(
       headers: { 'x-request-id': headers.get('x-request-id') ?? '' },
     });
   }
+}
+
+async function mapPublicSessionResponse(
+  request: Request,
+  response: Response,
+): Promise<Response> {
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    return response;
+  }
+
+  const body = (await response.json()) as InternalSessionResponse;
+  const observation = body.sessionObservation;
+  if (isSessionObservation(observation)) {
+    const detail: AuthSessionDetail = {
+      kind: 'auth_session',
+      state: observation.state,
+      reason: observation.reason,
+      role: observation.role,
+      permissionCount: observation.permissionCount,
+    };
+    updateAccessLogContext(request, {
+      details: detail,
+      actor:
+        observation.state === 'authenticated' && body.user
+          ? {
+              id: body.user.id,
+              name: body.user.name,
+              email: body.user.email,
+              role: body.user.role,
+            }
+          : null,
+      sessionId:
+        observation.state === 'authenticated'
+          ? (body.session?.id ?? null)
+          : null,
+    });
+  }
+
+  const publicBody = publicSessionBody(body);
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(JSON.stringify(publicBody), {
+    status: response.status,
+    headers,
+  });
+}
+
+interface InternalSessionResponse {
+  authenticated?: boolean;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    permissions?: unknown;
+  };
+  session?: {
+    id: string;
+    idleExpiresAt?: string;
+    absoluteExpiresAt?: string;
+  };
+  sessionObservation?: {
+    state: 'authenticated' | 'anonymous' | 'invalid';
+    reason: AuthSessionDetail['reason'];
+    role: string | null;
+    permissionCount: number;
+  };
+}
+
+function publicSessionBody(
+  body: InternalSessionResponse,
+): Record<string, unknown> {
+  if (body.authenticated !== true) {
+    return { authenticated: false };
+  }
+
+  const publicBody: Record<string, unknown> = { authenticated: true };
+  if (body.user) {
+    publicBody.user = {
+      id: body.user.id,
+      email: body.user.email,
+      name: body.user.name,
+      role: body.user.role,
+      permissions: Array.isArray(body.user.permissions)
+        ? body.user.permissions.filter(
+            (permission): permission is string =>
+              typeof permission === 'string',
+          )
+        : [],
+    };
+  }
+  if (body.session) {
+    publicBody.session = {
+      id: body.session.id,
+      idleExpiresAt: body.session.idleExpiresAt,
+      absoluteExpiresAt: body.session.absoluteExpiresAt,
+    };
+  }
+  return publicBody;
+}
+
+function isSessionObservation(
+  value: InternalSessionResponse['sessionObservation'],
+): value is NonNullable<InternalSessionResponse['sessionObservation']> {
+  return Boolean(
+    value &&
+      (value.state === 'authenticated' ||
+        value.state === 'anonymous' ||
+        value.state === 'invalid') &&
+      (value.role === null || typeof value.role === 'string') &&
+      Number.isInteger(value.permissionCount) &&
+      value.permissionCount >= 0,
+  );
 }
 
 async function addIdentityHeaders(
@@ -328,6 +455,10 @@ export function createProxyRoute(environment: GatewayEnvironment) {
           '/api/v1/auth',
           '/internal/auth',
           environment,
+          false,
+          undefined,
+          undefined,
+          (response) => mapPublicSessionResponse(request, response),
         ),
       {
         detail: { tags: ['Auth'], summary: 'Read the current auth session' },

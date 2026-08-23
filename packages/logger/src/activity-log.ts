@@ -9,6 +9,35 @@ export interface ActivityActor {
   role?: string | null;
 }
 
+export type SessionObservationState = 'authenticated' | 'anonymous' | 'invalid';
+export type SessionObservationReason =
+  | 'missing_cookie'
+  | 'unknown_session'
+  | 'revoked'
+  | 'absolute_expired'
+  | 'idle_expired'
+  | 'user_missing'
+  | 'user_deleted'
+  | 'user_blocked'
+  | 'user_suspended';
+
+export interface AuthSessionDetail {
+  kind: 'auth_session';
+  state: SessionObservationState;
+  reason: SessionObservationReason | null;
+  role: string | null;
+  permissionCount: number;
+}
+
+export interface AccessMetadataV1 {
+  schemaVersion: 1;
+  durationMs: number;
+  capability: string | null;
+  correlationSource: 'client_header' | 'request_id';
+  client: { route: string; source: 'client_header' } | null;
+  details: AuthSessionDetail | null;
+}
+
 interface CorrelationInput {
   requestId?: string | null;
   traceId?: string | null;

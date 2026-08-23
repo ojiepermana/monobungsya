@@ -35,6 +35,24 @@ export interface AccessLogFilters {
   search: string;
   event: string;
   outcome: string;
+  traceId: string;
+}
+
+export interface SessionSummary {
+  state: 'authenticated' | 'anonymous' | 'invalid';
+  reason:
+    | 'missing_cookie'
+    | 'unknown_session'
+    | 'revoked'
+    | 'absolute_expired'
+    | 'idle_expired'
+    | 'user_missing'
+    | 'user_deleted'
+    | 'user_blocked'
+    | 'user_suspended'
+    | null;
+  role: string | null;
+  permissionCount: number;
 }
 
 export interface AccessLogItem {
@@ -45,6 +63,11 @@ export interface AccessLogItem {
   method: string | null;
   httpStatus: number | null;
   requestId: string | null;
+  traceId: string | null;
+  traceSource: 'client_header' | 'request_id' | null;
+  clientRoute: string | null;
+  sessionId: string | null;
+  sessionSummary: SessionSummary | null;
   actorEmail: string | null;
   failureReason: string | null;
   accessedAt: string;

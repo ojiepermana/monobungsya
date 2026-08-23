@@ -593,4 +593,146 @@ describe('api gateway', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('projects a safe session observation into access metadata', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+
+    globalThis.fetch = Object.assign(
+      async () =>
+        Response.json({
+          authenticated: true,
+          user: {
+            id: '0198f8a0-0000-7000-8000-000000000001',
+            email: 'admin@project.local',
+            name: 'Admin',
+            role: 'admin',
+            permissions: ['users.manage', 'logs.read'],
+          },
+          session: {
+            id: 'session-1',
+            idleExpiresAt: '2026-08-23T12:00:00.000Z',
+            absoluteExpiresAt: '2026-08-30T12:00:00.000Z',
+          },
+          sessionObservation: {
+            state: 'authenticated',
+            reason: null,
+            role: 'admin',
+            permissionCount: 2,
+            internalReason: 'should not escape',
+          },
+        }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/auth/session?token=secret', {
+          headers: {
+            'x-request-id': 'request-session',
+            'x-correlation-id': 'navigation-1',
+            'x-client-route': '/users?email=secret#fragment',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        authenticated: true,
+        user: {
+          id: '0198f8a0-0000-7000-8000-000000000001',
+          email: 'admin@project.local',
+          name: 'Admin',
+          role: 'admin',
+          permissions: ['users.manage', 'logs.read'],
+        },
+        session: {
+          id: 'session-1',
+          idleExpiresAt: '2026-08-23T12:00:00.000Z',
+          absoluteExpiresAt: '2026-08-30T12:00:00.000Z',
+        },
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(writeAccess).toHaveBeenCalledTimes(1);
+      expect(writeAccess.mock.calls[0]?.[0]).toMatchObject({
+        traceId: 'navigation-1',
+        sessionId: 'session-1',
+        metadata: {
+          schemaVersion: 1,
+          correlationSource: 'client_header',
+          client: { route: '/users', source: 'client_header' },
+          details: {
+            kind: 'auth_session',
+            state: 'authenticated',
+            reason: null,
+            role: 'admin',
+            permissionCount: 2,
+          },
+        },
+      });
+      expect(JSON.stringify(writeAccess.mock.calls[0]?.[0])).not.toContain(
+        'should not escape',
+      );
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('falls back to the server request id for forged client context', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+
+    globalThis.fetch = Object.assign(
+      async () => Response.json({ status: 'ok' }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/auth/status', {
+          headers: {
+            'x-request-id': 'request-forged',
+            'x-correlation-id': 'contains spaces',
+            'x-client-route': '/users?token=secret#fragment',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(writeAccess.mock.calls[0]?.[0]).toMatchObject({
+        requestId: 'request-forged',
+        traceId: 'request-forged',
+        metadata: {
+          correlationSource: 'request_id',
+          client: { route: '/users', source: 'client_header' },
+        },
+      });
+      expect(JSON.stringify(writeAccess.mock.calls[0]?.[0])).not.toContain(
+        'secret',
+      );
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

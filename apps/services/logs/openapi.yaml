@@ -201,6 +201,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: traceId
+          in: query
+          required: false
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -237,6 +242,11 @@ paths:
                         - method
                         - httpStatus
                         - requestId
+                        - traceId
+                        - traceSource
+                        - clientRoute
+                        - sessionId
+                        - sessionSummary
                         - actorEmail
                         - failureReason
                         - accessedAt
@@ -268,6 +278,57 @@ paths:
                         requestId:
                           anyOf:
                             - type: string
+                            - type: "null"
+                        traceId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        traceSource:
+                          anyOf:
+                            - const: client_header
+                              type: string
+                            - const: request_id
+                              type: string
+                            - type: "null"
+                        clientRoute:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        sessionId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        sessionSummary:
+                          anyOf:
+                            - type: object
+                              required:
+                                - state
+                                - reason
+                                - role
+                                - permissionCount
+                              properties:
+                                state:
+                                  anyOf:
+                                    - const: authenticated
+                                      type: string
+                                    - const: anonymous
+                                      type: string
+                                    - const: invalid
+                                      type: string
+                                reason:
+                                  anyOf:
+                                    - type: string
+                                    - type: "null"
+                                role:
+                                  anyOf:
+                                    - type: string
+                                    - type: "null"
+                                permissionCount:
+                                  anyOf:
+                                    - format: integer
+                                      default: 0
+                                      type: string
+                                    - type: integer
                             - type: "null"
                         actorEmail:
                           anyOf:
@@ -317,12 +378,15 @@ paths:
                       - search
                       - event
                       - outcome
+                      - traceId
                     properties:
                       search:
                         type: string
                       event:
                         type: string
                       outcome:
+                        type: string
+                      traceId:
                         type: string
                   options:
                     type: object

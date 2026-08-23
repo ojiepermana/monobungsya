@@ -18,7 +18,18 @@ export function createApp(environment: GatewayEnvironment = loadGatewayEnv()) {
   });
 
   return new Elysia({ name: environment.serviceName })
-    .use(cors({ origin: environment.CORS_ORIGIN, credentials: true }))
+    .use(
+      cors({
+        origin: environment.CORS_ORIGIN,
+        credentials: true,
+        allowedHeaders: [
+          'content-type',
+          'x-request-id',
+          'x-correlation-id',
+          'x-client-route',
+        ],
+      }),
+    )
     .use(requestIdPlugin)
     .use(createAccessLogPlugin())
     .use(createLoggerPlugin(logger, 'gateway-logger'))

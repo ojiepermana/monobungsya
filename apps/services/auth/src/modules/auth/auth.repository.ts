@@ -4,6 +4,7 @@ import type {
   AuthRole,
   AuthUser,
   SessionIdentity,
+  SessionObservation,
 } from './auth.types';
 
 export type AuthModuleStatus = {
@@ -26,6 +27,11 @@ export interface SessionRecord {
 
 export interface ConsumedSession extends SessionRecord {
   user: AuthUser;
+}
+
+export interface SessionInspection {
+  identity: SessionIdentity | null;
+  observation: SessionObservation;
 }
 
 export interface CleanupResult {
@@ -170,42 +176,101 @@ export class AuthRepository {
   }
 
   async findSession(sessionTokenHash: string): Promise<SessionIdentity | null> {
+    return (await this.inspectSession(sessionTokenHash)).identity;
+  }
+
+  async inspectSession(sessionTokenHash: string): Promise<SessionInspection> {
     const database = this.requireDatabase();
     const [row] = await database`
-      UPDATE "auth"."sessions" AS session
-      SET
-        last_activity = now(),
-        idle_expires_at = LEAST(now() + interval '8 hours', session.absolute_expires_at),
-        updated_at = now()
-      FROM "user"."users" AS user_record
-      WHERE session.session_token_hash = ${sessionTokenHash}
-        AND session.revoked_at IS NULL
-        AND session.idle_expires_at > now()
-        AND session.absolute_expires_at > now()
-        AND session.user_id = user_record.id
-        AND user_record.suspended_at IS NULL
-        AND user_record.blocked_at IS NULL
-        AND user_record.deleted_at IS NULL
-      RETURNING
-        session.id AS session_id,
-        session.idle_expires_at,
-        session.absolute_expires_at,
-        user_record.id,
-        user_record.email,
-        user_record.name,
-        user_record.role,
-        user_record.suspended_at
+      WITH candidate AS (
+        SELECT
+          session.id AS session_id,
+          session.idle_expires_at,
+          session.absolute_expires_at,
+          session.revoked_at,
+          session.user_id,
+          user_record.id,
+          user_record.email,
+          user_record.name,
+          user_record.role,
+          user_record.suspended_at,
+          user_record.blocked_at,
+          user_record.deleted_at,
+          now() AS current_time
+        FROM "auth"."sessions" AS session
+        LEFT JOIN "user"."users" AS user_record
+          ON user_record.id = session.user_id
+        WHERE session.session_token_hash = ${sessionTokenHash}
+      ), touched AS (
+        UPDATE "auth"."sessions" AS session
+        SET
+          last_activity = candidate.current_time,
+          idle_expires_at = LEAST(
+            candidate.current_time + interval '8 hours',
+            session.absolute_expires_at
+          ),
+          updated_at = candidate.current_time
+        FROM candidate
+        WHERE session.id = candidate.session_id
+          AND candidate.revoked_at IS NULL
+          AND candidate.idle_expires_at > candidate.current_time
+          AND candidate.absolute_expires_at > candidate.current_time
+          AND candidate.user_id IS NOT NULL
+          AND candidate.id IS NOT NULL
+          AND candidate.suspended_at IS NULL
+          AND candidate.blocked_at IS NULL
+          AND candidate.deleted_at IS NULL
+        RETURNING session.id AS session_id,
+          session.idle_expires_at,
+          session.absolute_expires_at
+      )
+      SELECT candidate.*, touched.idle_expires_at AS touched_idle_expires_at,
+        touched.absolute_expires_at AS touched_absolute_expires_at
+      FROM candidate
+      LEFT JOIN touched USING (session_id)
     `;
 
     if (!row) {
-      return null;
+      return {
+        identity: null,
+        observation: {
+          state: 'invalid',
+          reason: 'unknown_session',
+          role: null,
+          permissionCount: 0,
+        },
+      };
     }
 
-    return {
+    const reason = sessionInvalidReason(row);
+    if (reason) {
+      return {
+        identity: null,
+        observation: {
+          state: 'invalid',
+          reason,
+          role: null,
+          permissionCount: 0,
+        },
+      };
+    }
+
+    const identity: SessionIdentity = {
       ...mapUser(row),
       sessionId: String(row.session_id),
-      idleExpiresAt: new Date(String(row.idle_expires_at)),
-      absoluteExpiresAt: new Date(String(row.absolute_expires_at)),
+      idleExpiresAt: new Date(String(row.touched_idle_expires_at)),
+      absoluteExpiresAt: new Date(String(row.touched_absolute_expires_at)),
+    };
+
+    return {
+      identity,
+      observation: {
+        state: 'authenticated',
+        reason: 'unknown_session',
+        role: identity.role,
+        permissionCount:
+          identity.role === 'admin' ? 2 : identity.role === 'manager' ? 1 : 0,
+      },
     };
   }
 
@@ -351,4 +416,34 @@ export function mapUser(row: Record<string, unknown>): AuthUser {
     role: String(row.role) as AuthRole,
     suspendedAt: row.suspended_at ? new Date(String(row.suspended_at)) : null,
   };
+}
+
+function sessionInvalidReason(
+  row: Record<string, unknown>,
+): SessionInspection['observation']['reason'] {
+  const currentTime = new Date(String(row.current_time)).getTime();
+
+  if (row.revoked_at !== null && row.revoked_at !== undefined) {
+    return 'revoked';
+  }
+  if (new Date(String(row.absolute_expires_at)).getTime() <= currentTime) {
+    return 'absolute_expired';
+  }
+  if (new Date(String(row.idle_expires_at)).getTime() <= currentTime) {
+    return 'idle_expired';
+  }
+  if (row.id === null || row.id === undefined) {
+    return 'user_missing';
+  }
+  if (row.deleted_at !== null && row.deleted_at !== undefined) {
+    return 'user_deleted';
+  }
+  if (row.blocked_at !== null && row.blocked_at !== undefined) {
+    return 'user_blocked';
+  }
+  if (row.suspended_at !== null && row.suspended_at !== undefined) {
+    return 'user_suspended';
+  }
+
+  return null;
 }

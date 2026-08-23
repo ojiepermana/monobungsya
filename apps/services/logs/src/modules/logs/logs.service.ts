@@ -66,6 +66,7 @@ export class LogsService {
     search?: string;
     event?: string;
     outcome?: string;
+    traceId?: string;
     actorUserId?: string;
     page?: string;
   }): Promise<AccessLogsResult> {
@@ -73,6 +74,7 @@ export class LogsService {
       search: squish(query.search),
       event: squish(query.event),
       outcome: squish(query.outcome),
+      traceId: squish(query.traceId),
     };
     const page = parsePage(query.page);
     const { items, total } = await this.repository.listAccessLogs({

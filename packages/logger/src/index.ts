@@ -1,9 +1,13 @@
 export {
   type AccessLogRecord,
+  type AccessMetadataV1,
   type ActivityActor,
   ActivityLog,
   type ApplicationLogRecord,
   type AuditTrailRecord,
+  type AuthSessionDetail,
+  type SessionObservationReason,
+  type SessionObservationState,
   type WriteAccessInput,
   type WriteAuditInput,
   type WriteLogInput,

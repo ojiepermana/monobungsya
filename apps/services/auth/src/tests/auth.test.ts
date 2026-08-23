@@ -19,6 +19,20 @@ import type {
 } from '../modules/auth/auth.types';
 
 describe('auth service', () => {
+  it('classifies a missing session cookie without exposing internal details', async () => {
+    const service = new AuthService('auth');
+
+    await expect(service.getSession(undefined)).resolves.toEqual({
+      authenticated: false,
+      sessionObservation: {
+        state: 'anonymous',
+        reason: 'missing_cookie',
+        role: null,
+        permissionCount: 0,
+      },
+    });
+  });
+
   it('exposes health and module status endpoints', async () => {
     const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }));
 

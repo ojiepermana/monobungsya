@@ -146,6 +146,7 @@ describe('logs repository', () => {
       search: '50%_done',
       event: '',
       outcome: '',
+      traceId: '',
       actorUserId: '',
       page: 1,
     });
@@ -240,6 +241,9 @@ describe('logs repository', () => {
           method: 'GET',
           http_status: 200,
           request_id: 'request-123',
+          trace_id: 'request-123',
+          session_id: null,
+          metadata: null,
           actor_email: 'admin@project.local',
           failure_reason: null,
           accessed_at: '2026-08-22 09:15:30.123',
@@ -252,6 +256,7 @@ describe('logs repository', () => {
       search: '',
       event: '',
       outcome: '',
+      traceId: '',
       actorUserId: '',
       page: 1,
     });
@@ -264,10 +269,75 @@ describe('logs repository', () => {
       method: 'GET',
       httpStatus: 200,
       requestId: 'request-123',
+      traceId: 'request-123',
+      traceSource: 'request_id',
+      clientRoute: null,
+      sessionId: null,
+      sessionSummary: null,
       actorEmail: 'admin@project.local',
       failureReason: null,
       accessedAt: '2026-08-22T09:15:30.123Z',
     });
+  });
+
+  it('projects only the version one client flow and session summary', async () => {
+    const { database } = createFakeDatabase((query) => {
+      if (query.text.startsWith('SELECT count')) return [{ total: 1 }];
+      return [
+        {
+          event: 'api_request',
+          outcome: 'success',
+          route_name: '/api/v1/auth/session',
+          path: '/api/v1/auth/session',
+          method: 'GET',
+          http_status: 200,
+          request_id: 'request-session',
+          trace_id: 'navigation-1',
+          session_id: 'session-1',
+          metadata: JSON.stringify({
+            schemaVersion: 1,
+            durationMs: 12,
+            capability: null,
+            correlationSource: 'client_header',
+            client: { route: '/users', source: 'client_header' },
+            details: {
+              kind: 'auth_session',
+              state: 'authenticated',
+              reason: null,
+              role: 'admin',
+              permissionCount: 2,
+              permissionNames: ['users.manage', 'logs.read'],
+            },
+            rawResponse: 'should not escape',
+          }),
+          actor_email: 'admin@project.local',
+          failure_reason: null,
+          accessed_at: '2026-08-22 09:15:30.123',
+        },
+      ];
+    });
+    const repository = new LogsRepository(database);
+
+    const { items } = await repository.listAccessLogs({
+      search: '',
+      event: '',
+      outcome: '',
+      traceId: '',
+      actorUserId: '',
+      page: 1,
+    });
+
+    expect(items[0]?.traceSource).toBe('client_header');
+    expect(items[0]?.clientRoute).toBe('/users');
+    expect(items[0]?.sessionId).toBe('session-1');
+    expect(items[0]?.sessionSummary).toEqual({
+      state: 'authenticated',
+      reason: null,
+      role: 'admin',
+      permissionCount: 2,
+    });
+    expect(JSON.stringify(items[0])).not.toContain('permissionNames');
+    expect(JSON.stringify(items[0])).not.toContain('rawResponse');
   });
 
   it('binds actorUserId as an exact filter on all three endpoints (covers AC-10)', async () => {
@@ -290,6 +360,7 @@ describe('logs repository', () => {
       search: '',
       event: '',
       outcome: '',
+      traceId: '',
       actorUserId,
       page: 1,
     });

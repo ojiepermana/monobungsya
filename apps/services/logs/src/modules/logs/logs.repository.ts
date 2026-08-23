@@ -31,6 +31,7 @@ const ACCESS_SEARCH_COLUMNS = [
   'path',
   'method',
   'request_id',
+  'trace_id',
   'actor_email',
   'failure_reason',
 ] as const;
@@ -51,6 +52,7 @@ const AUDIT_FILTER_COLUMNS = {
 const ACCESS_FILTER_COLUMNS = {
   event: 'event',
   outcome: 'outcome',
+  traceId: 'trace_id',
   actorUserId: 'actor_user_id',
 } as const;
 const APPLICATION_FILTER_COLUMNS = {
@@ -82,6 +84,97 @@ function parseJson(value: unknown): unknown {
 
 function textOrNull(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
+}
+
+const SESSION_REASONS = new Set([
+  'missing_cookie',
+  'unknown_session',
+  'revoked',
+  'absolute_expired',
+  'idle_expired',
+  'user_missing',
+  'user_deleted',
+  'user_blocked',
+  'user_suspended',
+]);
+
+function accessMetadataProjection(
+  value: unknown,
+  traceId: string | null,
+  requestId: string | null,
+): {
+  traceSource: 'client_header' | 'request_id' | null;
+  clientRoute: string | null;
+  sessionSummary: AccessLogItem['sessionSummary'];
+} {
+  const metadata = parseJson(value);
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return {
+      traceSource: traceId && traceId === requestId ? 'request_id' : null,
+      clientRoute: null,
+      sessionSummary: null,
+    };
+  }
+
+  const record = metadata as Record<string, unknown>;
+  const traceSource =
+    record.schemaVersion === 1 &&
+    (record.correlationSource === 'client_header' ||
+      record.correlationSource === 'request_id')
+      ? record.correlationSource
+      : traceId && traceId === requestId
+        ? 'request_id'
+        : null;
+  const client = record.client;
+  const clientRoute =
+    record.schemaVersion === 1 &&
+    client &&
+    typeof client === 'object' &&
+    !Array.isArray(client) &&
+    (client as Record<string, unknown>).source === 'client_header' &&
+    typeof (client as Record<string, unknown>).route === 'string'
+      ? String((client as Record<string, unknown>).route)
+      : null;
+
+  const details = record.details;
+  if (
+    record.schemaVersion !== 1 ||
+    !details ||
+    typeof details !== 'object' ||
+    Array.isArray(details)
+  ) {
+    return { traceSource, clientRoute, sessionSummary: null };
+  }
+
+  const detail = details as Record<string, unknown>;
+  const reason = detail.reason;
+  const permissionCount = detail.permissionCount;
+  if (
+    detail.kind !== 'auth_session' ||
+    !['authenticated', 'anonymous', 'invalid'].includes(String(detail.state)) ||
+    (reason !== null && !SESSION_REASONS.has(String(reason))) ||
+    (detail.role !== null && typeof detail.role !== 'string') ||
+    typeof permissionCount !== 'number' ||
+    !Number.isInteger(permissionCount) ||
+    permissionCount < 0
+  ) {
+    return { traceSource, clientRoute, sessionSummary: null };
+  }
+
+  return {
+    traceSource,
+    clientRoute,
+    sessionSummary: {
+      state: detail.state as 'authenticated' | 'anonymous' | 'invalid',
+      reason: reason as AccessLogItem['sessionSummary'] extends infer T
+        ? T extends { reason: infer R }
+          ? R
+          : never
+        : never,
+      role: detail.role as string | null,
+      permissionCount,
+    },
+  };
 }
 
 interface WhereClause {
@@ -169,39 +262,56 @@ export class LogsRepository {
     search: string;
     event: string;
     outcome: string;
+    traceId: string;
     actorUserId: string;
     page: number;
   }): Promise<ListPage<AccessLogItem>> {
     const clause = buildWhere(query.search, ACCESS_SEARCH_COLUMNS, [
       [ACCESS_FILTER_COLUMNS.event, query.event],
       [ACCESS_FILTER_COLUMNS.outcome, query.outcome],
+      [ACCESS_FILTER_COLUMNS.traceId, query.traceId],
       [ACCESS_FILTER_COLUMNS.actorUserId, query.actorUserId],
     ]);
     const rows = await this.listRows(
       '"logs"."access_logs"',
       'event, outcome, route_name, path, method, http_status, request_id, ' +
-        'actor_email, failure_reason, accessed_at::text AS accessed_at',
+        'trace_id, session_id, metadata, actor_email, failure_reason, ' +
+        'accessed_at::text AS accessed_at',
       'accessed_at',
       clause,
       query.page,
     );
 
     return {
-      items: rows.items.map((row) => ({
-        event: String(row.event),
-        outcome: String(row.outcome),
-        routeName: textOrNull(row.route_name),
-        path: textOrNull(row.path),
-        method: textOrNull(row.method),
-        httpStatus:
-          row.http_status === null || row.http_status === undefined
-            ? null
-            : Number(row.http_status),
-        requestId: textOrNull(row.request_id),
-        actorEmail: textOrNull(row.actor_email),
-        failureReason: textOrNull(row.failure_reason),
-        accessedAt: isoFromDbTimestamp(String(row.accessed_at)),
-      })),
+      items: rows.items.map((row) => {
+        const requestId = textOrNull(row.request_id);
+        const traceId = textOrNull(row.trace_id);
+        const projection = accessMetadataProjection(
+          row.metadata,
+          traceId,
+          requestId,
+        );
+        return {
+          event: String(row.event),
+          outcome: String(row.outcome),
+          routeName: textOrNull(row.route_name),
+          path: textOrNull(row.path),
+          method: textOrNull(row.method),
+          httpStatus:
+            row.http_status === null || row.http_status === undefined
+              ? null
+              : Number(row.http_status),
+          requestId,
+          traceId,
+          traceSource: projection.traceSource,
+          clientRoute: projection.clientRoute,
+          sessionId: textOrNull(row.session_id),
+          sessionSummary: projection.sessionSummary,
+          actorEmail: textOrNull(row.actor_email),
+          failureReason: textOrNull(row.failure_reason),
+          accessedAt: isoFromDbTimestamp(String(row.accessed_at)),
+        };
+      }),
       total: rows.total,
     };
   }

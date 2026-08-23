@@ -11,6 +11,7 @@ import type {
   AuthPermission,
   AuthRole,
   SessionIdentity,
+  SessionObservation,
 } from './auth.types';
 
 export interface MagicLinkRequestResult {
@@ -20,6 +21,7 @@ export interface MagicLinkRequestResult {
 
 export interface SessionResult {
   authenticated: boolean;
+  sessionObservation: SessionObservation;
   user?: {
     id: string;
     email: string;
@@ -182,15 +184,27 @@ export class AuthService {
 
   async getSession(sessionToken: string | undefined): Promise<SessionResult> {
     if (!sessionToken) {
-      return { authenticated: false };
+      return {
+        authenticated: false,
+        sessionObservation: {
+          state: 'anonymous',
+          reason: 'missing_cookie',
+          role: null,
+          permissionCount: 0,
+        },
+      };
     }
 
-    const identity = await this.repository.findSession(
+    const inspection = await this.repository.inspectSession(
       hashSecret(sessionToken),
     );
+    const identity = inspection.identity;
 
     if (!identity) {
-      return { authenticated: false };
+      return {
+        authenticated: false,
+        sessionObservation: inspection.observation,
+      };
     }
 
     return {
@@ -206,6 +220,10 @@ export class AuthService {
         id: identity.sessionId,
         idleExpiresAt: identity.idleExpiresAt.toISOString(),
         absoluteExpiresAt: identity.absoluteExpiresAt.toISOString(),
+      },
+      sessionObservation: {
+        ...inspection.observation,
+        reason: null,
       },
     };
   }

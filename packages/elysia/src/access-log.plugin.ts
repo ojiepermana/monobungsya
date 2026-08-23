@@ -1,16 +1,29 @@
 import { Elysia } from 'elysia';
-import { type ActivityActor, ActivityLog } from '#project/logger';
+import type {
+  AccessMetadataV1,
+  ActivityActor,
+  AuthSessionDetail,
+} from '#project/logger';
+import { ActivityLog } from '#project/logger';
+import {
+  normalizeClientCorrelation,
+  normalizeClientRoute,
+  type TraceSource,
+} from './request-id.plugin';
 
 export interface AccessLogContext {
   startedAt: number;
   requestId: string | null;
   traceId: string | null;
+  traceSource: TraceSource;
+  clientRoute: string | null;
   routeName: string | null;
   capability: string | null;
   actor: ActivityActor | null;
   sessionId: string | null;
   authenticationMethod: string | null;
   failureReason: string | null;
+  details: AuthSessionDetail | null;
 }
 
 const contexts = new WeakMap<Request, AccessLogContext>();
@@ -32,21 +45,29 @@ export function createAccessLogPlugin() {
         requestId?: string;
         correlationId?: string;
       };
+      const requestId =
+        lifecycleContext.requestId ??
+        lifecycleContext.request.headers.get('x-request-id') ??
+        crypto.randomUUID();
+      const correlation = normalizeClientCorrelation(
+        lifecycleContext.request.headers.get('x-correlation-id'),
+        requestId,
+      );
       const accessContext: AccessLogContext = {
         startedAt: performance.now(),
-        requestId:
-          lifecycleContext.requestId ??
-          lifecycleContext.request.headers.get('x-request-id'),
-        traceId:
-          lifecycleContext.correlationId ??
-          lifecycleContext.request.headers.get('x-correlation-id') ??
-          lifecycleContext.request.headers.get('x-request-id'),
+        requestId,
+        traceId: correlation.value,
+        traceSource: correlation.source,
+        clientRoute: normalizeClientRoute(
+          lifecycleContext.request.headers.get('x-client-route'),
+        ),
         routeName: null,
         capability: null,
         actor: null,
         sessionId: null,
         authenticationMethod: null,
         failureReason: null,
+        details: null,
       };
       contexts.set(lifecycleContext.request, accessContext);
       return { accessLogContext: accessContext };
@@ -86,14 +107,20 @@ export function createAccessLogPlugin() {
         forwardedIp: request.headers.get('x-forwarded-for'),
         failureReason: context?.failureReason ?? failureReasonForStatus(status),
         metadata: {
+          schemaVersion: 1,
           durationMs: Math.max(
             0,
             Math.round(
               performance.now() - (context?.startedAt ?? performance.now()),
             ),
           ),
-          capability: context?.capability,
-        },
+          capability: context?.capability ?? null,
+          correlationSource: context?.traceSource ?? 'request_id',
+          client: context?.clientRoute
+            ? { route: context.clientRoute, source: 'client_header' }
+            : null,
+          details: context?.details ?? null,
+        } satisfies AccessMetadataV1,
       });
       contexts.delete(request);
     });
