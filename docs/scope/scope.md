@@ -107,8 +107,8 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
   - [x] Logs service, gateway wiring, and session permissions (AC-4, AC-5, AC-6)
   - [x] Web viewer pages with search, filters, and paging (AC-9)
   - [x] Tests and regenerated OpenAPI artifacts
-  - [ ] Safe session details from auth through the gateway, logs API, and viewer (AC-16, AC-19, AC-20)
-  - [ ] Angular navigation correlation, gateway validation, CORS, and trace filtering (AC-17, AC-18, AC-19)
+  - [x] Safe session details from auth through the gateway, logs API, and viewer (AC-16, AC-19, AC-20)
+  - [x] Angular navigation correlation, gateway validation, CORS, and trace filtering (AC-17, AC-18, AC-19)
   - [ ] Production regression coverage, E2E flow proof, and generated contracts (AC-1, AC-8, AC-10 to AC-20)
 - [ ] Verify it: `/check verify log subsystem`
 - [ ] Test it: `/test log subsystem`
