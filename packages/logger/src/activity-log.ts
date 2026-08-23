@@ -1,5 +1,6 @@
 import type { DatabaseClient } from '#project/database';
 import { withLogPartitionRecovery } from './partition';
+import { sanitizeLogContext } from './sanitize';
 
 export interface ActivityActor {
   id?: string | null;
@@ -120,6 +121,24 @@ export interface AccessLogRecord {
   id: string;
   event: string;
   outcome: string;
+  authenticationMethod: string | null;
+  accessChannel: string;
+  guard: string | null;
+  actorUserId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  ipAddress: string | null;
+  forwardedIp: string | null;
+  userAgent: string | null;
+  sessionId: string | null;
+  requestId: string | null;
+  traceId: string | null;
+  routeName: string | null;
+  path: string | null;
+  method: string | null;
+  httpStatus: number | null;
+  failureReason: string | null;
+  metadata: unknown;
   accessedAt: string;
   createdAt: string;
 }
@@ -151,17 +170,43 @@ function encodeAmount(
  * audit writes throw. Correlation fields (request id, trace id, session id,
  * ip address, user agent) are the caller's responsibility.
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: The public static API keeps one process local queue behind the existing writer contract.
 export abstract class ActivityLog {
   private static database: DatabaseClient | undefined;
+  private static bestEffortEnabled = true;
   private static pending: Promise<void> = Promise.resolve();
 
-  static configure(database: DatabaseClient | undefined): void {
+  static configure(
+    database: DatabaseClient | undefined,
+    options: { bestEffort?: boolean } = {},
+  ): void {
     ActivityLog.database = database;
+    ActivityLog.bestEffortEnabled = options.bestEffort ?? true;
   }
 
   /** Wait for every queued write to settle. */
-  static async flush(): Promise<void> {
-    await ActivityLog.pending;
+  static async flush(timeoutMs?: number): Promise<void> {
+    if (!timeoutMs) {
+      await ActivityLog.pending;
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        ActivityLog.pending,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            console.error(
+              `[activity-log] flush timed out after ${timeoutMs}ms`,
+            );
+            resolve();
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   static writeLog(input: WriteLogInput): ApplicationLogRecord {
@@ -174,7 +219,7 @@ export abstract class ActivityLog {
       event: text(input.event),
       module: text(input.module),
       message: input.message,
-      context: input.context ?? null,
+      context: sanitizeLogContext(input.context),
       exceptionClass: text(input.exceptionClass),
       exceptionMessage: text(input.exceptionMessage),
       stackTrace: text(input.stackTrace),
@@ -193,6 +238,8 @@ export abstract class ActivityLog {
       occurredAt: now,
       createdAt: now,
     };
+
+    if (!ActivityLog.bestEffortEnabled) return record;
 
     ActivityLog.enqueue(async (database) => {
       await withLogPartitionRecovery(
@@ -231,9 +278,29 @@ export abstract class ActivityLog {
       id: Bun.randomUUIDv7(),
       event: input.event,
       outcome: input.outcome ?? 'success',
+      authenticationMethod: text(input.authenticationMethod),
+      accessChannel: input.accessChannel ?? 'web',
+      guard: text(input.guard),
+      actorUserId: text(input.actor?.id),
+      actorName: text(input.actor?.name),
+      actorEmail: text(input.actor?.email),
+      ipAddress: text(input.ipAddress),
+      forwardedIp: text(input.forwardedIp),
+      userAgent: text(input.userAgent),
+      sessionId: text(input.sessionId),
+      requestId: text(input.requestId),
+      traceId: text(input.traceId),
+      routeName: text(input.routeName),
+      path: text(input.path),
+      method: text(input.method),
+      httpStatus: input.httpStatus ?? null,
+      failureReason: text(input.failureReason),
+      metadata: sanitizeLogContext(input.metadata),
       accessedAt: now,
       createdAt: now,
     };
+
+    if (!ActivityLog.bestEffortEnabled) return record;
 
     ActivityLog.enqueue(async (database) => {
       await withLogPartitionRecovery(
@@ -251,18 +318,18 @@ export abstract class ActivityLog {
             accessed_at, created_at
           ) VALUES (
             ${record.id}, ${record.event}, ${record.outcome},
-            ${text(input.authenticationMethod)},
-            ${input.accessChannel ?? 'web'}, ${text(input.guard)},
-            ${text(input.actor?.id)}, ${text(input.actor?.name)},
-            ${text(input.actor?.email)}, ${text(input.branchCode)},
-            ${text(input.ipAddress)}, ${text(input.forwardedIp)},
-            ${text(input.userAgent)}, ${text(input.deviceName)},
+            ${record.authenticationMethod},
+            ${record.accessChannel}, ${record.guard},
+            ${record.actorUserId}, ${record.actorName},
+            ${record.actorEmail}, ${text(input.branchCode)},
+            ${record.ipAddress}, ${record.forwardedIp},
+            ${record.userAgent}, ${text(input.deviceName)},
             ${text(input.platform)}, ${text(input.browser)},
-            ${text(input.sessionId)}, ${text(input.requestId)},
-            ${text(input.traceId)}, ${text(input.routeName)},
-            ${text(input.path)}, ${text(input.method)},
-            ${input.httpStatus ?? null}, ${text(input.failureReason)},
-            ${encodeJson(input.metadata)},
+            ${record.sessionId}, ${record.requestId},
+            ${record.traceId}, ${record.routeName},
+            ${record.path}, ${record.method},
+            ${record.httpStatus}, ${record.failureReason},
+            ${encodeJson(record.metadata)},
             ${record.accessedAt}, ${record.createdAt}
           )
         `,

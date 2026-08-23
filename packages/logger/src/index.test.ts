@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { redactRequestUrl } from './index';
+import { redactRequestUrl, sanitizeLogContext } from './index';
 
 test('redacts sensitive query parameters from request URLs', () => {
   expect(
@@ -9,4 +9,20 @@ test('redacts sensitive query parameters from request URLs', () => {
   ).toBe(
     'http://localhost/internal/auth/verify?token=%5BREDACTED%5D&state=kept',
   );
+});
+
+test('sanitizes nested credentials while preserving correlation ids', () => {
+  expect(
+    sanitizeLogContext({
+      Authorization: 'Bearer secret',
+      sessionId: 'session-1',
+      requestId: 'request-1',
+      nested: [{ password: 'hidden', visible: 'kept' }],
+    }),
+  ).toEqual({
+    Authorization: '[REDACTED]',
+    sessionId: 'session-1',
+    requestId: 'request-1',
+    nested: [{ password: '[REDACTED]', visible: 'kept' }],
+  });
 });

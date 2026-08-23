@@ -1,13 +1,11 @@
 import { Elysia } from 'elysia';
-import { type Logger, redactRequestUrl } from '#project/logger';
+import type { Logger } from '#project/logger';
 
 export function createLoggerPlugin(logger: Logger, name = 'logger') {
-  return new Elysia({ name }).onRequest(({ request }) => {
-    logger.info('request.received', {
-      method: request.method,
-      url: redactRequestUrl(request.url),
-      requestId: request.headers.get('x-request-id'),
-      correlationId: request.headers.get('x-correlation-id'),
-    });
-  });
+  // Request traffic is recorded at the public gateway boundary as access
+  // rows. Internal services keep this compatibility plugin so callers can
+  // retain the same composition shape, but they no longer duplicate every
+  // request into application logs.
+  void logger;
+  return new Elysia({ name });
 }

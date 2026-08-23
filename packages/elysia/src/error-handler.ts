@@ -52,9 +52,14 @@ export function createErrorHandler(
       const mapped = toErrorResponse(toAppError(code, error), requestId);
 
       set.status = mapped.status;
+      const logError =
+        code === 'VALIDATION' || code === 'PARSE'
+          ? new Error(mapped.body.error.message)
+          : error;
       options.logger?.error('request.failed', {
         requestId: requestId ?? null,
         error: mapped.body,
+        exception: logError,
       });
 
       return mapped.body;
