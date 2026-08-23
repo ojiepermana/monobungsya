@@ -15,7 +15,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 4   | MCP server for ERP tool access      | Foundation | in-progress |
 | 5   | Auth passkey login                  | Foundation | in-progress |
 | 6   | Log subsystem                       | Foundation | in-progress |
-| 7   | User lifecycle management           | Domain     | done        |
+| 7   | User lifecycle management           | Domain     | in-progress |
 
 ## Foundations
 
@@ -117,20 +117,21 @@ Spec [0001](../specs/logs/0001-log-subsystem/index.md) · code in `packages/data
 
 ## Domain
 
-### 7. User lifecycle management · done
+### 7. User lifecycle management · in-progress
 
 Full user management owned by the user service: create and update users, suspend, block, soft delete with restore, client generated UUIDv7 ids, and web pages for the user list and a detail view showing the user's logs.
 **Done when:** An admin can create a user who receives an invitation email and can log in, update the user's name and role, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
 
 - [x] Design it (spec): `/architect user lifecycle management`
-- [x] Build it: `/develop user lifecycle management`
+- [ ] Build it: `/develop user lifecycle management`
   - [x] Migration and read only tracer: status columns, list and detail from service through gateway to the /users page (AC-8, AC-9, AC-11)
   - [x] Create and update with client generated UUIDv7, audit writes, and the create dialog (AC-1, AC-3, AC-7)
   - [x] Status lifecycle: suspend, block, soft delete, restore, guards, and extended auth login checks (AC-4, AC-5, AC-6, AC-7)
   - [x] Invitation event and the auth magic link handler (AC-2)
   - [x] Detail page log tabs, actorUserId filter, and cutover off the auth users endpoint (AC-9, AC-10, AC-11)
-- [x] Verify it: `/check verify user lifecycle management`
-- [x] Test it: `/test user lifecycle management`
+  - [ ] Recompose the two user pages on the package Page scaffold: stacked variant, header, filter, content, footer (AC-12, spec update 2026-08-23)
+- [ ] Verify it: `/check verify user lifecycle management` (re-run for AC-12; AC-1 to AC-11 passed 2026-08-22)
+- [ ] Test it: `/test user lifecycle management` (re-run for the recomposed page tests)
 
 Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/user`, `apps/services/auth`, `apps/services/logs`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
 

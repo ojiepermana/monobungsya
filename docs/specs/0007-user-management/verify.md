@@ -1,4 +1,4 @@
-# Verify: user lifecycle management · spec 0007 · updated 2026-08-22
+# Verify: user lifecycle management · spec 0007 · updated 2026-08-23
 
 _Steps derived from spec 0007 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
@@ -70,6 +70,17 @@ are reachable. A second throwaway admin is handy for the last admin steps.
 - [x] `psql "$DATABASE_URL" -c "select count(*) from \"user\".users where deleted_at is not null"` after a delete → the row is still there, never removed → AC-5
 - [x] Stop NATS, then create a user → the create still returns 200 and the auth log carries a `user.invited.skipped` or publish warning → AC-2
 
+## Added 2026-08-23: page composition (AC-12) · not yet run
+
+The spec update adds AC-12 (both pages compose the package `Page` scaffold). These steps stay unchecked until the recomposition ships.
+
+- [ ] Open `/users` → the header (title plus "Tambah User"), the filter bar (search, status, clear), and the paging footer stay pinned while only the table region scrolls → AC-12
+- [ ] Open `/users/:id` → the header (name plus back link) and the paging footer stay pinned while the profile card and log tabs scroll in the content region → AC-12
+- [ ] Inspect both pages in devtools → no `<main>` element inside the page templates, exactly one `role="main"` landmark per screen (the layout wrapper's), and the content region is keyboard focusable (`tabindex="0"`) → AC-12
+- [ ] Switch the shell appearance in the settings surface → the page header and footer section borders follow the flat or border rail setting → AC-12
+- [ ] Open the create, edit, and reason dialogs from both pages → all still open and close normally from inside `PageContent` → AC-12
+- [ ] `bun run test:web` → the updated composition assertions in `users.page.test.ts` and `user-detail.page.test.ts` pass → AC-12
+
 ## Value sourcing
 
 One step per row of the spec's Value sourcing table, exercising the edge that breaks if the source is wrong.
@@ -103,6 +114,7 @@ One step per row of the spec's Value sourcing table, exercising the edge that br
 - AC-9 · the list page and the detail page, old settings list replaced · covered by the list, detail, and `/setting/users` redirect steps
 - AC-10 · `actorUserId` on the three logs endpoints, tabs scoped with paging · covered by the log tab steps
 - AC-11 · endpoints live in the user service, auth list code removed, login checks extended · covered by the openapi diff command and the suspended user login step
+- AC-12 · package page scaffold on both pages, one main landmark, pinned slots · covered by the 2026-08-23 steps above, pending until the recomposition ships
 
 ## Known gap for `/test`
 
