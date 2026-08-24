@@ -89,7 +89,6 @@ export type GetApiV1AuthSessionResponses = {
         sessionObservation?: {
             state: 'authenticated' | 'anonymous' | 'invalid';
             reason: string | unknown;
-            permissionCount: string | number;
         };
         user?: {
             id: string;

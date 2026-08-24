@@ -1,5 +1,9 @@
 import { Elysia, t } from 'elysia';
-import { hasAnyRequiredPermission, PERMISSIONS } from '#project/acl';
+import {
+  hasAnyRequiredPermission,
+  normalizePermissions,
+  PERMISSIONS,
+} from '#project/acl';
 import {
   ACCESS_PERMISSION_CHANGED_SUBJECT,
   type AccessPermissionChangedEvent,
@@ -159,11 +163,36 @@ async function mapPublicSessionResponse(
   }
 
   const body = (await response.json()) as InternalSessionResponse;
+  let effectivePermissions: string[] = [];
   if (body.authenticated === true && body.user?.id) {
-    body.user.permissions = await permissionCache.get(
-      body.user.id,
-      request.headers.get('x-request-id') ?? crypto.randomUUID(),
-    );
+    try {
+      effectivePermissions = normalizePermissions(
+        await permissionCache.get(
+          body.user.id,
+          request.headers.get('x-request-id') ?? crypto.randomUUID(),
+        ),
+      );
+      body.user.permissions = effectivePermissions;
+    } catch (error) {
+      updateAccessLogContext(request, {
+        actor: {
+          id: body.user.id,
+          name: body.user.name,
+          email: body.user.email,
+        },
+        sessionId: body.session?.id ?? null,
+        failureReason: 'permission_lookup_failed',
+        details: null,
+      });
+      const mapped = toErrorResponse(
+        error,
+        request.headers.get('x-request-id') ?? undefined,
+      );
+      return Response.json(mapped.body, {
+        status: mapped.status,
+        headers: { 'x-request-id': request.headers.get('x-request-id') ?? '' },
+      });
+    }
   }
   const observation = body.sessionObservation;
   if (isSessionObservation(observation)) {
@@ -171,7 +200,8 @@ async function mapPublicSessionResponse(
       kind: 'auth_session',
       state: observation.state,
       reason: observation.reason,
-      permissionCount: observation.permissionCount,
+      permissionCount:
+        observation.state === 'authenticated' ? effectivePermissions.length : 0,
     };
     updateAccessLogContext(request, {
       details: detail,
@@ -215,7 +245,6 @@ interface InternalSessionResponse {
   sessionObservation?: {
     state: 'authenticated' | 'anonymous' | 'invalid';
     reason: AuthSessionDetail['reason'];
-    permissionCount: number;
   };
 }
 
@@ -257,9 +286,7 @@ function isSessionObservation(
     value &&
       (value.state === 'authenticated' ||
         value.state === 'anonymous' ||
-        value.state === 'invalid') &&
-      Number.isInteger(value.permissionCount) &&
-      value.permissionCount >= 0,
+        value.state === 'invalid'),
   );
 }
 

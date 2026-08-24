@@ -40,7 +40,6 @@ export const sessionResponse = t.Object({
         t.Literal('user_suspended'),
         t.Null(),
       ]),
-      permissionCount: t.Integer(),
     }),
   ),
   user: t.Optional(

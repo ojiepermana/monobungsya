@@ -249,7 +249,6 @@ export class AuthRepository {
         observation: {
           state: 'invalid',
           reason: 'unknown_session',
-          permissionCount: 0,
         },
       };
     }
@@ -261,7 +260,6 @@ export class AuthRepository {
         observation: {
           state: 'invalid',
           reason,
-          permissionCount: 0,
         },
       };
     }
@@ -278,7 +276,6 @@ export class AuthRepository {
       observation: {
         state: 'authenticated',
         reason: 'unknown_session',
-        permissionCount: 0,
       },
     };
   }

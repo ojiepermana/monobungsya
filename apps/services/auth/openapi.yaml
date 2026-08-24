@@ -161,7 +161,6 @@ paths:
                     required:
                       - state
                       - reason
-                      - permissionCount
                     properties:
                       state:
                         type: string
@@ -190,12 +189,6 @@ paths:
                           - const: user_suspended
                             type: string
                           - type: "null"
-                      permissionCount:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
                   user:
                     type: object
                     required:

@@ -76,7 +76,6 @@ describe('auth service', () => {
       sessionObservation: {
         state: 'anonymous',
         reason: 'missing_cookie',
-        permissionCount: 0,
       },
     });
   });

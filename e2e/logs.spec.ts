@@ -93,6 +93,59 @@ test.describe('log pages as an admin', () => {
     const timeCell = page.locator('tbody tr').first().locator('td').first();
     await expect(timeCell).toHaveText(/\d{1,2} \w{3} \d{4}, \d{2}\.\d{2}/);
   });
+
+  test('covers AC-11, AC-17, and AC-19: users requests share one trace and remain separately visible', async ({
+    page,
+  }) => {
+    const requests: Array<{
+      path: string;
+      traceId: string | undefined;
+      clientRoute: string | undefined;
+    }> = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (
+        request.method() === 'GET' &&
+        (url.pathname === '/api/v1/auth/session' ||
+          url.pathname === '/api/v1/users')
+      ) {
+        requests.push({
+          path: url.pathname,
+          traceId: request.headers()['x-correlation-id'],
+          clientRoute: request.headers()['x-client-route'],
+        });
+      }
+    });
+
+    await page.goto('/users');
+    await expect(
+      page.getByRole('heading', { name: 'User Management', exact: true }),
+    ).toBeVisible();
+    await expect
+      .poll(
+        () => requests.filter(({ path }) => path === '/api/v1/users').length,
+      )
+      .toBeGreaterThan(0);
+
+    const sessionRequest = requests.find(
+      ({ path }) => path === '/api/v1/auth/session',
+    );
+    const usersRequest = requests.find(({ path }) => path === '/api/v1/users');
+    expect(sessionRequest?.traceId).toBeTruthy();
+    expect(usersRequest?.traceId).toBe(sessionRequest?.traceId);
+    expect(sessionRequest?.clientRoute).toBe('/users');
+    expect(usersRequest?.clientRoute).toBe('/users');
+
+    await page.goto('/logs/access');
+    const search = page.getByRole('searchbox', { name: /log/i });
+    await search.fill(sessionRequest?.traceId ?? '');
+    await expect(
+      page.getByRole('cell', { name: '/api/v1/auth/session' }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('cell', { name: '/api/v1/users' }).first(),
+    ).toBeVisible();
+  });
 });
 
 test.describe('log pages as staff', () => {

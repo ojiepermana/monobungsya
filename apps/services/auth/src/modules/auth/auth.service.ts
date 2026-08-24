@@ -178,7 +178,6 @@ export class AuthService {
         sessionObservation: {
           state: 'anonymous',
           reason: 'missing_cookie',
-          permissionCount: 0,
         },
       };
     }

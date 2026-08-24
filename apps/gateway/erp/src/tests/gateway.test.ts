@@ -21,7 +21,6 @@ function sessionResponse() {
     sessionObservation: {
       state: 'authenticated',
       reason: null,
-      permissionCount: 1,
     },
   });
 }
@@ -188,6 +187,114 @@ describe('api gateway', () => {
         session: { id: 'session-1', absoluteExpiresAt: EXPIRES_AT },
       });
     } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('derives a role free session summary from the effective public permissions', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+    globalThis.fetch = Object.assign(
+      fetchFor(['user:user:manage', 'logs:log:read', 'logs:log:read']),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/auth/session', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+
+      expect(await response.json()).toMatchObject({
+        authenticated: true,
+        user: {
+          permissions: ['logs:log:read', 'user:user:manage'],
+        },
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const record = writeAccess.mock.calls[0]?.[0];
+      expect(record).toMatchObject({
+        event: 'api_request',
+        actor: { id: USER_ID, email: 'admin@project.local' },
+        sessionId: 'session-1',
+        metadata: {
+          details: {
+            kind: 'auth_session',
+            state: 'authenticated',
+            reason: null,
+            permissionCount: 2,
+          },
+        },
+      });
+      expect(JSON.stringify(record)).not.toContain('role');
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('keeps verified actor context when the session permission lookup fails', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+        const path = new URL(request.url).pathname;
+        if (path === '/internal/auth/session') return sessionResponse();
+        if (path === '/internal/access/permissions/lookup') {
+          return Response.json(
+            { error: 'access unavailable' },
+            { status: 503 },
+          );
+        }
+        return Response.json({ data: [] });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/auth/session', {
+          headers: {
+            cookie: 'project_session=session-value',
+            'x-request-id': 'session-request-503',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(503);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const record = writeAccess.mock.calls[0]?.[0];
+      expect(record).toMatchObject({
+        actor: { id: USER_ID, email: 'admin@project.local' },
+        sessionId: 'session-1',
+        requestId: 'session-request-503',
+        failureReason: 'permission_lookup_failed',
+        metadata: { details: null },
+      });
+    } finally {
+      writeAccess.mockRestore();
       globalThis.fetch = originalFetch;
     }
   });

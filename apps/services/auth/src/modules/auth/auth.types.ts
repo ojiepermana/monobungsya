@@ -15,7 +15,6 @@ export type SessionObservationReason =
 export interface SessionObservation {
   state: SessionObservationState;
   reason: SessionObservationReason | null;
-  permissionCount: number;
 }
 
 export interface AuthUser {

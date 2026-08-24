@@ -48,6 +48,12 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
+      command: 'ACCESS_SERVICE_PORT=3104 bun apps/services/access/src/main.ts',
+      url: 'http://localhost:3104/health',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+    {
       command: 'PORT=3000 bun apps/gateway/erp/src/main.ts',
       url: 'http://localhost:3000/health',
       reuseExistingServer: true,

@@ -46,10 +46,27 @@ const [adminUser] = await db`
 `;
 
 await db`
+  INSERT INTO "access"."permission" (
+    name, code, namespace, resource, action, scope, description
+  )
+  VALUES
+    ('user:user:manage', 'USER_USER_MANAGE', 'user', 'user', 'manage', NULL, 'Manage users'),
+    ('logs:log:read', 'LOGS_LOG_READ', 'logs', 'log', 'read', NULL, 'Read logs')
+  ON CONFLICT (code) DO UPDATE
+  SET name = EXCLUDED.name,
+      namespace = EXCLUDED.namespace,
+      resource = EXCLUDED.resource,
+      action = EXCLUDED.action,
+      scope = EXCLUDED.scope,
+      description = EXCLUDED.description,
+      updated_at = now()
+`;
+
+await db`
   INSERT INTO "access"."permission_user" (permission_id, user_id)
   SELECT permission.id, ${adminUser.id}
   FROM "access"."permission" AS permission
-  WHERE permission.name = 'logs:log:read'
+  WHERE permission.name IN ('logs:log:read', 'user:user:manage')
   ON CONFLICT (permission_id, user_id) DO NOTHING
 `;
 
