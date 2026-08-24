@@ -1,6 +1,7 @@
 import type { DatabaseClient } from '#project/database';
 
 export const JOB_PAYLOAD_LIMIT_BYTES = 64 * 1024;
+export const DEFAULT_WORKER_CONCURRENCY = 5;
 export const DEFAULT_MAX_ATTEMPTS = 5;
 export const DEFAULT_LEASE_MS = 60_000;
 
@@ -42,16 +43,29 @@ export interface JobRecord {
   updated_at: string;
 }
 
+export interface JobHandlerContext {
+  job: JobRecord;
+  signal: AbortSignal;
+}
+
+export type JobHandler<TPayload> = (
+  payload: TPayload,
+  context: JobHandlerContext,
+) => Promise<void>;
+
 export interface JobDefinition<TPayload = unknown> {
   type: string;
   version: number;
   sourceService: string;
   targetService: string;
   validate: (payload: unknown) => payload is TPayload;
+  handler: JobHandler<TPayload>;
+  domainIdempotencyKey: (payload: TPayload, job: JobRecord) => string;
   operatorPayloadKeys: readonly string[];
   maxAttempts?: number;
   concurrencyLimit?: number;
   isRetryable?: (error: unknown) => boolean;
+  terminalFailureNotification?: boolean;
 }
 
 export interface EnqueueJobInput {
@@ -77,20 +91,23 @@ export interface JobFailure {
 }
 
 export class JobRegistry {
-  private readonly definitions = new Map<string, JobDefinition>();
+  private readonly definitions = new Map<string, JobDefinition<never>>();
 
   register<TPayload>(definition: JobDefinition<TPayload>): void {
-    validateDefinition(definition);
+    validateDefinition(definition as unknown as JobDefinition<never>);
     const key = definitionKey(definition.type, definition.version);
 
     if (this.definitions.has(key)) {
       throw new Error(`job definition already registered: ${key}`);
     }
 
-    this.definitions.set(key, definition);
+    this.definitions.set(
+      key,
+      definition as unknown as JobDefinition<never>,
+    );
   }
 
-  get(type: string, version: number): JobDefinition | undefined {
+  get(type: string, version: number): JobDefinition<never> | undefined {
     return this.definitions.get(definitionKey(type, version));
   }
 
@@ -98,7 +115,7 @@ export class JobRegistry {
     type: string,
     version: number,
     payload: unknown,
-  ): JobDefinition {
+  ): JobDefinition<never> {
     const definition = this.get(type, version);
     if (!definition) {
       throw new Error(`unknown job type or version: ${type}@${version}`);
@@ -137,44 +154,7 @@ export class DurableJobRuntime {
   ) {}
 
   async enqueue(input: EnqueueJobInput): Promise<JobRecord> {
-    const definition = this.registry.assertPayload(
-      input.type,
-      input.version,
-      input.payload,
-    );
-
-    if (definition.sourceService !== input.sourceService) {
-      throw new Error(
-        `source service does not own ${input.type}@${input.version}`,
-      );
-    }
-    if (definition.targetService !== input.targetService) {
-      throw new Error(
-        `target service does not own ${input.type}@${input.version}`,
-      );
-    }
-
-    const rows = await this.database`
-      SELECT * FROM jobs.enqueue_job(
-        ${input.type},
-        ${input.version},
-        ${JSON.stringify(input.payload)}::jsonb,
-        ${input.sourceService},
-        ${input.targetService},
-        ${input.idempotencyKey},
-        ${input.correlationId ?? null},
-        ${input.actorUserId ?? null},
-        ${input.priority ?? 0},
-        ${input.runAt ?? new Date()},
-        ${input.maxAttempts ?? definition.maxAttempts ?? DEFAULT_MAX_ATTEMPTS},
-        ${input.scheduleCode ?? null},
-        ${input.retryOfJobId ?? null}
-      )
-    `;
-
-    const row = rows[0] as JobRecord | undefined;
-    if (!row) throw new Error('job enqueue returned no row');
-    return row;
+    return enqueueJob(this.database, this.registry, input);
   }
 
   async claim(
@@ -250,6 +230,51 @@ export class DurableJobRuntime {
   }
 }
 
+export async function enqueueJob(
+  database: DatabaseClient,
+  registry: JobRegistry,
+  input: EnqueueJobInput,
+): Promise<JobRecord> {
+  const definition = registry.assertPayload(
+    input.type,
+    input.version,
+    input.payload,
+  );
+
+  if (definition.sourceService !== input.sourceService) {
+    throw new Error(
+      `source service does not own ${input.type}@${input.version}`,
+    );
+  }
+  if (definition.targetService !== input.targetService) {
+    throw new Error(
+      `target service does not own ${input.type}@${input.version}`,
+    );
+  }
+
+  const rows = await database`
+    SELECT * FROM jobs.enqueue_job(
+      ${input.type},
+      ${input.version},
+      ${JSON.stringify(input.payload)}::jsonb,
+      ${input.sourceService},
+      ${input.targetService},
+      ${input.idempotencyKey},
+      ${input.correlationId ?? null},
+      ${input.actorUserId ?? null},
+      ${input.priority ?? 0},
+      ${input.runAt ?? new Date()},
+      ${input.maxAttempts ?? definition.maxAttempts ?? DEFAULT_MAX_ATTEMPTS},
+      ${input.scheduleCode ?? null},
+      ${input.retryOfJobId ?? null}
+    )
+  `;
+
+  const row = rows[0] as JobRecord | undefined;
+  if (!row) throw new Error('job enqueue returned no row');
+  return row;
+}
+
 export function retryDelayMs(
   attemptNumber: number,
   random = Math.random(),
@@ -306,7 +331,7 @@ function walkPayload(value: unknown, path: string): void {
   }
 }
 
-function validateDefinition(definition: JobDefinition): void {
+function validateDefinition(definition: JobDefinition<never>): void {
   if (!/^[a-z][a-z0-9_.-]{1,99}$/.test(definition.type)) {
     throw new Error(`invalid job type: ${definition.type}`);
   }
@@ -323,9 +348,18 @@ function validateDefinition(definition: JobDefinition): void {
   if (
     definition.concurrencyLimit !== undefined &&
     (!Number.isInteger(definition.concurrencyLimit) ||
-      definition.concurrencyLimit < 1)
+      definition.concurrencyLimit < 1 ||
+      definition.concurrencyLimit > DEFAULT_WORKER_CONCURRENCY)
   ) {
-    throw new Error('job concurrency limit must be positive');
+    throw new Error(
+      `job concurrency limit must be between 1 and ${DEFAULT_WORKER_CONCURRENCY}`,
+    );
+  }
+  if (typeof definition.handler !== 'function') {
+    throw new Error('job handler is required');
+  }
+  if (typeof definition.domainIdempotencyKey !== 'function') {
+    throw new Error('job domain idempotency strategy is required');
   }
 }
 

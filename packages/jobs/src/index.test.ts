@@ -41,6 +41,8 @@ describe('durable job runtime primitives', () => {
         typeof payload === 'object' &&
         payload !== null &&
         typeof (payload as { userId?: unknown }).userId === 'string',
+      handler: async () => {},
+      domainIdempotencyKey: (payload) => payload.userId,
       operatorPayloadKeys: ['userId'],
     });
 
@@ -74,6 +76,8 @@ describe('durable job runtime primitives', () => {
         typeof payload === 'object' &&
         payload !== null &&
         typeof (payload as { userId?: unknown }).userId === 'string',
+      handler: async () => {},
+      domainIdempotencyKey: (payload) => payload.userId,
       operatorPayloadKeys: ['userId'],
     });
     const runtime = new DurableJobRuntime(database, registry);
