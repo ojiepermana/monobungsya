@@ -94,8 +94,12 @@ export class AuthService {
       );
     }
 
+    const apiUrl =
+      environment.apiUrl ||
+      (window.location.protocol === 'tauri:' ? 'http://localhost:3000' : '');
+
     window.location.replace(
-      `${environment.apiUrl}/api/v1/auth/verify?token=${encodeURIComponent(token)}`,
+      `${apiUrl}/api/v1/auth/verify?token=${encodeURIComponent(token)}`,
     );
 
     return new Observable<VerifyMagicLinkResponse>();

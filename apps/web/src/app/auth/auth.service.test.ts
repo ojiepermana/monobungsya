@@ -41,6 +41,36 @@ describe('AuthService session state', () => {
     subscription.unsubscribe();
   });
 
+  it('covers spec 0009 AC-12: uses relative navigation for the normal browser runtime', () => {
+    const replace = vi.fn();
+    vi.stubGlobal('window', {
+      location: { protocol: 'http:', replace },
+    });
+    const service = new AuthService();
+
+    service.verifyMagicLink('token with spaces').subscribe();
+
+    expect(replace).toHaveBeenCalledWith(
+      '/api/v1/auth/verify?token=token%20with%20spaces',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('covers spec 0009 AC-12: uses the local gateway when the app runs in Tauri', () => {
+    const replace = vi.fn();
+    vi.stubGlobal('window', {
+      location: { protocol: 'tauri:', replace },
+    });
+    const service = new AuthService();
+
+    service.verifyMagicLink('token with spaces').subscribe();
+
+    expect(replace).toHaveBeenCalledWith(
+      'http://localhost:3000/api/v1/auth/verify?token=token%20with%20spaces',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('maps an authenticated session and exposes the user state', async () => {
     fetchMock.mockResolvedValue(Response.json(authenticatedResponse));
     const service = new AuthService();

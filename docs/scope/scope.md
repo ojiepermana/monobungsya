@@ -207,7 +207,7 @@ Add a 6 digit authenticator app code (TOTP) as a second login step after magic l
   - [x] Enforcement and self service: forced enrollment, disable and regenerate with proof, plus the admin surface with audit and session revocation (AC-6, AC-7, AC-8, AC-9, AC-10)
   - [x] Hardening and lifecycle: rate limits, cleanup worker, log redaction, OpenAPI and SDK regeneration, tests (AC-3, AC-5, AC-11, AC-13, AC-14)
 - [ ] Verify it: `/check verify TOTP two factor authentication`
-- [ ] Test it: `/test TOTP two factor authentication`
+- [x] Test it: `/test TOTP two factor authentication`
 
 Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/services/auth`, `apps/services/user`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
 
