@@ -5,11 +5,11 @@ _Steps derive from spec 0009 acceptance criteria. `/check verify` runs these; `/
 ## UI and infrastructure
 
 - [x] Enroll from security settings, scan the locally rendered QR, confirm one code, and record the one time recovery codes without any secret appearing after reload → AC-2, AC-3, AC-10, AC-13
-- [ ] Complete magic link and passkey first factors for a protected user, then confirm no session exists until a valid TOTP or unused recovery code consumes the challenge → AC-1, AC-4, AC-11
+- [x] Complete magic link and passkey first factors for a protected user, then confirm no session exists until a valid TOTP or unused recovery code consumes the challenge → AC-1, AC-4, AC-11
 - [x] Exercise replay, five failed attempts, expiry, tampering, concurrent verification, and IP rate limiting and confirm none creates more than one session → AC-5, AC-11
 - [x] Disable and regenerate recovery codes with proof, then confirm audit entries and old code invalidation → AC-4, AC-6, AC-7, AC-13
 - [x] Require and reset 2FA from the user detail page with `user:user:manage`, then confirm mandatory reasons, session revocation, and secret free operator output → AC-8, AC-9, AC-10, AC-13
-- [ ] Run the Tauri shell through magic link and code entry and confirm passkey remains absent while users without 2FA see no login change → AC-12
+- [x] Run the Tauri shell through magic link and code entry and confirm passkey remains absent while users without 2FA see no login change → AC-12
 
 ## Commands
 
@@ -20,4 +20,4 @@ _Steps derive from spec 0009 acceptance criteria. `/check verify` runs these; `/
 
 ## Acceptance criteria coverage
 
-AC-1 through AC-14 are covered by the real authenticator flows, admin and self service behavior, Tauri check, database inspection, and automated command gates. Tauri, authenticator app, and live database checks remain manual until driven.
+AC-1 through AC-14 are covered by the real authenticator flows, admin and self service behavior, Tauri check, database inspection, and automated command gates. The authenticator app and Tauri checks were completed manually on 2026-08-24.

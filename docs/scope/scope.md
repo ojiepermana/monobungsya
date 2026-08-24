@@ -19,7 +19,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 6   | Log subsystem                       | Foundation | in-progress |
 | 7   | User lifecycle management           | Domain     | done        |
 | 8   | Permission access control           | Foundation | in-progress |
-| 9   | TOTP two factor authentication      | Foundation | in-progress |
+| 9   | TOTP two factor authentication      | Foundation | done        |
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | in-progress |
 
@@ -195,7 +195,7 @@ Permission first access control without roles: a new access service owns a permi
 
 Spec [0008](../specs/0008-permission-acl/index.md) · code in `apps/services/access`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/logs`, `apps/web`, `packages/acl`, `packages/contracts`, and `packages/database`
 
-### 9. TOTP two factor authentication · in-progress
+### 9. TOTP two factor authentication · done
 
 Add a 6 digit authenticator app code (TOTP) as a second login step after magic link or passkey, optional per user and enforceable by admins. Secrets are stored encrypted, recovery codes plus admin reset cover device loss, and the challenge, rate limit, cookie, and cleanup patterns already in the auth service are reused.
 **Done when:** A user can enroll from the settings page, must enter a valid code after either first factor before any session exists, can recover with a single use recovery code, and an admin can require or reset a user's 2FA with a mandatory reason, audit trail, and full session revocation on reset.
@@ -206,7 +206,7 @@ Add a 6 digit authenticator app code (TOTP) as a second login step after magic l
   - [x] Login challenge thread across magic link and passkey: verify endpoint, replay guard, attempt caps, recovery codes (AC-1, AC-4, AC-5, AC-11, AC-12)
   - [x] Enforcement and self service: forced enrollment, disable and regenerate with proof, plus the admin surface with audit and session revocation (AC-6, AC-7, AC-8, AC-9, AC-10)
   - [x] Hardening and lifecycle: rate limits, cleanup worker, log redaction, OpenAPI and SDK regeneration, tests (AC-3, AC-5, AC-11, AC-13, AC-14)
-- [ ] Verify it: `/check verify TOTP two factor authentication`
+- [x] Verify it: `/check verify TOTP two factor authentication`
 - [x] Test it: `/test TOTP two factor authentication`
 
 Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/services/auth`, `apps/services/user`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`

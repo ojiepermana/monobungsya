@@ -1,7 +1,7 @@
 # 0009. Add TOTP two factor authentication
 
 **Date**: 2026-08-23
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
