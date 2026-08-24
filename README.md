@@ -1,6 +1,6 @@
 # Monobungsia
 
-Monobungsia adalah scaffold monorepo enterprise berbasis Bun. Satu repository berisi Angular web client, Tauri desktop shell, API Gateway berbasis Elysia, service domain, dan MCP server yang dapat dikembangkan serta dibuat image Docker secara independen.
+Monobungsia adalah monorepo enterprise berbasis Bun. Satu repository berisi Angular web client, Tauri desktop shell, API Gateway berbasis Elysia, service domain, durable jobs runtime, dan MCP server yang dikembangkan serta diverifikasi dari root workspace.
 
 ## Arsitektur
 
@@ -11,6 +11,9 @@ flowchart LR
   gateway[API Gateway\nElysia + OpenAPI]
   auth[Auth service]
   user[User service]
+  access[Access service]
+  logs[Logs service]
+  jobs[Jobs service]
   postgres[(PostgreSQL)]
   nats[(NATS)]
 
@@ -18,8 +21,14 @@ flowchart LR
   desktop -->|Angular frontend| gateway
   gateway --> auth
   gateway --> user
+  gateway --> access
+  gateway --> logs
+  gateway --> jobs
   auth --> postgres
   user --> postgres
+  access --> postgres
+  logs --> postgres
+  jobs --> postgres
   auth --> nats
   user --> nats
 ```
@@ -34,9 +43,9 @@ API Gateway adalah public entry point. Web client tidak memanggil service domain
 
 `apps/gateway/erp` berisi routing public, CORS, request ID, OpenAPI public, dan forwarding ke service internal. Gateway tidak memiliki business logic domain.
 
-`apps/services/*` berisi auth dan user. Setiap service memiliki composition root, config typed, plugin lokal, module domain, repository domain, database boundary, jobs, test, dan Dockerfile.
+`apps/services/*` berisi auth, user, access, logs, dan jobs. Setiap service memiliki composition root, config typed, plugin lokal, module domain, repository domain, database boundary, serta test sesuai tanggung jawabnya. Notification service masih berada dalam scope spec 0012 dan belum tersedia.
 
-`packages/contracts` berisi HTTP artifacts OpenAPI dan event contracts. `packages/angular-sdk` berisi generated client dari kontrak gateway untuk consumer eksternal. `packages/database` hanya berisi Bun SQL native untuk PostgreSQL. `packages/messaging` hanya berisi abstraction NATS. `packages/config`, `packages/logger`, dan `packages/errors` berisi infrastructure lintas service yang benar benar reusable.
+`packages/contracts` berisi HTTP artifacts OpenAPI dan event contracts. `packages/angular-sdk` berisi generated client dari kontrak gateway untuk consumer eksternal. `packages/database` hanya berisi Bun SQL native untuk PostgreSQL. `packages/jobs` berisi registry contract, durable queue runtime, worker, dan scheduler PostgreSQL. `packages/messaging` hanya berisi abstraction NATS. `packages/acl`, `packages/config`, `packages/logger`, `packages/elysia`, dan `packages/errors` berisi infrastructure lintas service yang benar benar reusable.
 
 Root `package.json` adalah sumber dependency versioning, import map `#project/*`, dan scripts untuk seluruh app. Bun membuat satu physical `node_modules` di root. Tidak ada `package.json` atau `node_modules` di bawah `apps` dan `packages`; semua source dijalankan langsung dari root.
 
@@ -64,6 +73,9 @@ Route tidak memanggil repository langsung. Repository tidak mengetahui HTTP. Tra
 | api gateway | 3000 | `/api/v1/*`   |
 | auth        | 3101 | internal only |
 | user        | 3102 | internal only |
+| logs        | 3103 | internal only |
+| access      | 3104 | internal only |
+| jobs        | 3105 | internal only |
 
 Setiap app memiliki `GET /health`. Service module smoke endpoint berada pada `/internal/<module>/status` dan hanya menjadi contoh boundary awal.
 
@@ -77,7 +89,11 @@ cp .env.example .env
 bun run doctor
 bun run dev:web
 bun run dev:gateway
+bun run dev:auth
 bun run dev:user
+bun run dev:logs
+bun run dev:access
+bun run dev:jobs
 ```
 
 `bun run doctor` memeriksa versi Bun, dependency, entrypoint dan port seluruh dev stack. Jika `ENABLE_INFRASTRUCTURE=true`, doctor juga memeriksa konfigurasi serta konektivitas PostgreSQL, schema hasil migrasi, NATS, dan SMTP.
@@ -102,6 +118,8 @@ bun run build:tauri
 bun run openapi:generate
 bun run openapi:validate
 bun run check:dependencies
+bun run progress:generate
+bun run progress:check
 bun run db:migrate
 bun run db:seed
 bun run db:reset --confirm --seed
@@ -135,6 +153,7 @@ PostgreSQL 18 menjadi prasyarat. Semua primary key application table memakai `uu
 | access    | `access`    |
 | user      | `user`      |
 | logs      | `logs`      |
+| jobs      | `jobs`      |
 
 Gunakan `DATABASE_MIGRATION_URL` untuk role migration. `DATABASE_RESET_ALLOWED=true` hanya boleh dipakai pada development atau test.
 
@@ -158,7 +177,7 @@ Semua query baru harus menggunakan parameter binding. Filtering dan sorting haru
 
 `packages/logger` menulis JSON structured log dengan timestamp, level, service, request ID, dan correlation ID jika tersedia.
 
-`main.ts` hanya memuat config, membuat app, memulai HTTP server, dan menangani graceful shutdown. Service menutup HTTP server, NATS connection, database connection, dan worker lifecycle yang kelak ditambahkan.
+`main.ts` hanya memuat config, membuat app, memulai HTTP server, dan menangani graceful shutdown. Service menutup HTTP server, NATS connection, database connection, dan worker lifecycle yang dimilikinya.
 
 ## Menambah service baru
 
@@ -178,7 +197,9 @@ Jangan memindahkan domain code ke `packages` hanya karena terlihat dapat dipakai
 
 ## Docker
 
-Setiap deployable app memiliki satu Dockerfile canonical di `infra/docker`. Build dijalankan dari root agar workspace dependency dapat dipasang:
+Docker hanya digunakan untuk menguji Dockerfile dan image yang dibangun. Development runtime memakai command lokal di atas, bukan Docker atau Docker Compose.
+
+Dockerfile canonical yang tersedia berada di `infra/docker`. Build dijalankan dari root agar workspace dependency dapat dipasang:
 
 Gateway dan service backend dibundle dengan `bun build --minify` pada tahap build. Image final hanya memuat `main.js` hasil build dan Bun slim, lalu menjalankan artifact tersebut sebagai user non root.
 
@@ -188,15 +209,7 @@ docker build -f infra/docker/services/auth/Dockerfile .
 docker build -f infra/docker/services/user/Dockerfile .
 ```
 
-The gateway listens on 3000, while auth and user listen on 3101 and 3102. PostgreSQL, NATS, SMTP, and database migration remain outside application images.
-
-Untuk menjalankan seluruh stack secara lokal, gunakan Docker Compose dari root repository:
-
-```bash
-docker compose -f infra/docker/docker-compose.yml up --build
-```
-
-Buka Mailpit di `http://localhost:8025`. Compose menjalankan PostgreSQL, NATS, Mailpit, migration database, gateway, dan dua service domain. Untuk menghentikan stack serta menghapus volume database lokal, gunakan `docker compose -f infra/docker/docker-compose.yml down -v`.
+Gateway memakai port 3000, auth 3101, user 3102, dan logs 3103. PostgreSQL, NATS, SMTP, dan database migration tetap berada di luar application image. Access dan jobs sudah menjadi deployable service, tetapi Dockerfile serta CI image untuk keduanya masih menjadi deployment gap yang dipantau di dashboard progres.
 
 ## Aturan dependency antar service
 
@@ -208,6 +221,8 @@ Aturan ini membuat `apps/services/user` dapat dipindahkan ke repository sendiri 
 
 Saat ownership atau deployment benar benar membutuhkan pemisahan, pindahkan satu folder service bersama `tsconfig.json`, source, test, migrations, seeds, jobs, dan Dockerfile. Buat root `package.json` baru untuk service tersebut, lalu pertahankan dependency pada package contracts, database, messaging, config, logger, dan errors. Jangan membawa source service lain. Public contract tetap berasal dari API Gateway dan package contracts.
 
-## Status scaffold
+## Status implementasi
 
-Scaffold awal ini tidak mengimplementasikan login, user CRUD, authorization policy, migration bisnis, atau event handler produksi. Endpoint status hanya membuktikan composition root, health, OpenAPI, dan boundary dasar. Keputusan auth, tenant isolation, dan domain model perlu dibuat sebelum fitur bisnis pertama dibangun.
+Repository sudah mengimplementasikan magic link dan server side session, callback UI web dan Tauri, passkey, TOTP, user lifecycle, permission first ACL, partitioned logs, generated Angular SDK, MCP server scaffold, dan durable jobs runtime beserta operator API. Notification schema, notification service, email delivery jobs, preference API, notification UI, serta jobs operator UI masih menjadi pekerjaan aktif dalam spec 0012.
+
+Status scope, spec, verifikasi, bukti kode, deployment gap, dan item Deferred dirangkum pada `docs/progress.md`. Jalankan `bun run progress:generate` setelah mengubah sumber status dan `bun run progress:check` sebelum membuat PR.

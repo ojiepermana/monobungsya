@@ -7,6 +7,8 @@
 
 Auth service memakai magic link email untuk login dan session server side yang disimpan di PostgreSQL. Browser menerima cookie HttpOnly secure, sedangkan gateway meneruskan identity yang sudah diverifikasi melalui header HMAC ke service internal. Fase pertama adalah single organization dengan role global, tanpa password, MFA, SSO, atau tenant membership.
 
+> **Superseded authorization note, 2026-08-24:** role projection and role based authorization in AC-5, AC-8, the identity model, and the original build plan were replaced by the permission first model in [spec 0008](../0008-permission-acl/index.md). Magic link, session lifetime, cookie, HMAC identity integrity, and rate limit decisions in this spec remain active. Current session responses and signed identities carry effective permissions and no role.
+
 ## Context
 
 Monorepo sudah memiliki auth service, schema `auth`, tabel user, login token, session, dan rate limit, tetapi belum memiliki alur login yang dapat digunakan. Migration awal menyimpan bentuk token dan session yang belum cukup untuk hash token, expiry idle, expiry absolute, atau revoke session.

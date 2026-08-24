@@ -151,7 +151,7 @@ Ordered as Tracer Bullet slices: a thin end to end thread first (register once, 
 5. [x] Thicken the web surface: the passkey management list with rename and delete, and the one time dismissible prompt after magic link login with localStorage persistence, satisfies **AC-5**, **AC-6**.
 6. [x] Hardening: the 5 passkey cap and duplicate credential rejection, `passkey_ip` rate limiting, suspension checks, counter regression rejection with warning logs, and structured logs for register, delete, and login, satisfies **AC-2**, **AC-8**, **AC-9**.
 7. [x] Extend the daily cleanup worker for expired or used challenges, add unit and integration tests for every critical scenario, and document the two optional env vars in `.env.example`, satisfies **AC-7**, **AC-10**.
-8. [ ] Recompose `/setting/passkeys` onto `Page`, `PageHeader`, `PageContent`, and `PageFooter`; bind live layout appearance; move all current states and controls into their assigned slots; remove the local `<main>` and outer scroll frame; add `passkeys.page.test.ts` for the composition and preserved interactions; then run `bun run lint`, `bun run typecheck`, and `bun run test:web`, satisfies **AC-11**.
+8. [x] Recompose `/setting/passkeys` onto `Page`, `PageHeader`, `PageContent`, and `PageFooter`; bind live layout appearance; move all current states and controls into their assigned slots; remove the local `<main>` and outer scroll frame; add `passkeys.page.test.ts` for the composition and preserved interactions; then run `bun run lint`, `bun run typecheck`, and `bun run test:web`, satisfies **AC-11**.
 
 ## Consequences
 

@@ -1,7 +1,7 @@
 # 0005. MCP server scaffold for ERP tool access
 
 **Date**: 2026-08-20
-**Status**: Proposed
+**Status**: Accepted
 
 ## Summary
 

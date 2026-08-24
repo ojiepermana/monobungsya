@@ -1,4 +1,4 @@
-# 0001. Log subsystem: partitioned database logs, API module, and Angular viewer
+# 0011. Log subsystem: partitioned database logs, API module, and Angular viewer
 
 **Date**: 2026-08-23
 **Status**: In Progress

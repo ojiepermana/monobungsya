@@ -1,6 +1,8 @@
-# Verify: Log subsystem · spec logs/0001 · updated 2026-08-23
+# Verify: Log subsystem · spec logs/0001 · updated 2026-08-24
 
 _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
+
+Automated evidence was reconciled on 2026-08-24 against the logger, gateway, and logs-service suites. Browser, process-shutdown, cross-process queue, and E2E observations remain open until they are run directly.
 
 ## UI / manual
 
@@ -22,20 +24,20 @@ _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs the
 - [x] `bun test packages/logger/src` → jakartaYear('2025-12-31T16:59:59.999Z') = 2025, jakartaYear('2025-12-31T17:00:00.000Z') = 2026, jakartaYearBoundaryUtc(2026) = '2025-12-31 17:00:00'; only SQLSTATE 23514 plus a "no partition" message counts as a missing partition; a failed writeLog logs to console and never throws; a failed writeAudit throws → AC-1, AC-2, AC-3
 - [x] `bun test apps/services/logs/src` → search input "login' OR 1=1 --" never appears in SQL text (parameter bound, `%`/`_` escaped); 26 rows with page=2 yields meta { page: 2, perPage: 25, total: 26, totalPages: 2 }; snake_case maps to camelCase with jsonb parsed; distinct options per filter column; 401 unsigned, 403 without `logs:log:read`, and 200 with `logs:log:read` → AC-4, AC-5, AC-6
 - [x] `bun test apps/gateway/erp/src` → `/api/v1/logs/*` without a session returns 401; with a valid session the gateway forwards to the logs service with a verifiable signed identity and intact query params → AC-4, AC-5
-- [ ] `bun test packages/logger/src` → `Logger` writes the same sanitized event to console and `logs.logging`, maps `warn` to `warning`, extracts an `Error`, and never throws when the best effort database write fails → AC-1, AC-13, AC-14
-- [ ] `bun test apps/gateway/erp/src` → each non OPTIONS `/api/v1` response produces one access row with the final status; 401 and 403 receive their security event names; internal service calls and health routes produce none → AC-10, AC-12, AC-14
+- [x] `bun test packages/logger/src` → `Logger` writes the same sanitized event to console and `logs.logging`, maps `warn` to `warning`, extracts an `Error`, and never throws when the best effort database write fails → AC-1, AC-13, AC-14
+- [x] `bun test apps/gateway/erp/src` → each non OPTIONS `/api/v1` response produces one access row with the final status; 401 and 403 receive their security event names; internal service calls and health routes produce none → AC-10, AC-12, AC-14
 - [ ] `bun test apps/services/auth/src` → magic link and passkey success or failure plus logout produce correlated access events without storing tokens or credential responses → AC-12, AC-14
-- [ ] `bun test apps/services/logs/src` → access mapping and search include route name, path, method, status, request id, actor email, outcome, and failure reason; the read service does not claim to drain another process queue → AC-8, AC-15
+- [x] `bun test apps/services/logs/src` → access mapping and search include route name, path, method, status, request id, actor email, outcome, and failure reason; the read service does not claim to drain another process queue → AC-8, AC-15
 - [ ] `bun run test:web` → the access pages render the extended fields, and the `/users` page still issues one initial users request → AC-11, AC-15
 * [ ] `bun test apps/services/auth/src` → session inspection distinguishes missing cookie, unknown session, revoked, absolute expiry, idle expiry, missing user, deleted user, blocked user, and suspended user with the specified precedence; every non active public result remains `{ authenticated: false }` → AC-16, AC-20
 * [ ] `bun test apps/services/auth/src` → the internal session observation contains only state and reason; it contains no role, permission list, or permission count → AC-16
 * [ ] `bun test apps/services/auth/src` → session state classification and sliding expiry refresh use one database decision at database `now()`; a session crossing expiry is never refreshed after being classified invalid → AC-16
-* [ ] `bun test apps/gateway/erp/src` → the public session handler stores only metadata version 1 fields, enriches actor and session only when verified, strips the internal observation, and falls back safely for invalid client correlation or route headers → AC-16, AC-18, AC-20
-* [ ] `bun test apps/gateway/erp/src` → an authenticated public session uses one access lookup result for both `user.permissions` and `sessionSummary.permissionCount`; normalized duplicate names collapse before counting and a manage permission counts as one name → AC-16
-* [ ] `bun test apps/gateway/erp/src` → when auth verifies a session but the access lookup fails, the public request returns 503 and the access row keeps verified actor and session, records `permission_lookup_failed`, and leaves session details null rather than storing count 0 → AC-5, AC-16
-* [ ] `bun test apps/gateway/erp/src` → CORS permits `x-correlation-id` and `x-client-route`, and their preflight OPTIONS request produces no access row → AC-17
+* [x] `bun test apps/gateway/erp/src` → the public session handler stores only metadata version 1 fields, enriches actor and session only when verified, strips the internal observation, and falls back safely for invalid client correlation or route headers → AC-16, AC-18, AC-20
+* [x] `bun test apps/gateway/erp/src` → an authenticated public session uses one access lookup result for both `user.permissions` and `sessionSummary.permissionCount`; normalized duplicate names collapse before counting and a manage permission counts as one name → AC-16
+* [x] `bun test apps/gateway/erp/src` → when auth verifies a session but the access lookup fails, the public request returns 503 and the access row keeps verified actor and session, records `permission_lookup_failed`, and leaves session details null rather than storing count 0 → AC-5, AC-16
+* [x] `bun test apps/gateway/erp/src` → CORS permits `x-correlation-id` and `x-client-route`, and their preflight OPTIONS request produces no access row → AC-17
 * [ ] `bun test apps/gateway/erp/src` → anonymous and invalid session results remain HTTP 200 access successes with their state in details, while malformed or unavailable auth responses have null details and the mapped failure → AC-16, AC-20
-* [ ] `bun test apps/services/logs/src` → version 1 metadata maps to trace, client route, and session summary; old, malformed, unknown version, and unknown detail metadata map to null; exact trace filtering is parameter bound → AC-19, AC-20
+* [x] `bun test apps/services/logs/src` → version 1 metadata maps to trace, client route, and session summary; old, malformed, unknown version, and unknown detail metadata map to null; exact trace filtering is parameter bound → AC-19, AC-20
 * [ ] `bun run test:web` → one router navigation UUID is sent to the gateway origin for the guard and first page request, a later navigation gets another UUID, foreign origins receive no client context headers, and the access viewer can narrow to one trace → AC-17, AC-18, AC-19
 * [ ] Run the `/users` E2E flow → the public session row and users row have different request ids, one shared trace id, client route `/users`, and exactly one row each → AC-17, AC-19
 - [ ] Start a writer, enqueue application and access rows, send SIGTERM, and verify its local queue drains before the log database client closes or the configured timeout reports a warning → AC-8
@@ -47,16 +49,16 @@ _Steps derived from spec logs/0001 acceptance criteria. `/check verify` runs the
 - [x] Write a log at a UTC time between 17:00 and 23:59 on December 31: the row lands in the NEXT year's partition (Jakarta year, UTC+7), not the UTC year's → AC-3
 - [x] Audit write without `currencyCode` → stored `currency_code` is 'IDR'; writeLog without channel/category → both stored as 'application'
 - [x] Correlation columns (request_id, trace_id, session_id, ip_address, user_agent) stay NULL unless the caller supplies them; the logging layer never fills them
-- [ ] Gateway access without a client request id uses the value from `requestIdPlugin`; trace id uses `x-correlation-id` or falls back to that request id → AC-10
-- [ ] Gateway access stores only `URL.pathname`, keeps raw `x-forwarded-for` separate from the direct Bun connection IP, and never stores query values, cookies, or authorization → AC-10, AC-14
+- [x] Gateway access without a client request id uses the value from `requestIdPlugin`; trace id uses `x-correlation-id` or falls back to that request id → AC-10
+- [x] Gateway access stores only `URL.pathname`, keeps raw `x-forwarded-for` separate from the direct Bun connection IP, and never stores query values, cookies, or authorization → AC-10, AC-14
 - [ ] A public or failed auth request has null actor fields; a verified session supplies actor id, email, and session id → AC-10, AC-12
-- [ ] Status 200 and 302 map to `success`; status 400, 401, 403, and 500 map to `failure`; 401 maps to `authentication_required` and 403 to `permission_denied` → AC-10, AC-12
+- [x] Status 200 and 302 map to `success`; status 400, 401, 403, and 500 map to `failure`; 401 maps to `authentication_required` and 403 to `permission_denied` → AC-10, AC-12
 - [x] `page=abc`, `page=0`, and `page=-3` all return page 1
 - [x] `/api/v1/auth/session` for a user granted `logs:log:read` carries that canonical permission; a user with no grants carries `permissions: []` and no response contains a role → AC-5
-* [ ] Session access metadata stores only `schemaVersion`, duration, required permission, correlation source, client route, detail kind, state, reason, and permission count; role and extra internal result fields are absent → AC-16, AC-20
-* [ ] `x-correlation-id=trace-456` is accepted, a value over 100 characters or with unsafe characters falls back to request id, and a missing value also falls back to request id → AC-18
-* [ ] `x-client-route=/users?search=email#section` stores `/users`, while an invalid URL or value over 255 characters stores null → AC-18
-* [ ] An authenticated session summary gets permission count from the same gateway access lookup used for the public permission array, not from auth or a client header; unauthenticated rows keep actor and session null → AC-16, AC-18
+* [x] Session access metadata stores only `schemaVersion`, duration, required permission, correlation source, client route, detail kind, state, reason, and permission count; role and extra internal result fields are absent → AC-16, AC-20
+* [x] `x-correlation-id=trace-456` is accepted, a value over 100 characters or with unsafe characters falls back to request id, and a missing value also falls back to request id → AC-18
+* [x] `x-client-route=/users?search=email#section` stores `/users`, while an invalid URL or value over 255 characters stores null → AC-18
+* [x] An authenticated session summary gets permission count from the same gateway access lookup used for the public permission array, not from auth or a client header; unauthenticated rows keep actor and session null → AC-16, AC-18
 
 ## Acceptance-criteria coverage
 

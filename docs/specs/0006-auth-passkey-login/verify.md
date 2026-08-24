@@ -8,7 +8,7 @@ Run the stack first: `bun run dev` (web on 4200, gateway on 3000, auth on 3101).
 
 **2026-08-22 · PASS.** 36 of the 37 steps below ran and passed against the live stack (web on 4200, gateway on 3000, auth on 3101, with PostgreSQL and NATS up). Every criterion AC-1 to AC-10 is met, and all seven passkey endpoints exist in the auth service, the public gateway spec, and the generated SDK. The live `auth` schema carries `passkey_credentials`, `webauthn_challenges`, and the `passkey_ip` rate limit key, so migration 0009 is applied, not just committed.
 
-**2026-08-23 · SPEC UPDATE.** AC-11 adds the passkey settings page recomposition. The earlier run record remains valid for AC-1 to AC-10. The new layout steps stay open until the recomposition is built and verified.
+**2026-08-24 · AUTOMATED RECOMPOSITION CHECK PASS.** AC-11 implementation is present and `passkeys.page.test.ts`, the full web suite, lint, and typecheck pass. The earlier run record remains valid for AC-1 to AC-10. The six browser composition checks below stay open until the authenticated page is driven again.
 
 Ceremonies were driven with the software authenticator in `apps/services/auth/src/tests/passkey.authenticator.ts` over real HTTP through the gateway, so registration, sign in, counter handling, challenge safety, rate limits, and cleanup were exercised in the running app. The two platform dialog ceremonies were then driven for real in Chrome for Testing with a CDP virtual authenticator, so the only step still open is the Tauri shell, which carries a note saying what covered it instead and what running it properly would take.
 
@@ -49,8 +49,8 @@ Ceremonies were driven with the software authenticator in `apps/services/auth/sr
 - [x] `bun test apps/services/auth` → 30 pass, 0 fail → AC-2, AC-3, AC-4, AC-6, AC-7, AC-8, AC-9, AC-10
 - [x] `bun run test:web` → 15 pass, 0 fail → AC-1, AC-5
 - [x] `bun run typecheck` and `bun run openapi:generate && bun run openapi:validate` → clean, and no diff appears in `apps/*/openapi.yaml`, `packages/contracts/openapi`, or `packages/angular-sdk/src/generated` → AC-2, AC-3, AC-6
-- [ ] `bun run test:web` → `passkeys.page.test.ts` proves the Page slot contract and preserved register, rename, and delete interactions → AC-11
-- [ ] `bun run lint` and `bun run typecheck` → clean after the page recomposition → AC-11
+- [x] `bun run test:web` → `passkeys.page.test.ts` proves the Page slot contract and preserved register, rename, and delete interactions → AC-11
+- [x] `bun run lint` and `bun run typecheck` → clean after the page recomposition → AC-11
 
 ### One step per Value sourcing row
 

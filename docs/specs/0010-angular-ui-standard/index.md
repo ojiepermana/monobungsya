@@ -1,4 +1,4 @@
-# 0001. Adopt the Angular UI package and CSS standard
+# 0010. Adopt the Angular UI package and CSS standard
 
 **Date**: 2026-08-21
 **Status**: In Progress

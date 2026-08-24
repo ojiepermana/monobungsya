@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
   release:
     types: [published]
@@ -48,6 +47,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Test workflow progress tooling
+        run: bun run test:progress
+
+      - name: Check workflow drift
+        run: bun run progress:check
 
       - name: Provision ephemeral database roles
         run: |

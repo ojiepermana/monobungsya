@@ -9,13 +9,15 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 
 | #   | Feature                             | Phase      | Status      |
 | --- | ----------------------------------- | ---------- | ----------- |
+| A   | Enterprise monorepo foundation      | Foundation | existing    |
+| B   | Central multischema database tooling | Foundation | existing    |
 | 1   | Auth magic link and session         | Foundation | in-progress |
 | 2   | Auth login and callback UI          | Foundation | in-progress |
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
-| 4   | MCP server for ERP tool access      | Foundation | in-progress |
+| 4   | MCP server for ERP tool access      | Foundation | done        |
 | 5   | Auth passkey login                  | Foundation | in-progress |
 | 6   | Log subsystem                       | Foundation | in-progress |
-| 7   | User lifecycle management           | Domain     | in-progress |
+| 7   | User lifecycle management           | Domain     | done        |
 | 8   | Permission access control           | Foundation | in-progress |
 | 9   | TOTP two factor authentication      | Foundation | in-progress |
 | 10  | Generated gateway SDK integration   | Foundation | in-progress |
@@ -23,17 +25,31 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 
 ## Foundations
 
+### A. Enterprise monorepo foundation · existing
+
+The Bun monorepo, Angular and Tauri clients, Elysia gateway, service boundaries, shared packages, and CI predate the current feature workflow.
+**Done when:** The repository installs, checks, tests, and builds from the root while preserving explicit service boundaries.
+
+Spec [0001](../specs/0001-enterprise-monorepo-foundation/index.md) · code in `./`
+
+### B. Central multischema database tooling · existing
+
+The canonical Bun SQL runner owns ordered migrations, seeds, reset safety, checksums, PostgreSQL schemas, and runtime grants.
+**Done when:** Database changes are repeatable, drift protected, service scoped, and safe to run through the root commands.
+
+Spec [0002](../specs/0002-central-multischema-database-tooling/index.md) · code in `packages/database`
+
 ### 1. Auth magic link and session · in-progress
 
-Implement passwordless login, server side sessions, role authorization, and signed identity forwarding for the single organization phase.
-**Done when:** Registered users can request and consume a one time magic link, use a bounded session, logout, and access only the routes allowed by their global role.
+Implement passwordless login, server side sessions, permission authorization, and signed identity forwarding for the single organization phase.
+**Done when:** Registered users can request and consume a one time magic link, use a bounded session, logout, and access only routes allowed by their effective permissions.
 
 - [x] Design it (spec): `/architect auth magic link and session`
 - [x] Build it: `/develop auth magic link and session`
   - [x] Auth migration and atomic token or session operations (AC-2, AC-4, AC-6)
   - [x] SMTP magic link service and public auth routes (AC-1, AC-2, AC-3, AC-5, AC-9)
   - [x] Gateway HMAC identity forwarding and service identity guards (AC-7)
-  - [x] Role authorization policy for admin, operational, and read only routes (AC-8)
+  - [x] Permission authorization policy superseding the original role policy through spec 0008 (AC-8)
   - [x] Cleanup worker, redacted logging, tests, and deployment configuration (AC-9, AC-10)
 - [ ] Verify it: `/check verify auth magic link and session`
 - [x] Test it: `/test auth magic link and session`
@@ -47,9 +63,12 @@ client, with the same auth flow available from the Tauri desktop shell.
 **Done when:** Browser and desktop users can request a link, consume a valid
 session callback, and receive deterministic error states.
 
-- [x] Angular routes, auth service, guards, and callback screens
-- [x] Tauri runtime detection and desktop auth deep-link handoff
+- [x] Design it (spec): `/architect auth login and callback UI`
+- [x] Build it: `/develop auth login and callback UI`
+  - [x] Angular routes, auth service, guards, and callback screens
+  - [x] Tauri runtime detection and desktop auth deep-link handoff
 - [ ] Verify it: `/check verify auth login and callback UI`
+- [ ] Test it: `/test auth login and callback UI`
 
 Spec [0004](../specs/0004-auth-ui-callback/index.md) · code in `apps/web` and `apps/tauri`
 
@@ -61,9 +80,12 @@ settings.
 **Done when:** `apps/web` builds in the root workspace, its unit tests pass,
 and `apps/tauri` packages the same Angular output.
 
-- [x] Package theme, shell, navigation, page, settings, and icon integration
-- [x] Root web scripts, generated SDK dependency, and Tauri build wiring
+- [x] Design it (spec): `/architect Angular UI package and CSS standard`
+- [x] Build it: `/develop Angular UI package and CSS standard`
+  - [x] Package theme, shell, navigation, page, settings, and icon integration
+  - [x] Root web scripts, generated SDK dependency, and Tauri build wiring
 - [ ] Verify it: `/check verify Angular UI package and CSS standard`
+- [ ] Test it: `/test Angular UI package and CSS standard`
 
 Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
 
@@ -84,7 +106,7 @@ Use the public gateway OpenAPI contract to generate a typed SDK in `packages/ang
 
 Spec [0010 SDK child](../specs/0010-angular-ui-standard/0010-angular-sdk-integration.md) · code in `apps/gateway/erp`, `apps/services`, `apps/web`, `packages/angular-sdk`, and root scripts
 
-### 4. MCP server for ERP tool access · in-progress
+### 4. MCP server for ERP tool access · done
 
 Scaffold an MCP server app at `apps/mcp` (Bun, TypeScript, STDIO transport) with a declarative tool registry and a starter `check_stock` tool calling the gateway.
 **Done when:** An MCP client can list and call `check_stock` over STDIO, invalid input and ERP failures return clean errors, and the app passes lint and typecheck with all dependencies and env vars at the repo root.
@@ -144,15 +166,16 @@ Add a PostgreSQL backed durable job runtime with bounded retries, schedules, lea
 
 - [x] Design it (spec)
 - [ ] Build it: `/develop reliable jobs and notification center`
-  - [x] Shared contract registry, durable queue tracer, local handler binding, invitation cutover, and auth cleanup schedule (AC-1 to AC-5, AC-13, AC-16)
+  - [x] Shared contract registry, durable queue tracer, and local handler binding (AC-1 to AC-5)
   - [x] Contract schedule synchronization, jobs scheduler, operator API, audit, observability, recovery, and retention (AC-3, AC-4, AC-11, AC-12, AC-14, AC-15)
+  - [ ] Enable the invitation cutover and auth cleanup schedule without the fallback NATS path running at the same time (AC-4, AC-13, AC-16)
   - [ ] Notification data, recipient projection, templates, self service API, and source event tracer (AC-6, AC-7, AC-10, AC-13)
   - [ ] Email delivery, preferences, mandatory rules, account events, and terminal failure fanout (AC-6, AC-8, AC-9, AC-10, AC-14)
   - [ ] OpenAPI, generated SDK, Angular and Tauri surfaces, security hardening, rollout, and full proof (AC-7, AC-8, AC-11, AC-12, AC-15, AC-17)
 - [ ] Verify it: `/check verify reliable jobs and notification center`
 - [ ] Test it: `/test reliable jobs and notification center`
 
-Spec [0012](../specs/0012-reliable-jobs-notifications/index.md) · planned code in `packages/jobs`, `packages/database`, `packages/contracts`, `apps/services/jobs`, `apps/services/notification`, `apps/services/auth`, `apps/services/user`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
+Spec [0012](../specs/0012-reliable-jobs-notifications/index.md) · code in `packages/jobs`, `packages/database`, `packages/contracts`, `apps/services/jobs`, `apps/services/auth`, `apps/services/user`, `apps/gateway/erp` · planned in `apps/services/notification`, `apps/services/access`, and `apps/web`
 
 ### 8. Permission access control · in-progress
 
@@ -189,10 +212,10 @@ Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/servic
 
 ## Domain
 
-### 7. User lifecycle management · in-progress
+### 7. User lifecycle management · done
 
 Full user management owned by the user service: create and update users, suspend, block, soft delete with restore, client generated UUIDv7 ids, and web pages for the user list and a detail view showing the user's logs.
-**Done when:** An admin can create a user who receives an invitation email and can log in, update the user's name and role, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
+**Done when:** An operator with user management permission can create a user who receives an invitation email and can log in, update the user's name, manage direct permissions through the access surface, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
 
 - [x] Design it (spec): `/architect user lifecycle management`
 - [x] Build it: `/develop user lifecycle management`
@@ -203,21 +226,22 @@ Full user management owned by the user service: create and update users, suspend
   - [x] Detail page log tabs, actorUserId filter, and cutover off the auth users endpoint (AC-9, AC-10, AC-11)
   - [x] Recompose the two user pages on the package Page scaffold: stacked variant, hidden by default filter with header toggle, compact `xs` header and table actions, content, footer (AC-12, spec update 2026-08-23)
 - [x] Verify it: `/check verify user lifecycle management` (re-run for AC-12; AC-1 to AC-11 passed 2026-08-22)
-- [ ] Test it: `/test user lifecycle management` (re-run for the recomposed page tests)
+- [x] Test it: `/test user lifecycle management` (re-run for the recomposed page tests)
 
 Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/user`, `apps/services/auth`, `apps/services/logs`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
 
 ## Deferred
 
-- Gateway inventory stock endpoint (`/api/v1/stock`) · from spec 0005
-- Gateway machine auth scheme for service tokens · from spec 0005
-- Service registry endpoint so the console renders service cards from real data instead of a static list · from spec 0001
-- Conditional UI autofill (passkey suggestions in the login email field) · from spec 0006
-- Passkey support in the Tauri desktop shell when webview WebAuthn support matures · from spec 0006
-- Resend invitation action for failed or expired invitation emails · from spec 0007
-- Manager level read access to the user pages · from spec 0007
-- Scoped permission variants (`:own`, `:scoped`) plus downstream ownership rules, when the first self service surface arrives · from spec 0008
-- Permission grouping (bundles) if per user granting becomes painful as user count grows · from spec 0008
-- Orphan grant sweep, only needed if user hard deletion is ever introduced · from spec 0008
-- Remember this device for 30 days (skip the TOTP step in a trusted browser) · from spec 0009
-- Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · from spec 0009
+- Gateway inventory stock endpoint (`/api/v1/stock`) · reason: Requires its own inventory contract and implementation spec · from spec 0005
+- Gateway machine auth scheme for service tokens · reason: Requires a separate machine authentication decision aligned with HMAC identity forwarding · from spec 0005
+- Service registry endpoint so the console renders service cards from real data instead of a static list · reason: Static service cards satisfy the current foundation slice · from spec 0001
+- Conditional UI autofill (passkey suggestions in the login email field) · reason: Optional enhancement outside the current passkey login contract · from spec 0006
+- Passkey support in the Tauri desktop shell when webview WebAuthn support matures · reason: Current desktop webview support is not mature enough · from spec 0006
+- Resend invitation action for failed or expired invitation emails · reason: Users can request a magic link themselves in the current flow · from spec 0007
+- Manager level read access to the user pages · reason: The current permission model only defines the admin management surface · from spec 0007
+- Scoped permission variants (`:own`, `:scoped`) plus downstream ownership rules · reason: No self service ownership surface exists yet · from spec 0008
+- Permission grouping (bundles) · reason: Defer until per user granting becomes operationally painful · from spec 0008
+- Orphan grant sweep · reason: Only needed if user hard deletion is introduced · from spec 0008
+- Remember this device for 30 days (skip the TOTP step in a trusted browser) · reason: Trusted device behavior is outside the current 2FA contract · from spec 0009
+- Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
+- Access and jobs Dockerfiles plus CI image matrix coverage · reason: Runtime code is available, but deployment images have not been implemented · from spec 0001
