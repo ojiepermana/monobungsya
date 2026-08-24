@@ -299,6 +299,108 @@ describe('api gateway', () => {
     }
   });
 
+  it('maps an unavailable auth service without exposing response details', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL) => {
+        const path = new URL(input.toString()).pathname;
+        if (path === '/internal/auth/session') {
+          throw new Error('auth service unavailable');
+        }
+        return Response.json({ data: [] });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/users', {
+          headers: {
+            cookie: 'project_session=session-value',
+            'x-request-id': 'auth-unavailable-request',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(503);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const record = writeAccess.mock.calls[0]?.[0];
+      expect(record).toMatchObject({
+        requestId: 'auth-unavailable-request',
+        failureReason: 'auth_service_unavailable',
+        metadata: { details: null },
+      });
+      expect(JSON.stringify(record)).not.toContain('session-value');
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('maps malformed auth JSON to a safe server error without response details', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        USER_SERVICE_URL: 'http://user.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    const writeAccess = spyOn(ActivityLog, 'writeAccess').mockImplementation(
+      () => undefined as never,
+    );
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL) => {
+        const path = new URL(input.toString()).pathname;
+        if (path === '/internal/auth/session') {
+          return new Response('{not-json', {
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        return Response.json({ data: [] });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/users', {
+          headers: {
+            cookie: 'project_session=session-value',
+            'x-request-id': 'auth-malformed-request',
+          },
+        }),
+      );
+
+      expect(response.status).toBe(500);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const record = writeAccess.mock.calls[0]?.[0];
+      expect(record).toMatchObject({
+        requestId: 'auth-malformed-request',
+        metadata: { details: null },
+      });
+      expect(JSON.stringify(record)).not.toContain('not-json');
+      expect(JSON.stringify(record)).not.toContain('session-value');
+    } finally {
+      writeAccess.mockRestore();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('forwards access catalog routes to the access service', async () => {
     const app = createApp(
       loadGatewayEnv({

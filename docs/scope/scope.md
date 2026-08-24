@@ -16,7 +16,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 3   | Angular UI package and CSS standard | Foundation | done        |
 | 4   | MCP server for ERP tool access      | Foundation | done        |
 | 5   | Auth passkey login                  | Foundation | done        |
-| 6   | Log subsystem                       | Foundation | in-progress |
+| 6   | Log subsystem                       | Foundation | done        |
 | 7   | User lifecycle management           | Domain     | done        |
 | 8   | Permission access control           | Foundation | in-progress |
 | 9   | TOTP two factor authentication      | Foundation | done        |
@@ -140,7 +140,7 @@ Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the
 
 Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/errors`
 
-### 6. Log subsystem · in-progress
+### 6. Log subsystem · done
 
 Partitioned log storage in PostgreSQL (application logging, audit trails, access logs), a shared `ActivityLog` writer every service can use, a read only logs service behind the gateway, and three Angular viewer pages.
 **Done when:** Log rows land in yearly partitions automatically, audit writes fail visibly while application log writes never block a request, and an admin or manager can browse, search, filter, and page all three log types in the web UI.
@@ -155,8 +155,8 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
   - [x] Safe session details from auth through the gateway, logs API, and viewer (AC-16, AC-19, AC-20)
   - [x] Angular navigation correlation, gateway validation, CORS, and trace filtering (AC-17, AC-18, AC-19)
   - [x] Production regression coverage, E2E flow proof, and generated contracts (AC-1, AC-8, AC-10 to AC-20)
-- [ ] Verify it: `/check verify log subsystem`
-- [ ] Test it: `/test log subsystem`
+- [x] Verify it: `/check verify log subsystem`
+- [x] Test it: `/test log subsystem`
 
 Spec [0011](../specs/0011-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 

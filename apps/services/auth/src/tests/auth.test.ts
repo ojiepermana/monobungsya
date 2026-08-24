@@ -80,6 +80,75 @@ describe('auth service', () => {
     });
   });
 
+  it('keeps every invalid session reason internal to the auth observation', async () => {
+    const reasons = [
+      'unknown_session',
+      'revoked',
+      'absolute_expired',
+      'idle_expired',
+      'user_missing',
+      'user_deleted',
+      'user_blocked',
+      'user_suspended',
+    ] as const;
+
+    for (const reason of reasons) {
+      const repository = {
+        inspectSession: async () => ({
+          identity: null,
+          observation: { state: 'invalid' as const, reason },
+        }),
+      } as unknown as AuthRepository;
+      const service = new AuthService('auth', repository);
+
+      const result = await service.getSession(`session-${reason}`);
+
+      expect(result).toEqual({
+        authenticated: false,
+        sessionObservation: { state: 'invalid', reason },
+      });
+      expect(JSON.stringify(result)).not.toContain('permission');
+      expect(JSON.stringify(result)).not.toContain('token');
+    }
+  });
+
+  it('normalizes an authenticated observation to a null reason', async () => {
+    const repository = {
+      inspectSession: async () => ({
+        identity: {
+          id: '0198f8a0-0000-7000-8000-000000000001',
+          email: 'admin@project.local',
+          name: 'Admin',
+          suspendedAt: null,
+          sessionId: 'session-1',
+          idleExpiresAt: new Date('2026-08-24T10:00:00.000Z'),
+          absoluteExpiresAt: new Date('2026-08-24T18:00:00.000Z'),
+        },
+        observation: {
+          state: 'authenticated' as const,
+          reason: 'unknown_session' as const,
+        },
+      }),
+    } as unknown as AuthRepository;
+    const service = new AuthService('auth', repository);
+
+    await expect(service.getSession('session-value')).resolves.toEqual({
+      authenticated: true,
+      user: {
+        id: '0198f8a0-0000-7000-8000-000000000001',
+        email: 'admin@project.local',
+        name: 'Admin',
+        permissions: [],
+      },
+      session: {
+        id: 'session-1',
+        idleExpiresAt: '2026-08-24T10:00:00.000Z',
+        absoluteExpiresAt: '2026-08-24T18:00:00.000Z',
+      },
+      sessionObservation: { state: 'authenticated', reason: null },
+    });
+  });
+
   it('exposes health and module status endpoints', async () => {
     const app = createApp(loadEnv('auth', { NODE_ENV: 'test', PORT: '3101' }));
 
