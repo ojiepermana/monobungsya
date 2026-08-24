@@ -24,6 +24,23 @@ describe('AuthService session state', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it('covers spec 0013 AC-5 and AC-13: token verification bypasses the SDK and is left to browser navigation', async () => {
+    const service = new AuthService();
+    const next = vi.fn();
+
+    // jsdom's window.location is unforgeable, so the navigation target itself
+    // is exercised by the e2e suite; this locks the SDK boundary: a token
+    // verify must never issue a fetch and its observable never emits.
+    const subscription = service
+      .verifyMagicLink('magic-token-value')
+      .subscribe({ next });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+    subscription.unsubscribe();
+  });
+
   it('maps an authenticated session and exposes the user state', async () => {
     fetchMock.mockResolvedValue(Response.json(authenticatedResponse));
     const service = new AuthService();

@@ -88,6 +88,35 @@ describe('ApiService generated gateway transport', () => {
     expect(request.url).not.toContain('actorUserId=');
   });
 
+  it('covers spec 0013 AC-10 and AC-13: an unsubscribed read discards its late response', async () => {
+    let resolveFetch: ((response: Response) => void) | undefined;
+    fetchMock.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
+    const next = vi.fn();
+    const error = vi.fn();
+
+    const subscription = service
+      .users({ search: '', status: '', page: 1 })
+      .subscribe({ next, error });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    subscription.unsubscribe();
+    resolveFetch?.(
+      Response.json({
+        data: [emptyUser],
+        meta: { page: 1, perPage: 25, total: 1, totalPages: 1 },
+        filters: { search: '', status: '' },
+        options: { statuses: ['active'] },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('turns a gateway error into a status carrying error', async () => {
     fetchMock.mockResolvedValue(
       Response.json(
