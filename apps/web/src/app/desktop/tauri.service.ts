@@ -28,6 +28,7 @@ export type NativeSaveTextResult =
 @Service()
 export class TauriService {
   readonly available = signal(this.detectTauri());
+  private deepLinkListenerStarted = false;
 
   isAvailable(): boolean {
     return this.available();
@@ -52,6 +53,28 @@ export class TauriService {
     window.location.assign(this.desktopAuthUrl(token));
 
     return true;
+  }
+
+  async listenForAuthDeepLinks(
+    onToken: (token: string) => void,
+  ): Promise<void> {
+    if (!this.isAvailable() || this.deepLinkListenerStarted) {
+      return;
+    }
+
+    this.deepLinkListenerStarted = true;
+    const { getCurrent, onOpenUrl } = await import(
+      '@tauri-apps/plugin-deep-link'
+    );
+    const handleUrls = (urls: string[]) => {
+      for (const url of urls) {
+        const token = this.authTokenFromUrl(url);
+        if (token) onToken(token);
+      }
+    };
+
+    await onOpenUrl(handleUrls);
+    handleUrls((await getCurrent()) ?? []);
   }
 
   async saveTextFile(
@@ -99,5 +122,19 @@ export class TauriService {
       (typeof window.__TAURI_INTERNALS__ !== 'undefined' ||
         typeof window.__TAURI__ !== 'undefined')
     );
+  }
+
+  private authTokenFromUrl(value: string): string | null {
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'monobungsya:' || url.hostname !== 'auth') {
+        return null;
+      }
+
+      const token = url.searchParams.get('token');
+      return token?.trim() ? token : null;
+    } catch {
+      return null;
+    }
   }
 }

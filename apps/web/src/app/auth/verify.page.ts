@@ -1,123 +1,62 @@
 import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {
-  AlertComponent,
-  AlertDescriptionComponent,
-  AlertTitleComponent,
-} from '@ojiepermana/angular/component/alert';
-import { ButtonComponent } from '@ojiepermana/angular/component/button';
-import {
-  CardComponent,
-  CardContentComponent,
-  CardDescriptionComponent,
-  CardHeaderComponent,
-  CardTitleComponent,
-} from '@ojiepermana/angular/component/card';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
-import {
-  PageComponent,
-  PageContentComponent,
-  PageFooterComponent,
-  PageHeaderComponent,
-} from '@ojiepermana/angular/theme/page';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService } from './auth.service';
+import { AuthShell } from './auth-shell';
 import { PasskeyService } from './passkey.service';
+
+type VerifyState = 'verifying' | 'success' | 'error';
 
 @Component({
   selector: 'app-verify-page',
-  imports: [
-    RouterLink,
-    AlertComponent,
-    AlertDescriptionComponent,
-    AlertTitleComponent,
-    ButtonComponent,
-    IconComponent,
-    CardComponent,
-    CardContentComponent,
-    CardDescriptionComponent,
-    CardHeaderComponent,
-    CardTitleComponent,
-    PageComponent,
-    PageContentComponent,
-    PageFooterComponent,
-    PageHeaderComponent,
-  ],
+  host: { class: 'block min-h-full' },
+  imports: [RouterLink, IconComponent, AuthShell],
   template: `
-    <Page variant="stacked" height="fix" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0 bg-background text-foreground">
-      <PageHeader class="flex items-center px-4">
-        <div class="mx-auto flex h-full w-full max-w-lg items-center">
-          <h1 class="truncate text-base font-semibold leading-tight text-foreground sm:text-lg">{{ title() }}</h1>
-        </div>
-      </PageHeader>
+    <app-auth-shell>
+      <section class="w-full max-w-xl" aria-labelledby="callback-title">
+        @if (state() === 'verifying') {
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Checking access</p>
+          <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">One moment.</h1>
+          <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground" role="status" aria-live="polite">We are checking your secure workspace session.</p>
+          <div class="mt-8 flex items-center gap-3 text-sm text-muted-foreground" role="status" aria-live="polite"><span class="size-4 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>Verifying session</div>
+        } @else if (state() === 'success') {
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Access confirmed</p>
+          <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">Welcome{{ userName() ? ', ' + userName() : '' }}.</h1>
+          <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground">Your workspace session is ready. Continue when you are set.</p>
+          <div class="mt-8 max-w-lg border-l-2 border-primary bg-muted px-5 py-4 text-sm leading-6 text-foreground" role="status" aria-live="polite">Your browser session has been confirmed.</div>
+          <a routerLink="/" class="mt-7 inline-flex min-h-12 items-center justify-center gap-2 bg-foreground px-5 text-sm font-semibold text-background no-underline transition-colors hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Icon name="arrow_forward" [size]="17" aria-hidden="true" />Continue to workspace</a>
 
-      <PageContent class="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pb-10">
-        <Card class="block w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>{{ title() }}</CardTitle>
-            <p CardDescription>{{ description() }}</p>
-          </CardHeader>
-
-          <CardContent>
-            @if (status() === 'verifying') {
-              <div class="rounded-md border border-border bg-muted px-4 py-3 text-sm">
-                Memverifikasi link...
+          @if (showPasskeyPrompt()) {
+            <div class="mt-8 max-w-lg border-t border-border pt-6">
+              <h2 class="text-sm font-semibold text-foreground">Sign in faster next time</h2>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">Register a passkey to use fingerprint or face unlock without waiting for email.</p>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <button type="button" class="inline-flex min-h-11 items-center gap-2 border border-border bg-background px-4 text-sm font-semibold text-foreground hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60" [disabled]="passkeyLoading()" (click)="registerPasskey()"><Icon name="fingerprint" [size]="17" aria-hidden="true" />{{ passkeyLoading() ? 'Menunggu passkey...' : 'Daftarkan passkey' }}</button>
+                <button type="button" class="inline-flex min-h-11 items-center border border-border px-4 text-sm font-semibold text-foreground hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" (click)="dismissPasskeyPrompt()">Nanti saja</button>
               </div>
-            } @else if (status() === 'success') {
-              <Alert>
-                <AlertTitle>Login berhasil</AlertTitle>
-                <AlertDescription>Anda akan diarahkan ke dashboard.</AlertDescription>
-              </Alert>
-              <a Button size="xs" routerLink="/" class="mt-5 w-full gap-1.5"><Icon name="home" [size]="14" />Buka dashboard</a>
-
-              @if (showPasskeyPrompt()) {
-                <Alert class="mt-4">
-                  <AlertTitle>Lebih cepat lain kali</AlertTitle>
-                  <AlertDescription>
-                    <p>Daftarkan passkey agar bisa masuk dengan sidik jari atau face unlock, tanpa menunggu email.</p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <button Button size="xs" type="button" class="gap-1.5" [disabled]="passkeyLoading()" (click)="registerPasskey()">
-                        <Icon name="fingerprint" [size]="14" />
-                        {{ passkeyLoading() ? 'Menunggu passkey...' : 'Daftarkan passkey' }}
-                      </button>
-                      <button Button size="xs" type="button" variant="outline" (click)="dismissPasskeyPrompt()">Nanti saja</button>
-                    </div>
-                    @if (passkeyMessage(); as passkeyText) {
-                      <p class="mt-3 text-xs text-muted-foreground">{{ passkeyText }}</p>
-                    }
-                  </AlertDescription>
-                </Alert>
-              }
-            } @else {
-              <Alert variant="destructive">
-                <AlertTitle>Verifikasi gagal</AlertTitle>
-                <AlertDescription>{{ message() }}</AlertDescription>
-              </Alert>
-              <a Button size="xs" variant="outline" routerLink="/login" class="mt-5 w-full gap-1.5"><Icon name="arrow_back" [size]="14" />Kembali ke login</a>
-            }
-          </CardContent>
-        </Card>
-      </PageContent>
-
-      <PageFooter class="flex items-center px-4">
-        <p class="mx-auto w-full max-w-lg truncate text-xs text-muted-foreground sm:text-sm">
-          Gunakan ulang halaman login jika link tidak valid atau sudah kedaluwarsa.
-        </p>
-      </PageFooter>
-    </Page>
+              @if (passkeyMessage(); as passkeyText) { <p class="mt-3 text-sm text-muted-foreground" role="alert">{{ passkeyText }}</p> }
+            </div>
+          }
+        } @else {
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Link unavailable</p>
+          <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">That link cannot be used.</h1>
+          <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground">The sign in link may have expired or already been used. Request a fresh link to continue.</p>
+          <div class="mt-8 max-w-lg border-l-2 border-accent bg-accent/10 px-5 py-4 text-sm leading-6 text-foreground" role="alert">The link is invalid or no longer available.</div>
+          <a routerLink="/auth/login" class="mt-7 inline-flex min-h-12 items-center justify-center gap-2 border border-border bg-background px-5 text-sm font-semibold text-foreground no-underline transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Icon name="arrow_back" [size]="17" aria-hidden="true" />Return to sign in</a>
+        }
+      </section>
+    </app-auth-shell>
   `,
 })
 export class VerifyPage {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly tauri = inject(TauriService);
   private readonly passkey = inject(PasskeyService);
 
-  protected readonly status = signal<
-    'verifying' | 'success' | 'expired' | 'invalid' | 'missing'
-  >('verifying');
-  protected readonly message = signal('Mohon tunggu sebentar.');
+  protected readonly state = signal<VerifyState>('verifying');
+  protected readonly userName = signal('');
   protected readonly showPasskeyPrompt = signal(false);
   protected readonly passkeyLoading = signal(false);
   protected readonly passkeyMessage = signal<string | null>(null);
@@ -125,69 +64,56 @@ export class VerifyPage {
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');
     const desktop = this.route.snapshot.queryParamMap.get('desktop') === '1';
-    // biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature requires bracket access on route data
+    // biome-ignore lint/complexity/useLiteralKeys: route data uses an index signature
     const callback = this.route.snapshot.data['callback'];
 
-    // Remove the bearer token from browser history and screenshots immediately.
     window.history.replaceState(
       window.history.state,
       '',
       window.location.pathname,
     );
 
-    if (callback === 'success') {
-      this.status.set('success');
-      this.message.set('Login berhasil. Anda dapat melanjutkan ke dashboard.');
-      this.offerPasskey();
-      return;
-    }
-
     if (callback === 'error') {
-      this.status.set('invalid');
-      this.message.set('Link tidak valid atau sudah kedaluwarsa.');
+      this.state.set('error');
       return;
     }
 
     if (desktop && token) {
-      this.message.set('Membuka aplikasi desktop Monobungsya.');
       this.tauri.redirectToDesktopAuth(token);
+      return;
+    }
+
+    if (callback === 'success' || !token) {
+      this.loadSession();
       return;
     }
 
     this.auth.verifyMagicLink(token).subscribe({
       next: (response) => {
-        this.status.set(
-          response.status === 'sent' ? 'invalid' : response.status,
-        );
-        this.message.set(response.message);
-
-        if (response.status === 'success') {
-          window.setTimeout(() => void this.router.navigateByUrl('/'), 900);
+        if (response.status === 'success' && response.user) {
+          this.complete(response.user.name);
+        } else {
+          this.state.set('error');
         }
       },
-      error: () => {
-        this.status.set('invalid');
-        this.message.set('Link tidak valid atau sudah pernah digunakan.');
-      },
+      error: () => this.state.set('error'),
     });
   }
 
   registerPasskey(): void {
     this.passkeyLoading.set(true);
     this.passkeyMessage.set(null);
-
     void this.passkey
       .register()
       .then(() => {
-        // Registered, so the offer is finished for this browser.
         this.passkey.dismissPrompt();
         this.showPasskeyPrompt.set(false);
       })
-      .catch((error: unknown) => {
+      .catch((error: unknown) =>
         this.passkeyMessage.set(
           this.passkey.messageFrom(error, 'Passkey gagal didaftarkan.'),
-        );
-      })
+        ),
+      )
       .finally(() => this.passkeyLoading.set(false));
   }
 
@@ -196,29 +122,32 @@ export class VerifyPage {
     this.showPasskeyPrompt.set(false);
   }
 
-  /** Shown only to someone who can use passkeys and has none yet. */
+  private loadSession(): void {
+    this.auth.loadCurrentUser().subscribe({
+      next: (user) => {
+        if (!user) {
+          this.state.set('error');
+          return;
+        }
+
+        this.complete(user.name);
+      },
+      error: () => this.state.set('error'),
+    });
+  }
+
+  private complete(name: string): void {
+    this.userName.set(name);
+    this.state.set('success');
+    this.offerPasskey();
+  }
+
   private offerPasskey(): void {
-    if (!this.passkey.supported() || this.passkey.promptDismissed()) {
-      return;
-    }
+    if (!this.passkey.supported() || this.passkey.promptDismissed()) return;
 
     void this.passkey
       .load()
       .then((passkeys) => this.showPasskeyPrompt.set(passkeys.length === 0))
       .catch(() => this.showPasskeyPrompt.set(false));
-  }
-
-  title(): string {
-    return this.status() === 'success'
-      ? 'Login berhasil'
-      : 'Verifikasi magic link';
-  }
-
-  description(): string {
-    if (this.status() === 'verifying') {
-      return 'Kami sedang menyiapkan sesi login Anda.';
-    }
-
-    return this.message();
   }
 }

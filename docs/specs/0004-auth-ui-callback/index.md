@@ -1,7 +1,7 @@
 # 0004. Build auth login and callback UI
 
 **Date**: 2026-08-20
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

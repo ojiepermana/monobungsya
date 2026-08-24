@@ -55,6 +55,7 @@ export class AuthService {
   async requestMagicLink(
     email: string,
     ipAddress: string,
+    options: { desktop?: boolean } = {},
   ): Promise<MagicLinkRequestResult> {
     if (!this.mailer) {
       throw new ServiceUnavailableError(
@@ -89,6 +90,7 @@ export class AuthService {
           recipientName: result.user.name,
           token,
           expiresAt,
+          ...(options.desktop ? { desktop: true } : {}),
         });
       } catch {
         throw new ServiceUnavailableError('Auth email delivery failed');

@@ -32,7 +32,9 @@ export class SmtpAuthMailer implements AuthMailer {
   }
 
   async sendMagicLink(message: MagicLinkMessage): Promise<void> {
-    const verifyUrl = new URL('/api/v1/auth/verify', this.config.publicApiUrl);
+    const verifyUrl = message.desktop
+      ? new URL('monobungsya://auth')
+      : new URL('/api/v1/auth/verify', this.config.publicApiUrl);
     verifyUrl.searchParams.set('token', message.token);
 
     await this.transporter.sendMail({

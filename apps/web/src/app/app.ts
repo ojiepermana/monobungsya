@@ -20,6 +20,7 @@ import {
   ShellService,
 } from '@ojiepermana/angular/theme/shell';
 import { AuthService } from './auth/auth.service';
+import { TauriService } from './desktop/tauri.service';
 import { APP_BRAND_ICON, appNavigationFor } from './shell/app.nav';
 import { ThemeSettingsAdapterService } from './shell/theme-settings-adapter';
 import { UiLabelLocalizationService } from './shell/ui-label-localization.service';
@@ -74,6 +75,7 @@ export class App {
   private readonly destroyRef = inject(DestroyRef);
   private readonly labels = inject(UiLabelLocalizationService);
   protected readonly themeSettings = inject(ThemeSettingsAdapterService);
+  private readonly tauri = inject(TauriService);
 
   /**
    * Layout axes (surface / appearance / type / width). Defaults are registered
@@ -138,6 +140,9 @@ export class App {
 
   constructor() {
     this.labels.start();
+    void this.tauri.listenForAuthDeepLinks((token) => {
+      void this.router.navigate(['/verify'], { queryParams: { token } });
+    });
     afterNextRender(() => {
       this.moveThemeSettingsToNavigationHeaders();
 

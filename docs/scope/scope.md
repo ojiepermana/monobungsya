@@ -12,7 +12,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | A   | Enterprise monorepo foundation      | Foundation | existing    |
 | B   | Central multischema database tooling | Foundation | existing    |
 | 1   | Auth magic link and session         | Foundation | done        |
-| 2   | Auth login and callback UI          | Foundation | in-progress |
+| 2   | Auth login and callback UI          | Foundation | done        |
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
 | 4   | MCP server for ERP tool access      | Foundation | done        |
 | 5   | Auth passkey login                  | Foundation | in-progress |
@@ -56,7 +56,7 @@ Implement passwordless login, server side sessions, permission authorization, an
 
 Spec [0003](../specs/0003-auth-magic-link-session/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, and `packages/contracts`
 
-### 2. Auth login and callback UI · in-progress
+### 2. Auth login and callback UI · done
 
 Provide login, magic-link verification, and callback states in the Angular web
 client, with the same auth flow available from the Tauri desktop shell.
@@ -67,8 +67,8 @@ session callback, and receive deterministic error states.
 - [x] Build it: `/develop auth login and callback UI`
   - [x] Angular routes, auth service, guards, and callback screens
   - [x] Tauri runtime detection and desktop auth deep-link handoff
-- [ ] Verify it: `/check verify auth login and callback UI`
-- [ ] Test it: `/test auth login and callback UI`
+- [x] Verify it: `/check verify auth login and callback UI`
+- [x] Test it: `/test auth login and callback UI`
 
 Spec [0004](../specs/0004-auth-ui-callback/index.md) · code in `apps/web` and `apps/tauri`
 

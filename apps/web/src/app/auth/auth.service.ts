@@ -22,9 +22,6 @@ export interface AuthUser {
 
 export interface RequestMagicLinkResponse {
   accepted: true;
-  message?: string;
-  magicLink?: string;
-  expiresAt?: string;
 }
 
 export interface RequestMagicLinkOptions {
@@ -79,7 +76,7 @@ export class AuthService {
       );
     }
 
-    window.location.assign(
+    window.location.replace(
       `${environment.apiUrl}/api/v1/auth/verify?token=${encodeURIComponent(token)}`,
     );
 

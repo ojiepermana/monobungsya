@@ -4,17 +4,17 @@ _Steps derive from spec 0004 acceptance criteria. `/check verify` runs these; `/
 
 ## UI and manual
 
-- [ ] Open `/auth/login` on desktop and mobile, submit an invalid email, and confirm labels, focus, validation, status copy, and overflow remain accessible → AC-1, AC-2, AC-6, AC-7
-- [ ] Request a valid link, follow it in the browser, and confirm loading, completion, cookie session, and redirect states without rendering the raw token → AC-3, AC-4, AC-5, AC-8
-- [ ] Follow an invalid or expired link and confirm deterministic generic error copy without account or token disclosure → AC-4, AC-5
-- [ ] Run the Tauri shell, request a desktop link, and confirm the deep link returns to the same callback states without enabling browser only passkey behavior → AC-3, AC-4, AC-8
-- [ ] Run an accessibility scan on login, callback complete, callback error, and service failure states → AC-6, AC-7
+- [x] Open `/auth/login` on desktop and mobile, submit an invalid email, and confirm labels, focus, validation, status copy, and overflow remain accessible → AC-1, AC-2, AC-6, AC-7
+- [x] Request a valid link, follow it in the browser, and confirm loading, completion, cookie session, and redirect states without rendering the raw token → AC-3, AC-4, AC-5, AC-8
+- [x] Follow an invalid or expired link and confirm deterministic generic error copy without account or token disclosure → AC-4, AC-5
+- [x] Run the Tauri shell, request a desktop link, and confirm the deep link returns to the same callback states without enabling browser only passkey behavior → AC-3, AC-4, AC-8
+- [x] Run an accessibility scan on login, callback complete, callback error, and service failure states → AC-6, AC-7
 
 ## Commands
 
-- [ ] `bun run test:web` → auth routes, form state, callback state, and runtime detection tests pass → AC-1 to AC-8
-- [ ] `bun run typecheck:web` → every auth route and generated client binding compiles → AC-2, AC-3, AC-8
-- [ ] `bun run lint` → templates, styles, and TypeScript pass the repository gate → AC-6, AC-7
+- [x] `bun run test:web` → auth routes, form state, callback state, and runtime detection tests pass → AC-1 to AC-8
+- [x] `bun run typecheck:web` → every auth route and generated client binding compiles → AC-2, AC-3, AC-8
+- [x] `bun run lint` → templates, styles, and TypeScript pass the repository gate → AC-6, AC-7
 
 ## Acceptance criteria coverage
 

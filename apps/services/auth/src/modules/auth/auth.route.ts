@@ -107,6 +107,7 @@ export function createAuthRoute(
         const result = await service.requestMagicLink(
           body.email,
           clientIp(request),
+          body.desktop ? { desktop: true } : {},
         );
         return Response.json({ accepted: result.accepted });
       },

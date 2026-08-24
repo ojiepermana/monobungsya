@@ -41,6 +41,7 @@ export interface MagicLinkMessage {
   recipientName: string;
   token: string;
   expiresAt: Date;
+  desktop?: boolean;
 }
 
 export interface AuthMailer {
