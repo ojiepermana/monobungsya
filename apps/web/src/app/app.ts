@@ -147,21 +147,30 @@ export class App {
     this.labels.start();
     effect(() => {
       const sessionState = this.auth.sessionState();
+      const onGuestRoute = this.isGuestRoute();
 
-      if (sessionState === 'authenticated') {
-        if (this.restoreAuthenticatedLayout()) {
-          this.restoreAuthenticatedLayout.set(false);
-          this.layout.setType(this.lastAuthenticatedLayoutType(), {
-            persist: false,
-          });
-          return;
-        }
-
-        this.lastAuthenticatedLayoutType.set(this.layout.type());
+      if (sessionState !== 'authenticated') {
+        this.restoreAuthenticatedLayout.set(true);
         return;
       }
 
-      this.restoreAuthenticatedLayout.set(true);
+      // Guest routes render LayoutFluid, whose constructor writes 'fluid' into the
+      // shared LayoutService. Recording or restoring while a guest route is active
+      // corrupts the operator's saved layout choice and desyncs the service from
+      // the wrapper input, which unhides the navigation inside the fluid layout.
+      if (onGuestRoute) {
+        return;
+      }
+
+      if (this.restoreAuthenticatedLayout()) {
+        this.restoreAuthenticatedLayout.set(false);
+        this.layout.setType(this.lastAuthenticatedLayoutType(), {
+          persist: false,
+        });
+        return;
+      }
+
+      this.lastAuthenticatedLayoutType.set(this.layout.type());
     });
     this.auth.loadCurrentUser().subscribe({ error: () => undefined });
     void this.tauri.listenForAuthDeepLinks((token) => {
