@@ -20,12 +20,14 @@
 3. Kill a worker after claim, wait for lease expiry, and prove another worker resumes the job.
 4. Simulate side effect completion before worker death and prove handler idempotency prevents duplicate domain state.
 5. Disable NATS and prove polling continues processing within the configured interval.
-6. Drive retryable and non retryable failures through their expected state transitions.
+6. Drive success, retryable failure, and non retryable failure through their expected state transitions. Prove successful jobs and attempts expose `completed` across storage, TypeScript, API, generated client, operator UI, and telemetry. Prove contract validation rejects `succeeded`.
 7. Repeat manual retry with the same `Idempotency-Key` and prove only one linked job and one strict audit action exist.
 8. Run due schedules across timezone boundaries and service restarts without duplicate occurrences.
-9. Attempt cross target claims and arbitrary producer updates with restricted database roles and prove denial.
-10. Verify the old auth cleanup timer is absent after cutover and the registered cleanup occurrence produces the same domain result.
-11. Verify webhook handlers reject payload supplied URLs and credentials, then resolve only a registered integration key from target service configuration.
+9. Load the shared contract registry in a producer view, jobs scheduler view, and target worker view. Prove all views agree on type, version, payload validation, source, target, and redaction metadata. Prove readiness fails when a target handler is missing.
+10. Attempt to synchronize a scheduled system contract whose source is not `jobs`, then prove readiness rejects it and no occurrence is emitted.
+11. Attempt cross target claims and arbitrary producer updates with restricted database roles and prove denial.
+12. Verify the old auth cleanup timer is absent after cutover and the registered cleanup occurrence produces the same domain result.
+13. Verify webhook handlers reject payload supplied URLs and credentials, then resolve only a registered integration key from target service configuration.
 
 ## Notification scenarios
 

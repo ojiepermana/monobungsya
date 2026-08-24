@@ -35,6 +35,7 @@ export function createApp(
           'x-request-id',
           'x-correlation-id',
           'x-client-route',
+          'idempotency-key',
         ],
       }),
     )
@@ -59,6 +60,7 @@ export function createApp(
           { name: 'Users', description: 'Public users boundary' },
           { name: 'Logs', description: 'Public log viewer boundary' },
           { name: 'Access', description: 'Public permission access boundary' },
+          { name: 'Jobs', description: 'Authorized job operations boundary' },
         ],
       }),
     )

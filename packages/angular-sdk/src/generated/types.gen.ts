@@ -837,6 +837,196 @@ export type PutApiV1UsersById2FaRequirementResponses = {
 
 export type PutApiV1UsersById2FaRequirementResponse = PutApiV1UsersById2FaRequirementResponses[keyof PutApiV1UsersById2FaRequirementResponses];
 
+export type GetApiV1JobsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: string;
+        status?: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
+        type?: string;
+        sourceService?: string;
+        targetService?: string;
+        from?: string;
+        to?: string;
+    };
+    url: '/api/v1/jobs';
+};
+
+export type GetApiV1JobsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            type: string;
+            version: string | number;
+            sourceService: string;
+            targetService: string;
+            status: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
+            priority: string | number;
+            runAt: string;
+            attemptCount: string | number;
+            maxAttempts: string | number;
+            lockedBy: string | unknown;
+            lockedAt: string | unknown;
+            leaseExpiresAt: string | unknown;
+            completedAt: string | unknown;
+            failedAt: string | unknown;
+            lastErrorCode: string | unknown;
+            lastErrorMessage: string | unknown;
+            scheduleCode: string | unknown;
+            retryOfJobId: string | unknown;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            page: string | number;
+            status: string;
+            type: string;
+            sourceService: string;
+            targetService: string;
+            from: string;
+            to: string;
+        };
+        options: {
+            statuses: Array<'queued' | 'running' | 'retry_wait' | 'completed' | 'failed'>;
+            types: Array<string>;
+            sourceServices: Array<string>;
+            targetServices: Array<string>;
+        };
+    };
+};
+
+export type GetApiV1JobsResponse = GetApiV1JobsResponses[keyof GetApiV1JobsResponses];
+
+export type GetApiV1JobsSummaryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/jobs/summary';
+};
+
+export type GetApiV1JobsSummaryResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        queued: string | number;
+        running: string | number;
+        retrying: string | number;
+        completed: string | number;
+        failed: string | number;
+        expiredLeaseCount: string | number;
+        oldestQueuedAt: string | unknown;
+        oldestQueuedAgeSeconds: string | number | unknown;
+    };
+};
+
+export type GetApiV1JobsSummaryResponse = GetApiV1JobsSummaryResponses[keyof GetApiV1JobsSummaryResponses];
+
+export type GetApiV1JobsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/jobs/{id}';
+};
+
+export type GetApiV1JobsByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        type: string;
+        version: string | number;
+        sourceService: string;
+        targetService: string;
+        status: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
+        priority: string | number;
+        runAt: string;
+        attemptCount: string | number;
+        maxAttempts: string | number;
+        lockedBy: string | unknown;
+        lockedAt: string | unknown;
+        leaseExpiresAt: string | unknown;
+        completedAt: string | unknown;
+        failedAt: string | unknown;
+        lastErrorCode: string | unknown;
+        lastErrorMessage: string | unknown;
+        scheduleCode: string | unknown;
+        retryOfJobId: string | unknown;
+        createdAt: string;
+        updatedAt: string;
+        payload: {
+            [key: string]: unknown;
+        };
+        attempts: Array<{
+            id: string;
+            attemptNumber: string | number;
+            workerId: string;
+            startedAt: string;
+            finishedAt: string | unknown;
+            outcome: string | unknown;
+            durationMs: string | number | unknown;
+            errorCode: string | unknown;
+            errorMessage: string | unknown;
+        }>;
+    };
+};
+
+export type GetApiV1JobsByIdResponse = GetApiV1JobsByIdResponses[keyof GetApiV1JobsByIdResponses];
+
+export type PostApiV1JobsByIdRetryData = {
+    body: {
+        reason: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/jobs/{id}/retry';
+};
+
+export type PostApiV1JobsByIdRetryResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        type: string;
+        version: string | number;
+        sourceService: string;
+        targetService: string;
+        status: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
+        priority: string | number;
+        runAt: string;
+        attemptCount: string | number;
+        maxAttempts: string | number;
+        lockedBy: string | unknown;
+        lockedAt: string | unknown;
+        leaseExpiresAt: string | unknown;
+        completedAt: string | unknown;
+        failedAt: string | unknown;
+        lastErrorCode: string | unknown;
+        lastErrorMessage: string | unknown;
+        scheduleCode: string | unknown;
+        retryOfJobId: string | unknown;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostApiV1JobsByIdRetryResponse = PostApiV1JobsByIdRetryResponses[keyof PostApiV1JobsByIdRetryResponses];
+
 export type GetApiV1LogsAuditTrailsData = {
     body?: never;
     path?: never;

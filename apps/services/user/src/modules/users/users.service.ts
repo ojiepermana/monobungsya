@@ -4,6 +4,11 @@ import {
 } from '#project/contracts';
 import { type DatabaseClient, withTransaction } from '#project/database';
 import { ConflictError, NotFoundError } from '#project/errors';
+import {
+  authSendUserInvitationContract,
+  enqueueJob,
+  type JobRegistry,
+} from '#project/jobs';
 import { ActivityLog, type Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import type { StatusTimestampPatch } from './repository/types/repository.types';
@@ -25,6 +30,8 @@ export interface UsersServiceDependencies {
   database?: DatabaseClient;
   messaging?: Publisher;
   logger?: Logger;
+  jobs?: JobRegistry;
+  durableJobsEnabled?: boolean;
 }
 
 interface StatusTransition {
@@ -92,6 +99,8 @@ export class UsersService {
   private readonly database?: DatabaseClient;
   private readonly messaging?: Publisher;
   private readonly logger?: Logger;
+  private readonly jobs?: JobRegistry;
+  private readonly durableJobsEnabled: boolean;
 
   constructor(
     private readonly serviceName: string,
@@ -100,6 +109,8 @@ export class UsersService {
     this.database = dependencies.database;
     this.messaging = dependencies.messaging;
     this.logger = dependencies.logger;
+    this.jobs = dependencies.jobs;
+    this.durableJobsEnabled = dependencies.durableJobsEnabled ?? false;
     this.repository = new UsersRepository(dependencies.database);
   }
 
@@ -148,8 +159,9 @@ export class UsersService {
   /**
    * The id arrives from the client as a UUIDv7. Both uniqueness checks and the
    * insert share one transaction, and the audit write is the last statement
-   * inside it: if the audit fails, the new user is rolled back with it (AC-7).
-   * The invitation event is published only after the transaction commits.
+   * inside it: if the audit or durable enqueue fails, the new user is rolled
+   * back with it (AC-1 and AC-7). The legacy invitation event, when enabled
+   * during rollout, is published only after the transaction commits.
    */
   async create(
     input: CreateUserInput,
@@ -192,10 +204,29 @@ export class UsersService {
         changeSummary: 'user created',
       });
 
+      if (this.durableJobsEnabled) {
+        if (!this.jobs) {
+          throw new Error('durable jobs registry is not configured');
+        }
+
+        await enqueueJob(transaction, this.jobs, {
+          type: authSendUserInvitationContract.type,
+          version: authSendUserInvitationContract.version,
+          payload: { userId: user.id },
+          sourceService: authSendUserInvitationContract.sourceService,
+          targetService: authSendUserInvitationContract.targetService,
+          idempotencyKey: `user-invitation:${user.id}`,
+          actorUserId: actor.id,
+          correlationId: correlation.requestId,
+        });
+      }
+
       return user;
     });
 
-    this.publishInvitation(created, actor);
+    if (!this.durableJobsEnabled) {
+      this.publishInvitation(created, actor);
+    }
 
     return created;
   }

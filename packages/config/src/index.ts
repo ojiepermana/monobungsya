@@ -25,6 +25,10 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value === 'true'),
+  DURABLE_JOBS_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value === 'true'),
   CORS_ORIGIN: z.string().default('http://localhost:4200'),
   INTERNAL_AUTH_SIGNING_SECRET: z.string().default(''),
   AUTH_CLOCK_SKEW_SECONDS: z.coerce.number().int().positive().default(30),
@@ -71,6 +75,7 @@ export function loadEnv(
   return {
     ...parsed,
     ENABLE_INFRASTRUCTURE: parsed.ENABLE_INFRASTRUCTURE ?? false,
+    DURABLE_JOBS_ENABLED: parsed.DURABLE_JOBS_ENABLED ?? false,
     LOG_DATABASE_URL: logDatabaseUrl,
     BEST_EFFORT_LOGGING_ENABLED: bestEffortLogging,
     serviceName,

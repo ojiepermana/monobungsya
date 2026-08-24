@@ -1,4 +1,5 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
+import { authSendUserInvitationContract, JobRegistry } from '#project/jobs';
 import { ActivityLog } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
@@ -10,20 +11,30 @@ const database = env.ENABLE_INFRASTRUCTURE
 const logDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.LOG_DATABASE_URL)
   : undefined;
+const jobs = env.DURABLE_JOBS_ENABLED ? new JobRegistry() : undefined;
+if (jobs) {
+  jobs.registerContract(authSendUserInvitationContract);
+}
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
 });
 // A missing broker degrades this service, it does not stop it: a create still
 // commits and the invitation is logged as skipped (spec 0007, AC-2).
-const messaging = env.ENABLE_INFRASTRUCTURE
-  ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
-      console.warn(
-        `${env.serviceName} could not reach NATS at ${env.NATS_URL}; events will be skipped:`,
-        error instanceof Error ? error.message : error,
-      );
-    })
-  : undefined;
-const app = createApp(env, { database, messaging });
+const messaging =
+  env.ENABLE_INFRASTRUCTURE && !env.DURABLE_JOBS_ENABLED
+    ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
+        console.warn(
+          `${env.serviceName} could not reach NATS at ${env.NATS_URL}; events will be skipped:`,
+          error instanceof Error ? error.message : error,
+        );
+      })
+    : undefined;
+const app = createApp(env, {
+  database,
+  messaging,
+  jobs,
+  durableJobsEnabled: env.DURABLE_JOBS_ENABLED,
+});
 const server = app.listen(env.PORT);
 
 console.log(

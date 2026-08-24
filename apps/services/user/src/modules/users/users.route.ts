@@ -3,6 +3,7 @@ import { PERMISSIONS } from '#project/acl';
 import type { AuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
 import { UnauthorizedError } from '#project/errors';
+import type { JobRegistry } from '#project/jobs';
 import type { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { createAuthIdentityPlugin } from '../../shared/plugins/auth-identity.plugin';
@@ -29,6 +30,8 @@ export interface UsersRouteOptions {
   database?: DatabaseClient;
   messaging?: Publisher;
   logger?: Logger;
+  jobs?: JobRegistry;
+  durableJobsEnabled?: boolean;
   signingSecret?: string;
   clockSkewSeconds?: number;
 }

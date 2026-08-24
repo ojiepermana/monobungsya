@@ -2,6 +2,7 @@ import { describe, expect, it, spyOn } from 'bun:test';
 import { loadEnv } from '#project/config';
 import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
+import { authSendUserInvitationContract, JobRegistry } from '#project/jobs';
 import { ActivityLog, Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { createApp } from '../app';
@@ -40,6 +41,37 @@ function createFakeDatabase(responses: unknown[][]): {
   };
 
   return { database: fake as unknown as DatabaseClient, queries };
+}
+
+function createDurableFakeDatabase(responses: unknown[][]): {
+  database: DatabaseClient;
+  enqueueQueries: string[];
+} {
+  const queue = [...responses];
+  const enqueueQueries: string[] = [];
+  const fake = Object.assign(
+    async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      enqueueQueries.push(
+        strings.raw
+          .map((part, index) => `${part}${values[index] ?? ''}`)
+          .join(''),
+      );
+      return [{ id: NEW_USER_ID, status: 'queued' }];
+    },
+    {
+      unsafe(_text: string, _params: unknown[] = []) {
+        return Promise.resolve(queue.shift() ?? []);
+      },
+      begin(operation: (transaction: DatabaseClient) => Promise<unknown>) {
+        return operation(fake as unknown as DatabaseClient);
+      },
+    },
+  );
+
+  return {
+    database: fake as unknown as DatabaseClient,
+    enqueueQueries,
+  };
 }
 
 const SECRET = 'user-service-signing-secret';
@@ -848,6 +880,38 @@ describe('UsersService invitation fallback (spec docs/specs/0007-user-management
         userId: NEW_USER_ID,
         reason: 'messaging is not configured',
       });
+    } finally {
+      writeAuditSpy.mockRestore();
+    }
+  });
+
+  it('enqueues the invitation inside the create transaction when durable jobs are enabled', async () => {
+    const writeAuditSpy = spyOn(ActivityLog, 'writeAudit').mockResolvedValue(
+      undefined as never,
+    );
+    try {
+      const { database, enqueueQueries } = createDurableFakeDatabase([
+        [],
+        [dbRow({ ...CREATE_USER_BODY })],
+        [ACTOR_ROW],
+      ]);
+      const jobs = new JobRegistry();
+      jobs.registerContract(authSendUserInvitationContract);
+      const service = new UsersService('user', {
+        database,
+        jobs,
+        durableJobsEnabled: true,
+      });
+
+      const created = await service.create(
+        CREATE_USER_BODY,
+        ACTOR,
+        CORRELATION,
+      );
+
+      expect(created.id).toBe(NEW_USER_ID);
+      expect(enqueueQueries[0]).toContain('jobs.enqueue_job');
+      expect(enqueueQueries[0]).toContain('user-invitation:');
     } finally {
       writeAuditSpy.mockRestore();
     }

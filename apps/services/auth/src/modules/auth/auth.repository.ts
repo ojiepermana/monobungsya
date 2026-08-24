@@ -129,8 +129,19 @@ export class AuthRepository {
       }
 
       await transaction`
-        INSERT INTO "auth"."login_tokens" (user_id, token_hash, expires_at)
-        VALUES (${userRow.id}, ${tokenHash}, ${expiresAt})
+        UPDATE "auth"."login_tokens"
+        SET used_at = now(), updated_at = now()
+        WHERE user_id = ${userId}
+          AND purpose = 'invitation'
+          AND used_at IS NULL
+          AND expires_at > now()
+      `;
+
+      await transaction`
+        INSERT INTO "auth"."login_tokens" (
+          user_id, token_hash, purpose, expires_at
+        )
+        VALUES (${userRow.id}, ${tokenHash}, 'invitation', ${expiresAt})
       `;
 
       return mapUser(userRow);

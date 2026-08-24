@@ -3,7 +3,7 @@ import { ActivityLog, Logger } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
 import { env } from './config/env';
-import { startAuthCleanupWorker } from './jobs/workers/auth-cleanup.worker';
+import { startAuthJobWorker } from './jobs/workers/auth-cleanup.worker';
 import { subscribeUserInvited } from './modules/auth/auth.events';
 import { SmtpAuthMailer } from './modules/auth/auth.mailer';
 import { AuthRepository } from './modules/auth/auth.repository';
@@ -20,14 +20,15 @@ ActivityLog.configure(logDatabase, {
 });
 // Login must not depend on the broker. Without messaging the service still
 // signs people in; only the invitation subscriber below is skipped.
-const messaging = env.ENABLE_INFRASTRUCTURE
-  ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
-      console.warn(
-        `${env.serviceName} could not reach NATS at ${env.NATS_URL}; invitation emails will not be delivered:`,
-        error instanceof Error ? error.message : error,
-      );
-    })
-  : undefined;
+const messaging =
+  env.ENABLE_INFRASTRUCTURE && !env.DURABLE_JOBS_ENABLED
+    ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
+        console.warn(
+          `${env.serviceName} could not reach NATS at ${env.NATS_URL}; invitation emails will not be delivered:`,
+          error instanceof Error ? error.message : error,
+        );
+      })
+    : undefined;
 const logger = new Logger(env.serviceName, env.LOG_LEVEL, {
   persist: env.BEST_EFFORT_LOGGING_ENABLED,
 });
@@ -42,6 +43,13 @@ const mailer = env.ENABLE_INFRASTRUCTURE
       webAppUrl: env.WEB_APP_URL,
     })
   : undefined;
+const authRepository = new AuthRepository(database ? { database } : undefined);
+const authService = new AuthService(
+  env.serviceName,
+  authRepository,
+  mailer,
+  env.WEB_APP_URL,
+);
 const app = createApp(
   env,
   {
@@ -60,22 +68,14 @@ const app = createApp(
     rpName: env.WEBAUTHN_RP_NAME,
   },
 );
-const stopCleanupWorker = database
-  ? startAuthCleanupWorker(new AuthRepository({ database }), logger)
-  : () => undefined;
+const stopCleanupWorker =
+  database && env.DURABLE_JOBS_ENABLED
+    ? startAuthJobWorker(database, authRepository, authService, logger)
+    : async () => undefined;
 
 // Invitation emails for users the user service creates (spec 0007, AC-2).
-if (database && messaging) {
-  subscribeUserInvited(
-    messaging,
-    new AuthService(
-      env.serviceName,
-      new AuthRepository({ database }),
-      mailer,
-      env.WEB_APP_URL,
-    ),
-    logger,
-  );
+if (database && messaging && !env.DURABLE_JOBS_ENABLED) {
+  subscribeUserInvited(messaging, authService, logger);
 }
 const server = app.listen(env.PORT);
 
@@ -90,7 +90,7 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   await server.stop();
-  stopCleanupWorker();
+  await stopCleanupWorker();
   await messaging?.close();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);

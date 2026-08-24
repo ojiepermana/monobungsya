@@ -1,25 +1,61 @@
+import type { DatabaseClient } from '#project/database';
+import {
+  authCleanupExpiredSecurityDataContract,
+  authSendUserInvitationContract,
+  DurableJobRuntime,
+  DurableJobWorker,
+  JobRegistry,
+} from '#project/jobs';
 import type { Logger } from '#project/logger';
 import type { AuthRepository } from '../../modules/auth/auth.repository';
+import type { AuthService } from '../../modules/auth/auth.service';
 
-const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-export function startAuthCleanupWorker(
+export function startAuthJobWorker(
+  database: DatabaseClient,
   repository: AuthRepository,
+  service: AuthService,
   logger: Logger,
-): () => void {
-  const run = async (): Promise<void> => {
-    try {
-      const result = await repository.cleanup();
-      logger.info('auth.cleanup.completed', { ...result });
-    } catch (error) {
-      logger.error('auth.cleanup.failed', {
-        error: error instanceof Error ? error.message : String(error),
+): () => Promise<void> {
+  const registry = new JobRegistry();
+  registry.registerContract(authSendUserInvitationContract);
+  registry.registerContract(authCleanupExpiredSecurityDataContract);
+  registry.bind(authSendUserInvitationContract, async (payload) => {
+    const sent = await service.sendInvitation(payload.userId);
+    if (!sent) {
+      logger.warn('auth.invitation.skipped', {
+        userId: payload.userId,
+        reason: 'user is missing or not active',
       });
     }
-  };
+  });
+  registry.bind(authCleanupExpiredSecurityDataContract, async () => {
+    const result = await repository.cleanup();
+    logger.info('auth.cleanup.completed', { ...result });
+  });
 
-  const timer = setInterval(() => void run(), CLEANUP_INTERVAL_MS);
-  timer.unref();
+  const runtime = new DurableJobRuntime(database, registry);
+  const worker = new DurableJobWorker(runtime, registry, {
+    workerId: `auth-${process.pid}`,
+    targetService: 'auth',
+    onEvent: (event) => {
+      if (event.name === 'job.failed' && event.failure) {
+        logger.error('auth.job.failed', {
+          type: event.job?.type,
+          code: event.failure.code,
+          message: event.failure.message,
+        });
+      } else if (event.name === 'job.worker_error') {
+        logger.error('auth.job.worker_error', {
+          type: event.job?.type,
+          error:
+            event.error instanceof Error
+              ? event.error.message
+              : String(event.error),
+        });
+      }
+    },
+  });
+  worker.start();
 
-  return () => clearInterval(timer);
+  return () => worker.stop();
 }

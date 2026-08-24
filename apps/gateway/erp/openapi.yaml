@@ -16,6 +16,8 @@ tags:
     description: Public log viewer boundary
   - name: Access
     description: Public permission access boundary
+  - name: Jobs
+    description: Authorized job operations boundary
 paths:
   /health:
     get:
@@ -2223,6 +2225,695 @@ paths:
                     const: true
                     type: boolean
       operationId: putApiV1UsersById2fa-requirement
+  /api/v1/jobs:
+    get:
+      tags:
+        - Jobs
+      summary: List durable jobs
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - queued
+              - running
+              - retry_wait
+              - completed
+              - failed
+        - name: type
+          in: query
+          required: false
+          schema:
+            maxLength: 100
+            type: string
+        - name: sourceService
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: targetService
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            maxLength: 40
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            maxLength: 40
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - type
+                        - version
+                        - sourceService
+                        - targetService
+                        - status
+                        - priority
+                        - runAt
+                        - attemptCount
+                        - maxAttempts
+                        - lockedBy
+                        - lockedAt
+                        - leaseExpiresAt
+                        - completedAt
+                        - failedAt
+                        - lastErrorCode
+                        - lastErrorMessage
+                        - scheduleCode
+                        - retryOfJobId
+                        - createdAt
+                        - updatedAt
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        type:
+                          type: string
+                        version:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        sourceService:
+                          type: string
+                        targetService:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - queued
+                            - running
+                            - retry_wait
+                            - completed
+                            - failed
+                        priority:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        runAt:
+                          type: string
+                        attemptCount:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        maxAttempts:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        lockedBy:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lockedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        leaseExpiresAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        completedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        failedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastErrorCode:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastErrorMessage:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        scheduleCode:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        retryOfJobId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                        updatedAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - page
+                      - status
+                      - type
+                      - sourceService
+                      - targetService
+                      - from
+                      - to
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      status:
+                        type: string
+                      type:
+                        type: string
+                      sourceService:
+                        type: string
+                      targetService:
+                        type: string
+                      from:
+                        type: string
+                      to:
+                        type: string
+                  options:
+                    type: object
+                    required:
+                      - statuses
+                      - types
+                      - sourceServices
+                      - targetServices
+                    properties:
+                      statuses:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - queued
+                            - running
+                            - retry_wait
+                            - completed
+                            - failed
+                      types:
+                        type: array
+                        items:
+                          type: string
+                      sourceServices:
+                        type: array
+                        items:
+                          type: string
+                      targetServices:
+                        type: array
+                        items:
+                          type: string
+      operationId: getApiV1Jobs
+  /api/v1/jobs/summary:
+    get:
+      tags:
+        - Jobs
+      summary: Read the durable jobs summary
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - queued
+                  - running
+                  - retrying
+                  - completed
+                  - failed
+                  - expiredLeaseCount
+                  - oldestQueuedAt
+                  - oldestQueuedAgeSeconds
+                properties:
+                  queued:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  running:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  retrying:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  completed:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  failed:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  expiredLeaseCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  oldestQueuedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  oldestQueuedAgeSeconds:
+                    anyOf:
+                      - anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      - type: "null"
+      operationId: getApiV1JobsSummary
+  /api/v1/jobs/{id}:
+    get:
+      tags:
+        - Jobs
+      summary: Read a durable job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - type
+                  - version
+                  - sourceService
+                  - targetService
+                  - status
+                  - priority
+                  - runAt
+                  - attemptCount
+                  - maxAttempts
+                  - lockedBy
+                  - lockedAt
+                  - leaseExpiresAt
+                  - completedAt
+                  - failedAt
+                  - lastErrorCode
+                  - lastErrorMessage
+                  - scheduleCode
+                  - retryOfJobId
+                  - createdAt
+                  - updatedAt
+                  - payload
+                  - attempts
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  type:
+                    type: string
+                  version:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  sourceService:
+                    type: string
+                  targetService:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - queued
+                      - running
+                      - retry_wait
+                      - completed
+                      - failed
+                  priority:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  runAt:
+                    type: string
+                  attemptCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  maxAttempts:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  lockedBy:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  leaseExpiresAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  completedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  failedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lastErrorCode:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lastErrorMessage:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  scheduleCode:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  retryOfJobId:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+                  payload:
+                    type: object
+                    patternProperties:
+                      ^(.*)$: {}
+                  attempts:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - attemptNumber
+                        - workerId
+                        - startedAt
+                        - finishedAt
+                        - outcome
+                        - durationMs
+                        - errorCode
+                        - errorMessage
+                      properties:
+                        id:
+                          format: uuid
+                          type: string
+                        attemptNumber:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        workerId:
+                          type: string
+                        startedAt:
+                          type: string
+                        finishedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        outcome:
+                          anyOf:
+                            - const: completed
+                              type: string
+                            - const: retry
+                              type: string
+                            - const: failed
+                              type: string
+                            - const: abandoned
+                              type: string
+                            - type: "null"
+                        durationMs:
+                          anyOf:
+                            - anyOf:
+                                - format: integer
+                                  default: 0
+                                  type: string
+                                - type: integer
+                            - type: "null"
+                        errorCode:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        errorMessage:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+      operationId: getApiV1JobsById
+  /api/v1/jobs/{id}/retry:
+    post:
+      tags:
+        - Jobs
+      summary: Retry a failed durable job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 1000
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 1000
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  minLength: 3
+                  maxLength: 1000
+                  type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - type
+                  - version
+                  - sourceService
+                  - targetService
+                  - status
+                  - priority
+                  - runAt
+                  - attemptCount
+                  - maxAttempts
+                  - lockedBy
+                  - lockedAt
+                  - leaseExpiresAt
+                  - completedAt
+                  - failedAt
+                  - lastErrorCode
+                  - lastErrorMessage
+                  - scheduleCode
+                  - retryOfJobId
+                  - createdAt
+                  - updatedAt
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  type:
+                    type: string
+                  version:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  sourceService:
+                    type: string
+                  targetService:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - queued
+                      - running
+                      - retry_wait
+                      - completed
+                      - failed
+                  priority:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  runAt:
+                    type: string
+                  attemptCount:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  maxAttempts:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  lockedBy:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lockedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  leaseExpiresAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  completedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  failedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lastErrorCode:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  lastErrorMessage:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  scheduleCode:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  retryOfJobId:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+      operationId: postApiV1JobsByIdRetry
   /api/v1/logs/audit-trails:
     get:
       tags:

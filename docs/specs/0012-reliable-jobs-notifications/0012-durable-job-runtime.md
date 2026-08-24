@@ -2,28 +2,33 @@
 
 **Date**: 2026-08-23
 
-**Status**: Proposed
-
 **Parent**: [Reliable background jobs and notification center](./index.md)
 
 ## Responsibility
 
 Provide a reusable PostgreSQL backed runtime for declared durable jobs, code registered schedules, bounded retries, lease recovery, and operator visibility. This child spec owns the `jobs` schema, `jobs` service, and `#project/jobs` package.
 
-## Job registry
+## Shared contract and handler registry
 
-Every job type must register these values before enqueue is accepted:
+Every job type must have one shared declarative contract in `#project/jobs` before enqueue is accepted. The contract is metadata only and contains:
 
 1. Stable type and integer version.
 2. Source and target service.
 3. Runtime payload validator.
-4. Handler and domain idempotency strategy.
+4. Domain idempotency strategy.
 5. Retryable and non retryable error classification.
 6. Maximum attempts, with default 5.
 7. Payload redaction and operator payload allowlist.
 8. Optional concurrency limit no greater than the process default.
 9. Terminal failure notification eligibility.
 10. For webhook work, a typed integration key whose destination and credential resolve from target service configuration.
+11. Optional code registered schedule metadata.
+
+The shared registry validates contracts, rejects duplicate type and version pairs, and is imported by producer services and the jobs service. A producer validates the contract before it calls `enqueueJob` inside its source transaction.
+
+The target service binds a local handler to the shared contract at startup. The local binding adds the handler and its target service context, but never changes the declarative contract. The target service readiness check fails when a contract points to it but no local handler is bound. The jobs service never imports or executes target service handlers.
+
+The contract registry exposes a producer view without handlers and a worker view with local handler bindings. This keeps the shared package free of service imports while ensuring producers, the scheduler, and workers use the same type, version, payload, target, retry, and redaction rules.
 
 Unknown type or version is rejected before enqueue. If a deployed worker encounters an unknown type or version, it marks the job terminal failed with a safe error and does not execute payload content.
 
@@ -46,6 +51,8 @@ Unknown type or version is rejected before enqueue. If a deployed worker encount
 
 Payload is JSONB, limited to 64 KB after serialization. Registry validation rejects secrets, credentials, token values, and types outside the allowlist.
 
+Job states are `queued`, `running`, `retry_wait`, `completed`, and `failed`. The canonical terminal success value is `completed`. The database constraint, TypeScript `JobStatus`, API filters and responses, generated clients, operator UI, telemetry labels, and tests must use this exact value. `succeeded` is not an accepted alias.
+
 ### `jobs.job_attempt`
 
 1. UUIDv7 primary key and owning job foreign key.
@@ -53,6 +60,8 @@ Payload is JSONB, limited to 64 KB after serialization. Registry validation reje
 3. Started and finished timestamps.
 4. Outcome, duration, safe error code, and safe error message.
 5. Attempts cascade only when their owning job is removed by retention.
+
+Attempt outcomes are `completed`, `retry`, `failed`, and `abandoned`. A successful attempt and its job both use `completed`.
 
 ### `jobs.job_schedule`
 
@@ -66,17 +75,18 @@ Schedule definitions synchronize idempotently from code at startup. Registry del
 
 ## Database boundary
 
-1. Producer services call `enqueueJob(transaction, input)` in the same transaction as their mutation.
+1. Producer services import the shared declarative contract and call `enqueueJob(transaction, input)` in the same transaction as their mutation.
 2. Producer roles receive only the required insert path. They cannot read, claim, or update queue data.
 3. Worker functions map `current_user` to a configured target service and reject claims outside that target.
 4. Claim, heartbeat, complete, and fail functions require the current lease owner.
 5. Claim uses `FOR UPDATE SKIP LOCKED`, orders by priority then `runAt` then creation time, updates the lease, and creates an attempt row atomically.
 6. A reaper moves expired running work to `retry_wait` or terminal `failed` according to attempts remaining.
 7. No cross schema foreign key points from jobs to user, access, auth, or notification data.
+8. Scheduled occurrences are enqueued by the jobs service with `source_service` equal to the contract source service. A scheduled system contract must declare `sourceService: jobs`, so the jobs runtime role remains the only role that creates scheduled work.
 
 ## Worker lifecycle
 
-1. Worker startup validates the registry, synchronizes schedules if it owns scheduler duties, and checks database function compatibility.
+1. Worker startup validates the shared contract registry, binds only local target service handlers, checks database function compatibility, and fails readiness when a required local binding is missing.
 2. Default process concurrency is 5.
 3. A claimed job receives a 60 second lease and a heartbeat every 20 seconds.
 4. Workers poll every 5 seconds and may wake sooner from a best effort NATS signal.
@@ -92,12 +102,12 @@ A webhook payload cannot contain an arbitrary URL or credential. Its owning serv
 ## Schedules
 
 1. `cron-parser` is the only new runtime dependency in this feature.
-2. Cron expression and IANA timezone validation run during code registry synchronization.
+2. The jobs service loads schedule metadata from the shared declarative contract registry. Cron expression and IANA timezone validation run during jobs service startup synchronization.
 3. Invalid definitions fail readiness and do not emit occurrences.
 4. One jobs service instance acquires a short scheduler lease before materializing due occurrences.
 5. Missed occurrences after downtime are emitted in chronological order within a configured catch up limit. Older occurrences beyond that limit are recorded as skipped in structured telemetry.
 6. There is no schedule editor API or UI.
-7. `auth.cleanup_expired_security_data` replaces the current auth process timer and is the first production recurring schedule.
+7. The scheduler uses the contract source service when it creates an occurrence. `auth.cleanup_expired_security_data` declares `sourceService: jobs`, targets `auth`, and replaces the current auth process timer as the first production recurring schedule.
 
 ## Operator API
 
@@ -160,3 +170,5 @@ Terminal jobs and attempts remain for 90 days by default. Cleanup runs in bounde
 8. Operator ACL, resource hiding, sanitized payload, idempotent manual retry, and audit emission.
 9. Retention safety and bounded cleanup.
 10. Worker progress while NATS is unavailable.
+11. State vocabulary across database constraints, TypeScript, API contracts, generated clients, operator UI, telemetry, and tests. Successful jobs and attempts use `completed`, and contract validation rejects `succeeded`.
+12. Producer views, the jobs service scheduler, and target service worker views consume the same contract metadata. Readiness fails for a missing local handler, and scheduled system work is rejected when its source service is not `jobs`.

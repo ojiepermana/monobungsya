@@ -337,6 +337,49 @@ describe('api gateway', () => {
     }
   });
 
+  it('forwards the protected jobs operator list with a canonical identity', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+        JOBS_SERVICE_URL: 'http://jobs.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let upstreamRequest: Request | undefined;
+    globalThis.fetch = Object.assign(
+      fetchFor(['jobs:job:list'], (request) => {
+        upstreamRequest = request;
+        return Response.json({ data: [] });
+      }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/jobs?page=2&status=failed', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+      const identity = readAndVerifyAuthIdentity(
+        upstreamRequest?.headers ?? new Headers(),
+        'GET',
+        '/internal/jobs',
+        SECRET,
+      );
+      expect(response.status).toBe(200);
+      expect(upstreamRequest?.url).toBe(
+        'http://jobs.internal/internal/jobs?page=2&status=failed',
+      );
+      expect(identity?.permissions).toEqual(['jobs:job:list']);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('writes a protected access log row without leaking request secrets', async () => {
     const app = createApp(
       loadGatewayEnv({

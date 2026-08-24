@@ -47,6 +47,15 @@ import {
   passkeySummaryResponse,
 } from '../../../../services/auth/src/modules/auth/passkey.schema';
 import {
+  jobDetailResponse,
+  jobIdParams,
+  jobResponse,
+  jobRetryBody,
+  jobSummaryResponse,
+  jobsListQuery,
+  jobsListResponse,
+} from '../../../../services/jobs/src/modules/jobs/jobs.schema';
+import {
   accessLogsResponse,
   applicationLogsResponse,
   auditTrailsResponse,
@@ -1021,6 +1030,86 @@ export function createProxyRoute(
           tags: ['Users'],
           summary: 'Require or release TOTP for a user',
         },
+      },
+    )
+    .get(
+      '/api/v1/jobs',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.jobs,
+          '/api/v1/jobs',
+          '/internal/jobs',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.jobsJobList],
+          permissionCache,
+        ),
+      {
+        query: jobsListQuery,
+        response: { 200: jobsListResponse },
+        detail: { tags: ['Jobs'], summary: 'List durable jobs' },
+      },
+    )
+    .get(
+      '/api/v1/jobs/summary',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.jobs,
+          '/api/v1/jobs',
+          '/internal/jobs',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.jobsJobRead],
+          permissionCache,
+        ),
+      {
+        response: { 200: jobSummaryResponse },
+        detail: { tags: ['Jobs'], summary: 'Read the durable jobs summary' },
+      },
+    )
+    .get(
+      '/api/v1/jobs/:id',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.jobs,
+          '/api/v1/jobs',
+          '/internal/jobs',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.jobsJobRead],
+          permissionCache,
+        ),
+      {
+        params: jobIdParams,
+        response: { 200: jobDetailResponse },
+        detail: { tags: ['Jobs'], summary: 'Read a durable job' },
+      },
+    )
+    .post(
+      '/api/v1/jobs/:id/retry',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.jobs,
+          '/api/v1/jobs',
+          '/internal/jobs',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.jobsJobRetry],
+          permissionCache,
+        ),
+      {
+        params: jobIdParams,
+        body: jobRetryBody,
+        response: { 200: jobResponse },
+        detail: { tags: ['Jobs'], summary: 'Retry a failed durable job' },
       },
     )
     .get(

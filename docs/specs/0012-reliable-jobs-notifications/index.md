@@ -17,7 +17,9 @@ This umbrella coordinates two child specs:
 
 ## Decision
 
-Use a PostgreSQL backed durable queue with NATS core as an optional wake signal. Keep execution handlers in their target services. Add a jobs service for queue operations and a notification service for user notification data and delivery. Use at least once processing with required producer and consumer idempotency.
+Use a PostgreSQL backed durable queue with NATS core as an optional wake signal. Keep declarative job contracts in `#project/jobs`, bind execution handlers only in their target services, and let the jobs service consume contract schedule metadata. Add a jobs service for queue operations and a notification service for user notification data and delivery. Use at least once processing with required producer and consumer idempotency.
+
+The canonical terminal success state is `completed`. Database values, TypeScript types, API filters and responses, generated clients, operator UI, telemetry labels, and tests must use this exact value. `succeeded` is not an accepted alias.
 
 ## Goals
 
@@ -41,7 +43,7 @@ Use a PostgreSQL backed durable queue with NATS core as an optional wake signal.
 
 1. `jobs` schema and `jobs` service own the queue, scheduler, recovery, cleanup, health endpoints, and operator API.
 2. `notification` schema and `notification` service own notification records, preferences, recipient projection, delivery records, and user APIs.
-3. `#project/jobs` provides transactional enqueue, registry validation, worker claiming, heartbeat, completion, failure, and graceful shutdown helpers.
+3. `#project/jobs` provides shared declarative contracts, producer validation, local handler binding, transactional enqueue, worker claiming, heartbeat, completion, failure, and graceful shutdown helpers. The jobs service never imports target service handlers.
 4. Workers and handlers run in the target service. A runtime database role can claim only jobs mapped to that service.
 5. PostgreSQL is the source of truth. Workers claim atomically with `FOR UPDATE SKIP LOCKED` and a lease.
 6. NATS core sends best effort wake signals. Workers also poll every 5 seconds, so NATS failure changes latency rather than durability.
@@ -50,7 +52,7 @@ Use a PostgreSQL backed durable queue with NATS core as an optional wake signal.
 9. Durable job identity is unique on `(sourceService, type, idempotencyKey)`.
 10. The default worker configuration is concurrency 5 per process, lease 60 seconds, heartbeat 20 seconds, poll 5 seconds, and 5 attempts. Deployment configuration can lower concurrency for a job type.
 11. Automatic retry uses exponential backoff with 0 to 20 percent jitter, beginning at 5 seconds and capped at 15 minutes.
-12. Immediate work, one time `runAt`, and recurring schedules declared in code are supported. `cron-parser` validates cron expressions and timezones during registry synchronization.
+12. Immediate work, one time `runAt`, and recurring schedules declared in shared contract metadata are supported. The jobs service synchronizes and validates schedule metadata with `cron-parser`. Scheduled system contracts use `sourceService: jobs` and the target service remains the handler owner.
 13. In app and email are the version one notification channels. Tauri uses the in app experience while open and does not emit native notifications.
 14. The target operating scale is 100,000 jobs per day, 10,000 users, and a small worker fleet. Initial implementation does not partition tables.
 15. Registered handlers may perform event, email, and webhook delivery. A webhook job carries a typed integration key only. Its destination and credential come from target service configuration and never from the payload.
@@ -64,12 +66,12 @@ The complete job data model, worker protocol, scheduler, operator API, and confi
 <table>
 <thead><tr><th>Value or action</th><th>Named source</th></tr></thead>
 <tbody>
-<tr><td>Job type, version, target, retry policy, payload schema, and safe payload fields</td><td>Code owned job registry</td></tr>
+<tr><td>Job type, version, source, target, retry policy, payload schema, safe payload fields, handler ownership, and schedule metadata</td><td>Shared declarative contract registry in `#project/jobs`; handler binding is local to the target service</td></tr>
 <tr><td>Job payload and idempotency key</td><td>Source service domain event inside its business transaction</td></tr>
 <tr><td>Actor and correlation identifiers</td><td>Verified request context propagated by the source service</td></tr>
 <tr><td>Job time, attempt time, read time, and sent time</td><td>Database server time stored in UTC</td></tr>
 <tr><td>Job target authorization</td><td>Runtime database role to target service mapping</td></tr>
-<tr><td>Schedule expression, timezone, and occurrence key</td><td>Code schedule registry and planned UTC occurrence time</td></tr>
+<tr><td>Schedule expression, timezone, source service, target service, and occurrence key</td><td>Shared contract schedule metadata, with planned UTC occurrence time; scheduled system source is `jobs`</td></tr>
 <tr><td>Webhook destination and credential</td><td>Target service typed configuration selected by a registered integration key</td></tr>
 <tr><td>Manual retry reason</td><td>Required operator request body</td></tr>
 <tr><td>Manual retry request identity</td><td>Required `Idempotency-Key` UUID header</td></tr>
@@ -97,24 +99,26 @@ The complete job data model, worker protocol, scheduler, operator API, and confi
 
 ## Cross child contract
 
-1. Producers submit typed, versioned payloads no larger than 64 KB. The registry defines payload validation, target service, retry policy, redaction, and handler ownership.
+1. Producers submit typed, versioned payloads no larger than 64 KB. The shared contract registry defines payload validation, source and target service, retry policy, redaction, schedule metadata, and handler ownership. Target services bind handlers locally and the jobs service only consumes declarative metadata.
 2. Notification creation uses typed `notification.create` jobs. Email delivery uses a separate typed job containing only `notificationDeliveryId`.
 3. `notification.notification_delivery.jobId` is a logical reference. There is no foreign key across service schemas.
 4. User and access services maintain `notification.recipient_projection` through durable synchronization jobs. An initial controlled migration performs the backfill.
 5. Terminal failure notifications are sent to active users projected with `jobs:job:read`. Notification pipeline failures never create another failure notification.
 6. Normal auth magic link email remains synchronous and auth owned. Raw magic link and invitation tokens never enter a job payload.
 7. User invitation moves from best effort NATS delivery to `auth.send_user_invitation`. Its payload contains `userId` only. The auth worker creates a fresh token at each attempt and invalidates earlier unused invitation tokens.
-8. Auth cleanup moves from its process timer to the code registered `auth.cleanup_expired_security_data` recurring job. The auth service remains the handler owner.
+8. Auth cleanup moves from its process timer to the shared contract registered `auth.cleanup_expired_security_data` recurring job. Its source service is `jobs`, its target is `auth`, and the auth service remains the handler owner.
 
 ## State model
 
 ```text
-queued → running → succeeded
+queued → running → completed
 queued → running → retry_wait → running
 queued → running → failed
 running with an expired lease → retry_wait
 failed → manual retry creates a new linked queued job
 ```
+
+`completed` means the handler finished successfully and the runtime recorded that result while the worker still owned the lease. `failed` remains the separate terminal failure state. A successful transition writes `completedAt` in API models and `completed_at` in storage.
 
 The original failed job is immutable. A manual retry creates a new job with `retryOfJobId`, a derived unique job key, and a strict audit record containing actor, reason, source job, and new job.
 
@@ -153,8 +157,8 @@ Keep the old invitation event consumer disabled but available for one release ro
 
 ## Build plan
 
-1. [ ] Create the `jobs` database schema, grants, stored functions, registry, and `#project/jobs` package. Implement one transactional enqueue through claim, heartbeat, completion, retry, and lease recovery. Covers `AC-1` through `AC-5`.
-2. [ ] Create the jobs service, recurring scheduler, cleanup, health and queue summary endpoints, structured telemetry, and operator list, detail, and retry routes. Covers `AC-3`, `AC-4`, `AC-11`, `AC-12`, `AC-14`, and `AC-15`.
+1. [x] Create the `jobs` database schema, grants, stored functions, shared contract registry, producer view, target service handler binding, and `#project/jobs` package. Implement one transactional enqueue through claim, heartbeat, completion, retry, and lease recovery. Covers `AC-1` through `AC-5`.
+2. [x] Create the jobs service, contract schedule synchronization, recurring scheduler, cleanup, health and queue summary endpoints, structured telemetry, and operator list, detail, and retry routes. Covers `AC-3`, `AC-4`, `AC-11`, `AC-12`, `AC-14`, and `AC-15`.
 3. [ ] Move invitation delivery to `auth.send_user_invitation` without storing a raw token, remove the invitation dependency on best effort NATS, and replace the auth cleanup timer with `auth.cleanup_expired_security_data`. Covers `AC-4`, `AC-13`, and `AC-16`.
 4. [ ] Create the notification schema, service, recipient projection, typed templates, and one security event path from source mutation through in app persistence. Covers `AC-6`, `AC-7`, `AC-10`, and `AC-13`.
 5. [ ] Add email delivery jobs, effective preference checks, mandatory categories, account and access event producers, and terminal job failure fanout. Covers `AC-6`, `AC-8`, `AC-9`, and `AC-10`.

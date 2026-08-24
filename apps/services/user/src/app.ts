@@ -8,6 +8,7 @@ import {
   createOpenApiPlugin,
   requestIdPlugin,
 } from '#project/elysia';
+import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { createUsersRoute } from './modules/users/users.route';
@@ -15,6 +16,8 @@ import { createUsersRoute } from './modules/users/users.route';
 export interface UserAppDependencies {
   database?: DatabaseClient;
   messaging?: Publisher;
+  jobs?: JobRegistry;
+  durableJobsEnabled?: boolean;
 }
 
 export function createApp(
@@ -56,6 +59,8 @@ export function createApp(
       createUsersRoute(environment.serviceName, {
         database: dependencies.database,
         messaging: dependencies.messaging,
+        jobs: dependencies.jobs,
+        durableJobsEnabled: dependencies.durableJobsEnabled,
         logger,
         signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
         clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
