@@ -171,8 +171,8 @@ export const appConfig = {
 
 1. [ ] Capture the Angular package and CSS rules in the `## Agent skills` section of the appropriate `AGENTS.md` before implementation begins.
 2. [ ] Run `/check verify` against the acceptance criteria after the migration, including AXE and browser responsive checks.
-3. [ ] Ship the two additive package changes in [upstream library API](0010-upstream-library-api.md), then record the released version number here and raise the dependency.
-4. [ ] Measure the production initial bundle after the wrapper adoption and the lazy dashboard route, record the number here, and set the initial warning budget from it.
+3. [x] Ship the two additive package changes in [upstream library API](0010-upstream-library-api.md), then record the released version number here and raise the dependency. Released: `@ojiepermana/angular` and `@ojiepermana/angular-theme` `22.1.4`, root dependency raised to `^22.1.4`.
+4. [x] Measure the production initial bundle after the wrapper adoption and the lazy dashboard route, record the number here, and set the initial warning budget from it. Measured 2026-08-24: initial total 740.11 kB raw, 164.25 kB estimated transfer. The initial warning budget is set to 850kB with a 1MB error budget in `apps/web/angular.json`. The `qrcode` CommonJS dependency of `angularx-qrcode` is declared in `allowedCommonJsDependencies`, so the production build completes with no warning.
 5. [ ] Revisit the package update policy if a future release changes the Angular peer range or the published theme entry points.
 6. [ ] Confirm with the team that a `dockbar` icon rail is the right default for operators, since it replaces the labelled sidebar currently shown.
 7. [ ] Decide whether showing the operator's email in the navigation footer is acceptable on shared or public facing displays, and switch to name only if it is not.
