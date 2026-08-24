@@ -92,6 +92,17 @@ Implement magic link authentication in the auth service with SMTP deployment con
 
 **Implementation skills**: `elysiajs` (`project/elysiajs`, `/Users/ojiepermana/.agents/skills/elysiajs/`)
 
+**Note (2026-08-24, recorded after commit `3cbfe5b`)**: the magic link token length bounds
+(20 to 512 characters) are deliberately enforced inside `AuthService.verifyMagicLink`
+rather than in the Elysia query schema. Schema level validation would reject a malformed
+token before the route handler runs, producing a raw validation response, while **AC-3**
+requires every expired, used, malformed, or unknown token to redirect generically to
+`WEB_APP_URL/auth/callback-error`. The service check throws `UnauthorizedError`, which the
+handler turns into that `302` redirect; integration tests cover the malformed (`bad`) and
+oversized (513 characters) cases. The endpoint table's `400 malformed token` entry
+describes the pre `3cbfe5b` behavior; the shipped behavior is the generic `302` redirect.
+Defense in depth is therefore unchanged, only its layer moved.
+
 ## Rationale
 
 The existing user and auth schemas already contain users, login tokens, sessions, and rate limits, so server side magic link sessions extend the current foundation without introducing an identity provider or password lifecycle. Hashing raw tokens, atomic consume, and bounded session expiry address the highest risk paths directly.
