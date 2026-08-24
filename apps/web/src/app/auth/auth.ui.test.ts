@@ -38,6 +38,30 @@ function passkeyStub() {
 afterEach(() => TestBed.resetTestingModule());
 
 describe('auth UI', () => {
+  it('covers AC-8 and AC-15: keeps login in one centered package card without navigation', async () => {
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        { provide: PasskeyService, useValue: passkeyStub() },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('page')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('pagecontent')).toHaveLength(
+      1,
+    );
+    expect(fixture.nativeElement.querySelectorAll('card')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('main')).toBeNull();
+    expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Masuk ke Monobungsya');
+  });
+
   it('covers AC-2 and AC-6: rejects invalid email with linked alert semantics', async () => {
     const requestMagicLink = vi.fn();
     await TestBed.configureTestingModule({

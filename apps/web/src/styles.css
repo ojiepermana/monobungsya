@@ -1,5 +1,4 @@
 /* Global styles for the Angular app. */
-@import "@fontsource-variable/material-symbols-rounded/index.css";
 @import "@ojiepermana/angular-theme/theme-full.css";
 @import "tailwindcss" source(none);
 @import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
@@ -115,14 +114,4 @@ app-root NavigationFooter NavigationFooterInitial {
 
 app-root NavigationHeader ThemeSettings > button {
   margin-left: auto;
-}
-
-.ThemeSettings icon {
-  /* biome-ignore lint/a11y/useGenericFontNames: an icon font has no meaningful generic fallback */
-  font-family: "Material Symbols Rounded Variable" !important;
-}
-
-.ThemeSettings button[drawerclose] icon {
-  /* biome-ignore lint/a11y/useGenericFontNames: an icon font has no meaningful generic fallback */
-  font-family: "Material Symbols Rounded Variable" !important;
 }

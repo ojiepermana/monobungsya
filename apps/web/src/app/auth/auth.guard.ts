@@ -10,15 +10,23 @@ export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
+  if (auth.loaded()) {
+    return auth.user() ? true : router.parseUrl('/login');
+  }
+
   return auth.loadCurrentUser().pipe(
     map((user) => (user ? true : router.parseUrl('/login'))),
-    catchError(() => of(router.parseUrl('/login'))),
+    catchError(() => of(false)),
   );
 };
 
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
+
+  if (auth.loaded()) {
+    return auth.user() ? router.parseUrl('/') : true;
+  }
 
   return auth.loadCurrentUser().pipe(
     map((user) => (user ? router.parseUrl('/') : true)),
@@ -41,7 +49,7 @@ export function permissionGuard(permission: AuthPermission): CanActivateFn {
 
     return auth.loadCurrentUser().pipe(
       map(decide),
-      catchError(() => of(router.parseUrl('/login'))),
+      catchError(() => of(false)),
     );
   };
 }

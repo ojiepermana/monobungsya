@@ -20,6 +20,7 @@ import {
   PageFooterComponent,
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
+import { QRCodeComponent } from 'angularx-qrcode';
 import { firstValueFrom, type Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 import {
@@ -27,7 +28,6 @@ import {
   type TotpRecoveryCodes,
   TotpService,
 } from './totp.service';
-import { TotpQrService } from './totp-qr.service';
 
 type TotpVerifyResult = { authenticated: true; redirectTo: string };
 
@@ -45,6 +45,7 @@ type TotpVerifyResult = { authenticated: true; redirectTo: string };
     CardHeaderComponent,
     CardTitleComponent,
     InputComponent,
+    QRCodeComponent,
     PageComponent,
     PageContentComponent,
     PageFooterComponent,
@@ -57,14 +58,14 @@ type TotpVerifyResult = { authenticated: true; redirectTo: string };
       <PageContent class="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pb-10">
         <Card class="block w-full max-w-lg">
           <CardHeader>
-            <CardTitle>{{ enrolling ? 'Siapkan aplikasi authenticator' : 'Masukkan kode authenticator' }}</CardTitle>
+            <CardTitle level="2">{{ enrolling ? 'Siapkan aplikasi authenticator' : 'Masukkan kode authenticator' }}</CardTitle>
             <p CardDescription>{{ enrolling ? 'Pindai QR atau masukkan secret secara manual, lalu masukkan kode 6 digit.' : 'Faktor pertama berhasil. Sesi belum dibuat sampai kode Anda benar.' }}</p>
           </CardHeader>
           <CardContent>
             @if (error(); as message) { <Alert variant="destructive" class="mb-4"><AlertTitle>Verifikasi gagal</AlertTitle><AlertDescription>{{ message }}</AlertDescription></Alert> }
             @if (enrolling && enrollment(); as setup) {
               <div class="grid gap-4">
-                <div class="flex justify-center rounded border border-border bg-white p-4">@if (qr(); as qrCode) { <img [src]="qrCode" width="220" height="220" alt="QR code untuk authenticator" /> }</div>
+                <div class="flex justify-center rounded border border-border bg-white p-4"><qrcode [qrdata]="setup.otpauthUri" [width]="220" [margin]="1" elementType="img" alt="QR code untuk authenticator" ariaLabel="QR code untuk authenticator" /></div>
                 <div><p class="text-xs text-muted-foreground">Secret manual</p><code class="mt-1 block break-all rounded bg-muted p-3 text-sm">{{ setup.secret }}</code></div>
               </div>
             }
@@ -91,12 +92,10 @@ export class TwoFactorPage {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly totp = inject(TotpService);
-  private readonly totpQr = inject(TotpQrService);
 
   protected readonly enrolling =
     (this.route.snapshot.data as { purpose?: string }).purpose === 'enroll';
   protected readonly enrollment = signal<TotpEnrollment | null>(null);
-  protected readonly qr = signal<string | null>(null);
   protected readonly recoveryCodes = signal<string[] | null>(null);
   protected readonly code = signal('');
   protected readonly recoveryCode = signal('');
@@ -108,9 +107,6 @@ export class TwoFactorPage {
       this.totp.enroll().subscribe({
         next: (setup) => {
           this.enrollment.set(setup);
-          void this.totpQr
-            .dataUrl(setup.otpauthUri)
-            .then((qr) => this.qr.set(qr));
         },
         error: () => this.error.set('De enrollment kon niet worden gestart.'),
       });

@@ -1,20 +1,34 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
+import {
+  PageComponent,
+  PageContentComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService } from './auth.service';
-import { AuthShell } from './auth-shell';
 import { PasskeyService } from './passkey.service';
 
 type VerifyState = 'verifying' | 'success' | 'error';
 
 @Component({
   selector: 'app-verify-page',
-  host: { class: 'block min-h-full' },
-  imports: [RouterLink, IconComponent, AuthShell],
+  host: { class: 'block h-full min-h-0' },
+  imports: [
+    RouterLink,
+    IconComponent,
+    PageComponent,
+    PageContentComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
+  ],
   template: `
-    <app-auth-shell>
-      <section class="w-full max-w-xl" aria-labelledby="callback-title">
+    <Page variant="stacked" height="fix" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
+      <PageHeader class="invisible h-0 overflow-hidden" aria-hidden="true"></PageHeader>
+      <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">
+        <section class="w-full max-w-xl" aria-labelledby="callback-title">
         @if (state() === 'verifying') {
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Checking access</p>
           <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">One moment.</h1>
@@ -39,14 +53,16 @@ type VerifyState = 'verifying' | 'success' | 'error';
             </div>
           }
         } @else {
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Link unavailable</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Link unavailable</p>
           <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">That link cannot be used.</h1>
           <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground">The sign in link may have expired or already been used. Request a fresh link to continue.</p>
           <div class="mt-8 max-w-lg border-l-2 border-accent bg-accent/10 px-5 py-4 text-sm leading-6 text-foreground" role="alert">The link is invalid or no longer available.</div>
           <a routerLink="/auth/login" class="mt-7 inline-flex min-h-12 items-center justify-center gap-2 border border-border bg-background px-5 text-sm font-semibold text-foreground no-underline transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Icon name="arrow_back" [size]="17" aria-hidden="true" />Return to sign in</a>
         }
-      </section>
-    </app-auth-shell>
+        </section>
+      </PageContent>
+      <PageFooter class="invisible h-0 overflow-hidden" aria-hidden="true"></PageFooter>
+    </Page>
   `,
 })
 export class VerifyPage {

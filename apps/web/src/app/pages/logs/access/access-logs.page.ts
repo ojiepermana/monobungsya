@@ -7,6 +7,12 @@ import {
   NativeSelectOptionDirective,
 } from '@ojiepermana/angular/component/native-select';
 import {
+  PageComponent,
+  PageContentComponent,
+  PageFooterComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
+import {
   type AccessLogItem,
   ApiService,
   type LogsMeta,
@@ -28,15 +34,20 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
     InputComponent,
     NativeSelectComponent,
     NativeSelectOptionDirective,
+    PageComponent,
+    PageContentComponent,
+    PageFooterComponent,
+    PageHeaderComponent,
   ],
   template: `
-    <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
-      <header>
+    <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
+      <PageHeader class="px-6 pt-6">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
         <h1 class="mt-2 text-2xl font-semibold text-foreground">Access Logs</h1>
-      </header>
+      </PageHeader>
 
-      <section class="grid gap-3 md:flex md:flex-wrap md:items-center">
+      <PageContent class="grid min-h-0 content-start gap-6 overflow-auto p-6">
+        <section class="grid gap-3 md:flex md:flex-wrap md:items-center">
         <input
           Input
           type="search"
@@ -147,7 +158,9 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
         </div>
       }
 
-      <footer class="flex flex-wrap items-center justify-between gap-3">
+      </PageContent>
+
+      <PageFooter class="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)">First</button>
@@ -155,8 +168,8 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)">Next</button>
           <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)">Last</button>
         </div>
-      </footer>
-    </main>
+      </PageFooter>
+    </Page>
   `,
 })
 export class AccessLogsPage {

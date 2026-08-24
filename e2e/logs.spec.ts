@@ -23,6 +23,21 @@ const pageLabel = (page: Page, pageNo: number) =>
   );
 
 test.describe('log pages as an admin', () => {
+  test('covers AC-9, AC-10, AC-14, and AC-15: a log page has one shell content landmark without overflow', async ({
+    page,
+  }) => {
+    await page.goto('/logs/audit');
+
+    await expect(page.getByRole('main')).toHaveCount(1);
+    await expect(page.getByRole('navigation')).toHaveCount(1);
+    await expect(page.locator('page')).toHaveCount(1);
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBe(dimensions.clientWidth);
+  });
+
   for (const route of ['/logs/audit', '/logs/access', '/logs/application']) {
     test(`covers AC-9: ${route} renders the table with search, filters, clear filters, and paging`, async ({
       page,

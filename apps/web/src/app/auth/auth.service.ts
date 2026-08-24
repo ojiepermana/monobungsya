@@ -1,5 +1,15 @@
 import { Service, signal } from '@angular/core';
-import { defer, map, Observable, tap } from 'rxjs';
+import {
+  catchError,
+  defer,
+  finalize,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  tap,
+  throwError,
+} from 'rxjs';
 import {
   type GetApiV1AuthSessionResponse,
   getApiV1AuthSession,
@@ -39,10 +49,18 @@ export interface MeResponse {
   user?: AuthUser;
 }
 
+export type SessionState =
+  | 'checking'
+  | 'authenticated'
+  | 'unauthenticated'
+  | 'service-error';
+
 @Service()
 export class AuthService {
   readonly user = signal<AuthUser | null>(null);
   readonly loaded = signal(false);
+  readonly sessionState = signal<SessionState>('checking');
+  private sessionRequest: Observable<AuthUser | null> | null = null;
 
   requestMagicLink(
     email: string,
@@ -84,7 +102,16 @@ export class AuthService {
   }
 
   loadCurrentUser(): Observable<AuthUser | null> {
-    return defer(() =>
+    if (this.loaded()) {
+      return of(this.user());
+    }
+
+    if (this.sessionRequest) {
+      return this.sessionRequest;
+    }
+
+    this.sessionState.set('checking');
+    this.sessionRequest = defer(() =>
       sdkRequest<GetApiV1AuthSessionResponse>(() =>
         getApiV1AuthSession({ throwOnError: true }),
       ),
@@ -100,8 +127,25 @@ export class AuthService {
       tap((user) => {
         this.user.set(user);
         this.loaded.set(true);
+        this.sessionState.set(user ? 'authenticated' : 'unauthenticated');
       }),
+      catchError((error: unknown) => {
+        this.sessionState.set('service-error');
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        this.sessionRequest = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+
+    return this.sessionRequest;
+  }
+
+  retrySession(): Observable<AuthUser | null> {
+    this.loaded.set(false);
+    this.user.set(null);
+    return this.loadCurrentUser();
   }
 
   logout(): Observable<void> {
@@ -111,6 +155,7 @@ export class AuthService {
       tap(() => {
         this.user.set(null);
         this.loaded.set(true);
+        this.sessionState.set('unauthenticated');
       }),
       map(() => undefined),
     );

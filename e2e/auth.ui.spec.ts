@@ -1,13 +1,105 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('auth login and callback UI', () => {
+  test('covers AC-8 and AC-15: login is one centered package page without app navigation', async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await page.goto('/auth/login');
+
+    await expect(page.locator('page')).toHaveCount(1);
+    await expect(page.locator('pagecontent')).toHaveCount(1);
+    await expect(page.locator('card')).toHaveCount(1);
+    await expect(
+      page.getByRole('heading', { name: 'Masuk ke Monobungsya' }),
+    ).toBeVisible();
+    await expect(page.getByRole('navigation')).toHaveCount(0);
+  });
+
+  test('covers AC-L2: session service error offers retry and redirects anonymous users to login', async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    let sessionAttempts = 0;
+    await page.route('**/api/v1/auth/session', (route) => {
+      sessionAttempts += 1;
+      if (sessionAttempts === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'SERVICE_UNAVAILABLE' } }),
+        });
+      }
+
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          authenticated: false,
+          sessionObservation: { state: 'anonymous', reason: 'missing' },
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(
+      page.getByRole('heading', { name: 'We could not check your session.' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Try again' }).click();
+
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(
+      page.getByRole('heading', { name: 'Masuk ke Monobungsya' }),
+    ).toBeVisible();
+    expect(sessionAttempts).toBe(2);
+  });
+
+  test('covers AC-L15: authenticated footer logout posts to the gateway and returns to login', async ({
+    page,
+  }) => {
+    let logoutRequests = 0;
+    await page.route('**/api/v1/auth/session', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          authenticated: true,
+          user: {
+            id: 'user-1',
+            name: 'System User',
+            email: 'user@example.com',
+            permissions: ['logs:log:read'],
+          },
+        }),
+      }),
+    );
+    await page.route('**/api/v1/auth/logout', (route) => {
+      logoutRequests += 1;
+      return route.fulfill({ status: 204 });
+    });
+
+    await page.goto('/');
+    await expect(page.getByRole('navigation')).toBeVisible();
+    await expect(page.getByText('user@example.com').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Logout' }).click();
+
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(
+      page.getByRole('heading', { name: 'Masuk ke Monobungsya' }),
+    ).toBeVisible();
+    expect(logoutRequests).toBe(1);
+  });
+
   test('covers AC-1, AC-2, AC-6, and AC-7: invalid login is labeled and accessible', async ({
     page,
   }) => {
     await page.context().clearCookies();
     await page.goto('/auth/login');
 
-    const email = page.getByLabel('Work email');
+    const email = page.getByLabel('Email');
     await expect(email).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Kirim magic link' }),
@@ -38,7 +130,7 @@ test.describe('auth login and callback UI', () => {
       }),
     );
     await page.goto('/auth/login');
-    await page.getByLabel('Work email').fill('tester@example.test');
+    await page.getByLabel('Email').fill('tester@example.test');
     await page.getByRole('button', { name: 'Kirim magic link' }).click();
 
     await expect(page.getByRole('status')).toContainText(
@@ -60,9 +152,11 @@ test.describe('auth login and callback UI', () => {
       }),
     );
     await page.goto('/auth/login');
-    await page.getByLabel('Work email').fill('tester@example.test');
+    await page.getByLabel('Email').fill('tester@example.test');
     await page.getByRole('button', { name: 'Kirim magic link' }).click();
-    await expect(page.getByRole('alert')).toContainText('Too many requests.');
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Too many requests.' }),
+    ).toBeVisible();
     await page.unroute('**/api/v1/auth/magic-link');
 
     await page.route('**/api/v1/auth/magic-link', (route) =>
@@ -73,11 +167,13 @@ test.describe('auth login and callback UI', () => {
       }),
     );
     await page.reload();
-    await page.getByLabel('Work email').fill('tester@example.test');
+    await page.getByLabel('Email').fill('tester@example.test');
     await page.getByRole('button', { name: 'Kirim magic link' }).click();
-    await expect(page.getByRole('alert')).toContainText(
-      'The sign in service is unavailable.',
-    );
+    await expect(
+      page.getByRole('alert').filter({
+        hasText: 'The sign in service is unavailable.',
+      }),
+    ).toBeVisible();
     await expect(page.locator('body')).not.toContainText('SERVICE_UNAVAILABLE');
   });
 

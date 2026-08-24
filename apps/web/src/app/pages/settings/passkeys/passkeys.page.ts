@@ -23,6 +23,7 @@ import {
   PageFooterComponent,
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
+import { QRCodeComponent } from 'angularx-qrcode';
 import {
   MAX_PASSKEYS,
   type Passkey,
@@ -33,7 +34,6 @@ import {
   TotpService,
   type TotpStatus,
 } from '../../../auth/totp.service';
-import { TotpQrService } from '../../../auth/totp-qr.service';
 
 @Component({
   selector: 'app-passkeys-settings-page',
@@ -45,6 +45,7 @@ import { TotpQrService } from '../../../auth/totp-qr.service';
     ButtonComponent,
     IconComponent,
     InputComponent,
+    QRCodeComponent,
     TableBodyComponent,
     TableCaptionComponent,
     TableCellComponent,
@@ -92,7 +93,7 @@ import { TotpQrService } from '../../../auth/totp-qr.service';
               <p class="text-sm text-foreground">Aktif sejak {{ status.confirmedAt ? asDate(status.confirmedAt) : '-' }}. Recovery code tersisa {{ status.recoveryCodesRemaining }}.</p>
               <div class="flex flex-wrap gap-2"><input Input type="text" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" [value]="totpCode()" (input)="updateTotpCode($event)" /><button Button size="xs" type="button" variant="outline" [disabled]="totpBusy()" (click)="regenerateTotp()">Buat recovery code baru</button><button Button size="xs" type="button" variant="destructive" [disabled]="totpBusy()" (click)="disableTotp()">Matikan 2FA</button></div>
             } @else if (totpSetup(); as setup) {
-              <div class="grid gap-3 sm:grid-cols-[auto_1fr]"><div class="rounded bg-white p-3">@if (totpQrImage(); as qr) { <img [src]="qr" width="180" height="180" alt="QR code TOTP" /> }</div><div class="grid content-start gap-3"><p class="text-xs text-muted-foreground">Secret manual</p><code class="break-all rounded bg-muted p-3 text-sm">{{ setup.secret }}</code><div class="flex gap-2"><input Input type="text" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" [value]="totpCode()" (input)="updateTotpCode($event)" /><button Button size="xs" type="button" [disabled]="totpBusy()" (click)="confirmTotp()">Konfirmasi</button></div></div></div>
+              <div class="grid gap-3 sm:grid-cols-[auto_1fr]"><div class="rounded bg-white p-3"><qrcode [qrdata]="setup.otpauthUri" [width]="180" [margin]="1" elementType="img" alt="QR code TOTP" ariaLabel="QR code TOTP" /></div><div class="grid content-start gap-3"><p class="text-xs text-muted-foreground">Secret manual</p><code class="break-all rounded bg-muted p-3 text-sm">{{ setup.secret }}</code><div class="flex gap-2"><input Input type="text" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" [value]="totpCode()" (input)="updateTotpCode($event)" /><button Button size="xs" type="button" [disabled]="totpBusy()" (click)="confirmTotp()">Konfirmasi</button></div></div></div>
             } @else {
               <button Button size="xs" type="button" class="w-fit" [disabled]="totpBusy()" (click)="beginTotp()">Aktifkan 2FA</button>
             }
@@ -231,7 +232,6 @@ import { TotpQrService } from '../../../auth/totp-qr.service';
 export class PasskeysSettingsPage {
   private readonly passkey = inject(PasskeyService);
   private readonly totp = inject(TotpService);
-  private readonly totpQr = inject(TotpQrService);
 
   protected readonly layout = inject(LayoutService);
   protected readonly maxPasskeys = MAX_PASSKEYS;
@@ -248,7 +248,6 @@ export class PasskeysSettingsPage {
   );
   protected readonly totpStatus = signal<TotpStatus | null>(null);
   protected readonly totpSetup = signal<TotpEnrollment | null>(null);
-  protected readonly totpQrImage = signal<string | null>(null);
   protected readonly totpRecoveryCodes = signal<string[]>([]);
   protected readonly totpCode = signal('');
   protected readonly totpBusy = signal(false);
@@ -276,9 +275,6 @@ export class PasskeysSettingsPage {
     this.totp.enroll().subscribe({
       next: (setup) => {
         this.totpSetup.set(setup);
-        void this.totpQr
-          .dataUrl(setup.otpauthUri, 180)
-          .then((qr) => this.totpQrImage.set(qr));
         this.totpBusy.set(false);
       },
       error: () => {

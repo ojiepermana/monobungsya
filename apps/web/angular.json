@@ -14,6 +14,7 @@
           "flat": false,
           "standalone": true,
           "type": "page",
+          "style": "css",
           "inlineTemplate": true,
           "inlineStyle": true,
           "skipTests": true
@@ -60,6 +61,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "css",
             "polyfills": [],
             "assets": [{ "glob": "**/*", "input": "public", "output": "." }],
             "styles": ["src/styles.css"]
@@ -74,8 +76,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "800kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1.1MB",
+                  "maximumError": "1.25MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -83,7 +85,8 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "allowedCommonJsDependencies": ["qrcode"]
             },
             "development": {
               "optimization": false,

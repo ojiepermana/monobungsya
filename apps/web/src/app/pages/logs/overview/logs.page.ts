@@ -1,18 +1,25 @@
 import { Component, inject, signal } from '@angular/core';
+import {
+  PageComponent,
+  PageContentComponent,
+  PageHeaderComponent,
+} from '@ojiepermana/angular/theme/page';
 import { ApiService } from '../../../services/api.service';
 
 @Component({
   selector: 'app-logs-page',
   host: { class: 'block h-full min-h-0' },
+  imports: [PageComponent, PageContentComponent, PageHeaderComponent],
   template: `
-    <main class="grid h-full min-h-0 content-start gap-6 overflow-auto p-6">
-      <header>
+    <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
+      <PageHeader class="px-6 pt-6">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>
         <h1 class="mt-2 text-2xl font-semibold text-foreground">Log Overview</h1>
         <p class="mt-2 max-w-2xl text-sm text-muted-foreground">Pantau kesiapan gateway dan akses ke area operasional Monobungsya.</p>
-      </header>
+      </PageHeader>
 
-      <section class="grid gap-4 md:grid-cols-2" aria-label="System status">
+      <PageContent class="grid min-h-0 content-start gap-6 overflow-auto p-6">
+        <section class="grid gap-4 md:grid-cols-2" aria-label="System status">
         <article class="border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">Gateway</p>
           <p class="mt-3 text-xl font-semibold text-foreground">{{ gatewayStatus() }}</p>
@@ -21,8 +28,9 @@ import { ApiService } from '../../../services/api.service';
           <p class="text-sm text-muted-foreground">Workspace</p>
           <p class="mt-3 text-xl font-semibold text-foreground">Monobungsya</p>
         </article>
-      </section>
-    </main>
+        </section>
+      </PageContent>
+    </Page>
   `,
 })
 export class LogsPage {

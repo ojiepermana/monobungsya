@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideMaterialSymbols } from '@ojiepermana/angular/component/icon';
-import { THEME_SETTINGS_ADAPTER } from '@ojiepermana/angular/theme/component/settings';
+import { provideThemeSettingsAdapter } from '@ojiepermana/angular/theme/component/settings';
 import {
   LayoutService,
   layoutLoadingInterceptor,
@@ -43,7 +43,6 @@ import { environment } from '../../environments/environment';
 import { navigationCorrelationInterceptor } from '../services/navigation-correlation.interceptor';
 import { NavigationCorrelationService } from '../services/navigation-correlation.service';
 import { routes } from './app.routes';
-import { ThemeSettingsAdapterService } from './theme-settings-adapter';
 
 /**
  * Theme defaults registered via `provideUiTheme` below. Each axis persists in
@@ -51,13 +50,13 @@ import { ThemeSettingsAdapterService } from './theme-settings-adapter';
  * choice wins over these.
  */
 export const APP_THEME_DEFAULTS = {
-  mode: 'light',
+  mode: 'system',
   color: 'brand',
   neutral: 'base',
-  radius: 'md',
-  space: 'normal',
+  radius: 'xs',
+  space: 'compact',
   brand: {
-    color: '191 91% 36%',
+    color: '177 72% 28%',
     foreground: '0 0% 100%',
   },
 } as const satisfies {
@@ -130,14 +129,11 @@ export const appConfig: ApplicationConfig = {
     provideShellWindowBridge(shellWindowBridge),
     // @ojiepermana/angular design-system theme defaults (each axis persists, so a
     // user's runtime choice wins over these).
+    provideMaterialSymbols({ href: '/assets/icons/material-symbols.css' }),
     provideUiTheme({
       ...APP_THEME_DEFAULTS,
     }),
-    {
-      provide: THEME_SETTINGS_ADAPTER,
-      useExisting: ThemeSettingsAdapterService,
-    },
-    provideMaterialSymbols({ href: '/assets/icons/material-symbols.css' }),
+    provideThemeSettingsAdapter(),
     // Initialize LayoutService with the app's layout defaults; the App shell binds
     // the wrapper to the service signals so these take effect.
     provideEnvironmentInitializer(() => {
