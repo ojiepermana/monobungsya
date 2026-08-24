@@ -20,7 +20,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 7   | User lifecycle management           | Domain     | done        |
 | 8   | Permission access control           | Foundation | in-progress |
 | 9   | TOTP two factor authentication      | Foundation | in-progress |
-| 10  | Generated gateway SDK integration   | Foundation | in-progress |
+| 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | in-progress |
 
 ## Foundations
@@ -90,7 +90,7 @@ and `apps/tauri` packages the same Angular output.
 
 Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
 
-### 10. Generated gateway SDK integration · in-progress
+### 10. Generated gateway SDK integration · done
 
 Use the public gateway OpenAPI contract to generate a typed SDK in `packages/angular-sdk` and consume it from Angular through domain facades, while preserving cookie auth, correlation, loading, and existing page behavior.
 **Done when:** The complete public gateway contract generates cleanly, all gateway requests in `apps/web` use the generated SDK except browser magic link navigation, response types are useful, and OpenAPI validation, web typecheck, tests, lint, and generated diff checks pass.
@@ -102,8 +102,8 @@ Use the public gateway OpenAPI contract to generate a typed SDK in `packages/ang
   - [x] Auth, passkey, and TOTP facade migration with preserved browser verification behavior (AC-5, AC-7, AC-9, AC-12)
   - [x] Users, logs, and access facade migration with generated types and explicit UI mappings (AC-5, AC-6, AC-7, AC-10)
   - [x] Transport tests, sensitive data checks, clean regeneration, and repository validation gate (AC-8, AC-9, AC-10, AC-13, AC-14)
-- [ ] Verify it: `/check verify generated gateway SDK integration`
-- [ ] Test it: `/test generated gateway SDK integration`
+- [x] Verify it: `/check verify generated gateway SDK integration` (passed 2026-08-24 after committing the stale auth spec artifacts)
+- [x] Test it: `/test generated gateway SDK integration` (transport suite plus teardown and navigation exception locks; 104 web tests and 20 e2e tests green)
 
 Spec [0013](../specs/0013-angular-sdk-integration/index.md) · code in `apps/gateway/erp`, `apps/services`, `apps/web`, `packages/angular-sdk`, and root scripts
 
