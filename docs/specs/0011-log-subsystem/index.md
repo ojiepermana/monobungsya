@@ -5,7 +5,7 @@
 
 ## Summary
 
-Application logs, audit trails, and access logs live in PostgreSQL under yearly partitions (tables divided by year). The gateway records each completed public API request once and may add a small typed summary owned by that endpoint. Requests made during one Angular navigation share a trace identifier, so an operator can relate `/api/v1/auth/session` to `/api/v1/users` without merging their rows. Service `Logger` calls record technical events in Log Aplikasi, while Log Audit remains the strict record of business changes.
+Application logs, audit trails, and access logs live in PostgreSQL under yearly partitions (tables divided by year). The gateway records each completed public API request once and may add a small typed summary owned by that endpoint. A session summary is role free: auth reports session state and reason, while the gateway adds a count from the same effective permission list it returns to the browser. Requests made during one Angular navigation share a trace identifier, so an operator can relate `/api/v1/auth/session` to `/api/v1/users` without merging their rows.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ Application logs, audit trails, and access logs live in PostgreSQL under yearly 
 - **AC-2**: Audit trail writes are awaited; a failed audit write throws and the calling operation fails visibly.
 - **AC-3**: Every log row lands in a yearly partition keyed by the Jakarta calendar year (UTC+7); a missing partition is created automatically on first write, serialized with a Postgres advisory lock, and an insert that hits Postgres error `23514` with a "no partition" message is retried once after the partition is created.
 - **AC-4**: Three read endpoints (`/api/v1/logs/audit-trails`, `/api/v1/logs/access-logs`, `/api/v1/logs/application-logs`) return filtered results paged at 25 per page, newest first, each response carrying `data`, `meta` (page, perPage, total, totalPages), the applied `filters`, and `options` (distinct values for each dropdown filter).
-- **AC-5**: All read endpoints require the `logs.read` permission, granted to the admin and manager roles; the gateway validates the session cookie and forwards the signed identity, the logs service enforces the permission from the forwarded role, and a caller without it is denied.
+- **AC-5**: All read endpoints require `logs:log:read`. The gateway validates the session, resolves the user's effective permissions through the access service cache, and signs the normalized permission list. The logs service verifies that identity and independently requires the same permission. A missing session returns 401, a caller without the permission returns 403, and a permission lookup failure returns 503 without forwarding the request.
 - **AC-6**: Free text search is parameterized with ILIKE and escapes `%` and `_`; raw search input never appears in SQL text.
 - **AC-7**: Timestamps are stored as UTC wall time in a `timestamp` column (no timezone) and returned to clients as ISO 8601 UTC strings.
 - **AC-8**: `ActivityLog.flush()` drains only the queue in its current process. Every process that writes application or access logs drains its own queue during graceful shutdown before closing PostgreSQL, with a bounded timeout. A read in the logs service never claims to flush queues owned by the gateway, auth service, or user service.
@@ -34,15 +34,15 @@ Application logs, audit trails, and access logs live in PostgreSQL under yearly 
 - **AC-13**: Each `Logger.debug`, `Logger.info`, `Logger.warn`, and `Logger.error` call at or above `LOG_LEVEL` writes one structured console record. When best effort persistence is enabled and a log database is configured, the same call also writes one application row. The stored module comes from the service name, the event comes from the stable message key, and `warn` is stored as `warning`. Normal request traffic is represented only in Log Akses, not duplicated as `request.received` application rows.
 - **AC-14**: No stored log contains authorization headers, cookies, magic link tokens, session tokens, passkey responses, passwords, secrets, or sensitive query values. Access paths store only `URL.pathname`; application context is sanitized recursively before console or database output.
 - **AC-15**: The access viewer and API expose method, path, normalized route name, HTTP status, request id, actor email, outcome, failure reason, and access time. Access search includes route name, path, method, request id, event, outcome, actor email, and failure reason.
-- **AC-16**: A completed `GET /api/v1/auth/session` access row carries an endpoint owned session summary in metadata version 1. The summary contains only `state` (`authenticated`, `anonymous`, or `invalid`), nullable `reason`, nullable `role`, and `permissionCount`. An anonymous or invalid state uses null role and permission count 0. A valid session also populates the existing actor and session columns. It never contains permission names, expiry timestamps, cookies, tokens, authorization values, or a raw request or response body.
+- **AC-16**: A completed successful `GET /api/v1/auth/session` access row carries an endpoint owned session summary in metadata version 1. The summary contains only `state` (`authenticated`, `anonymous`, or `invalid`), nullable `reason`, and `permissionCount`. Auth owns only state and reason. For an authenticated session, the gateway derives `permissionCount` from the exact normalized, distinct effective permission list returned by its access service lookup and placed in the public session payload. A manage permission counts as one name and is not expanded. An anonymous or invalid state uses permission count 0. A valid session also populates the existing actor and session columns. If the access lookup fails after auth verifies the session, the gateway returns 503 and logs the verified actor and session with null endpoint details rather than inventing a zero count. A summary never contains a role, permission names, expiry timestamps, cookies, tokens, authorization values, or a raw request or response body.
 - **AC-17**: Angular creates one cryptographically random UUID for each router navigation and sends it as `x-correlation-id`, together with the target pathname in `x-client-route`, on gateway requests made during that navigation and while its page remains active. Gateway CORS permits both headers and still excludes preflight `OPTIONS` from access rows. Opening `/users` makes the guard request to `/api/v1/auth/session` and the first list request to `/api/v1/users` share one `trace_id` and the normalized client route `/users`. A later navigation receives a different UUID.
 - **AC-18**: The gateway accepts client correlation only when it is at most 100 characters and contains ASCII letters, numbers, `.`, `_`, `:`, or `-`; otherwise it falls back to the server request id. It accepts client route context only as a pathname, removes query and fragment values, normalizes UUID path segments, and limits the stored value to 255 characters. Both values are labelled as client supplied hints and are never used for authentication, authorization, audit identity, request outcome, or failure classification.
 - **AC-19**: The access log API and viewer expose `traceId`, `traceSource`, normalized `clientRoute`, `sessionId`, and the typed session summary. The applied filters include `traceId`, access search includes `trace_id`, and the viewer lets an operator narrow the list to one trace so the related session and users rows can be inspected together. Rows without endpoint details remain valid and display no session summary.
-- **AC-20**: Detailed invalid session reasons remain internal to auth, gateway, and operators with `logs.read`. Every unauthenticated public session response keeps the existing body `{ authenticated: false }`. Unknown metadata keys and internal diagnostics are never copied to the public session response or the access log API.
+- **AC-20**: Detailed invalid session reasons remain internal to auth, gateway, and operators with `logs:log:read`. Every unauthenticated public session response keeps the existing body `{ authenticated: false }`. Unknown metadata keys and internal diagnostics are never copied to the public session response or the access log API.
 
 ## Decision
 
-**Chosen option**: fix the existing subsystem in place. Keep PostgreSQL, the partition model, `ActivityLog`, the read API, and the viewers. Use the existing `trace_id` for one Angular navigation and the existing `metadata` JSONB column for a versioned, endpoint owned detail union. The gateway access lifecycle remains the only writer for completed public requests. The auth session route supplies a safe internal observation, while the gateway maps the public response explicitly and stores only the allowlisted summary.
+**Chosen option**: fix the existing subsystem in place. Keep PostgreSQL, the partition model, `ActivityLog`, the read API, and the viewers. Use the existing `trace_id` for one Angular navigation and the existing `metadata` JSONB column for a versioned, endpoint owned detail union. The gateway access lifecycle remains the only writer for completed public requests. Auth supplies only a safe session state and reason. The gateway maps the public response, resolves effective permissions once, derives the count from that same list, and stores only the allowlisted role free summary. Metadata stays at version 1 because removing `role` is a compatible subtraction and readers already ignore unknown fields.
 
 **Implementation skills**: `elysiajs` (`elysiajs/elysia`, `.agents/skills/elysiajs/`)
 
@@ -83,7 +83,7 @@ Indexes: `(level, occurred_at)`, `(category, occurred_at)`, `(entity_type, entit
 | amount | bigint | yes | smallest currency unit |
 | currency_code | varchar(3) | no | default 'IDR' |
 | status_before, status_after | varchar(30) | yes | state transition |
-| actor_user_id, actor_name, actor_email, actor_role | uuid, varchar(150), varchar(150), varchar(50) | yes | who and in what role |
+| actor_user_id, actor_name, actor_email, actor_role | uuid, varchar(150), varchar(150), varchar(50) | yes | verified actor fields; actor_role is a legacy snapshot kept for old rows and is never an authorization input |
 | reason, change_summary | text | yes | why and what changed |
 | before_state, after_state, metadata | jsonb | yes | full entity snapshots |
 | request_id, trace_id | varchar(100) | yes | correlation |
@@ -119,7 +119,7 @@ The `metadata` column keeps one versioned shape. It is not a general response du
 type AccessMetadataV1 = {
   schemaVersion: 1;
   durationMs: number;
-  capability: string | null;
+  requiredPermission: string | null;
   correlationSource: 'client_header' | 'request_id';
   client: {
     route: string;
@@ -140,14 +140,13 @@ type AccessMetadataV1 = {
           | 'user_blocked'
           | 'user_suspended'
           | null;
-        role: string | null;
         permissionCount: number;
       }
     | null;
 };
 ```
 
-No table migration is needed. Existing rows with the old metadata shape remain readable, and the API returns null for fields it cannot project from version 1.
+No table migration is needed. Existing version 1 rows may contain the old `capability` or `details.role` fields. Readers ignore those fields, and new writers emit `requiredPermission` plus the role free session detail. The API returns null for fields it cannot safely project.
 
 **Partitioning helpers** (shared, whitelisted per table): `jakartaYear(value)` adds 7 hours before extracting the year; `jakartaYearBoundaryUtc(year)` returns the UTC wall time boundary (`2025-12-31 17:00:00` opens 2026); `logPartitionName(table, year)` returns `{table}_{year}`; `ensureLogPartition(table, ts)` creates the child idempotently under `pg_advisory_xact_lock`; `withLogPartitionRecovery(table, ts, insert)` retries the insert once when `isMissingLogPartitionError` matches code `23514` plus a "no partition" message.
 
@@ -191,13 +190,13 @@ Normal `request.received` messages are removed from persisted application loggin
 |---|---|---|---|---|---|
 | /internal/auth/session | GET | session cookie, request id, correlation id | existing session result plus internal observation `{state, reason}` | internal gateway call | 200, 503 |
 | /api/v1/auth/session | GET | session cookie, client correlation and route headers | existing public session body; safe summary is written to access context only | public session read | 200, 503 |
-| /api/v1/logs/audit-trails | GET | search, module, action, page | data[], meta, filters, options{modules, actions} | logs.read (admin, manager) | 401, 403 |
-| /api/v1/logs/access-logs | GET | search, event, outcome, traceId, page | data[] (event, outcome, routeName, path, method, httpStatus, requestId, traceId, traceSource, clientRoute, actorEmail, sessionId, failureReason, sessionSummary, accessedAt), meta, filters{search,event,outcome,traceId}, options{events, outcomes} | logs.read (admin, manager) | 401, 403 |
-| /api/v1/logs/application-logs | GET | search, level, module, event, page | data[] (full record), meta, filters, options{levels, modules, events} | logs.read (admin, manager) | 401, 403 |
+| /api/v1/logs/audit-trails | GET | search, module, action, page | data[], meta, filters, options{modules, actions} | `logs:log:read` | 401, 403, 503 |
+| /api/v1/logs/access-logs | GET | search, event, outcome, traceId, page | data[] (event, outcome, routeName, path, method, httpStatus, requestId, traceId, traceSource, clientRoute, actorEmail, sessionId, failureReason, sessionSummary, accessedAt), meta, filters{search,event,outcome,traceId}, options{events, outcomes} | `logs:log:read` | 401, 403, 503 |
+| /api/v1/logs/application-logs | GET | search, level, module, event, page | data[] (full record), meta, filters, options{levels, modules, events} | `logs:log:read` | 401, 403, 503 |
 
-`sessionSummary` is either null or `{ state, reason, role, permissionCount }`. `traceSource` is `client_header`, `request_id`, or null for a legacy row whose source cannot be proven. The logs repository parses JSONB defensively and projects only the version 1 fields listed here. Malformed metadata, another version, another detail kind, or an unexpected value produces null rather than failing the whole page.
+`sessionSummary` is either null or `{ state, reason, permissionCount }`. `traceSource` is `client_header`, `request_id`, or null for a legacy row whose source cannot be proven. The logs repository parses JSONB defensively and projects only the version 1 fields listed here. A legacy `role` field is ignored. Malformed metadata, another version, another detail kind, or an unexpected value produces null rather than failing the whole page.
 
-The access viewer adds a `Client flow` cell with client route, trace id, and source. A trace from `client_header` is explicitly labelled `client supplied`. Selecting the trace narrows the existing list through the `traceId` query. A `Session` cell appears only when `sessionSummary` is present and shows session id, state, role, permission count, and reason. It never renders raw metadata.
+The access viewer adds a `Client flow` cell with client route, trace id, and source. A trace from `client_header` is explicitly labelled `client supplied`. Selecting the trace narrows the existing list through the `traceId` query. A `Session` cell appears only when `sessionSummary` is present and shows session id, state, permission count, and reason. It never renders a role, permission names, or raw metadata.
 
 Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (action, module, entity_label, actor_email, change_summary), access (event, outcome, route_name, path, method, request_id, trace_id, actor_email, failure_reason), application (level, category, event, module, message, actor_email), all via `concat_ws(' ', ...) ILIKE ? ESCAPE '\'`. The optional access `traceId` filter is an exact parameter bound match on `trace_id`.
 
@@ -207,7 +206,7 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 | write any log | id | generated, uuidv7() |
 | write any log | occurred_at / audited_at / accessed_at | generated, `new Date().toISOString()`, stored as UTC wall time |
 | write any log | request_id, trace_id, session_id, ip_address, user_agent | caller supplied input fields; HTTP middleware populates them, the logging layer does not |
-| write any log | actor_* columns | caller supplied `actor` object (id, name, email, role) from the auth layer |
+| write any log | actor_* columns | caller supplied `actor` object (id, name, email) from verified identity; new writes leave the legacy audit `actor_role` column null |
 | write application log | channel, category | input, falling back to 'application' |
 | write application log through `Logger` | level | logger method, with `warn` normalized to `warning` |
 | write application log through `Logger` | event, module, context | stable message key, configured service name, sanitized context argument |
@@ -227,19 +226,20 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 | write gateway access | client route metadata | validated `x-client-route`, stripped to pathname, UUID segments normalized to `:id`, then limited to 255 characters; null when absent or invalid |
 | write gateway access | direct and forwarded IP | Bun connection address and the raw `x-forwarded-for` header; forwarded IP is not trusted as identity |
 | write gateway access | duration | monotonic elapsed time from request context start to `onAfterResponse`, stored in metadata |
-| write gateway access | access channel, guard | constants `api` and `gateway`; capability is added to metadata when the route requires one |
+| write gateway access | access channel, guard | constants `api` and `gateway`; the canonical required permission from the route table is added to metadata when the route requires one |
 | write auth access | authentication method | route contract, either `magic_link` or `passkey`; logout uses `session_cookie` |
 | write auth access | access channel, guard | constants `web` and `auth`; future desktop specific attribution needs an authenticated client signal |
 | inspect auth session | session state and reason | one auth repository operation over the hashed cookie, session columns, user lifecycle columns, and database `now()`, using the fixed reason precedence in this spec; `missing_cookie` is decided before a database query and `unknown_session` means no row matched the hash |
-| write public session access | actor, session id, role | verified user and session fields from the internal auth result; null unless state is `authenticated` |
-| write public session access | permission count | length of the server derived `permissionsForRole` result for an authenticated session; 0 for anonymous or invalid states; permission names are not copied into access metadata |
+| write public session access | actor and session id | verified user and session fields from the internal auth result; null unless state is `authenticated` |
+| write public session access | permission count | length of the normalized, distinct list returned by the gateway access service lookup and placed in the same public session response; 0 for anonymous or invalid states; manage permissions are not expanded and names are not copied into access metadata |
+| write failed public session access | actor, session id, failure, endpoint details | verified auth result supplies actor and session; access lookup failure supplies `permission_lookup_failed`; endpoint details remain null because no permission snapshot exists |
 | write public session access | endpoint detail kind and schema version | constants `auth_session` and `1` in the public session gateway handler |
 | write failed access | failure reason | stable mapped error code or HTTP status label, never the response body or credential input |
 | write to a partition | target partition year | derived: partition key timestamp plus 7 hours (Jakarta), via `jakartaYear` |
 | read any list | meta.total, meta.totalPages | derived from a COUNT query and perPage 25 |
 | read any list | options dropdown values | DB, `SELECT DISTINCT` per filter column |
 | read any list | page | query param, parsed to a positive int, default 1 |
-| read any list | caller permission | derived: the forwarded identity role; admin and manager map to `logs.read` |
+| read any list | caller permission | the verified signed identity permission list; both gateway and logs service require `logs:log:read` |
 | display timestamps (UI) | localized date text | derived, `Intl.DateTimeFormat('id-ID')` over the ISO string |
 | read rows | camelCase fields | derived, mappers rename snake_case columns and parse jsonb strings |
 | read access row | trace id and session id | `logs.access_logs.trace_id` and `logs.access_logs.session_id` |
@@ -257,8 +257,12 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 - Client route and correlation values are untrusted context. No server decision may depend on them.
 - Access metadata uses a known `schemaVersion` and a closed endpoint detail union. Unknown fields are dropped before persistence and before API projection.
 - The public session response never contains the internal observation or invalid reason.
+- The auth session observation contains authentication facts only. It never carries a role, a permission list, or a permission count.
+- An authenticated session summary count and the public `user.permissions` array come from one gateway access lookup result. The count is diagnostic and never participates in authorization.
+- A failed permission lookup never becomes permission count 0. The 503 row keeps its verified actor and session, records `permission_lookup_failed`, and has null endpoint details.
+- New version 1 metadata contains no role. Readers ignore a legacy role field without exposing it.
 - Auth inspection classifies state and refreshes sliding expiry in one database operation. It never refreshes a session classified as invalid and never bases the decision on application clock time.
-- A session summary is present only for a completed public `/api/v1/auth/session` row. Other access rows keep `details` null even when gateway authorization checks a session internally.
+- A session summary is present only for a completed successful public `/api/v1/auth/session` row. Other access rows, including a failed session permission lookup, keep `details` null even when the gateway has verified a session.
 - An anonymous or invalid session returned successfully remains an `api_request` with HTTP 200 and access outcome `success`. Its session state belongs in endpoint details, not in `failure_reason`.
 - An unavailable or malformed auth response produces the mapped gateway failure with null session details. The gateway never invents a session state from a transport failure.
 - Application and access queues are process local. Cross process reads are eventually consistent.
@@ -269,13 +273,13 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 - Exact trace filtering is always parameter bound and cannot change SQL structure.
 
 **Security model**:
-- All three read endpoints demand the `logs.read` permission. The gateway validates the session cookie and forwards the HMAC signed identity headers; the logs service verifies them with its auth identity plugin and grants `logs.read` to the admin and manager roles only. The auth session response also carries a `permissions` array (admin and manager get `logs.read` and `users.manage`) so the web client can gate its routes and navigation.
-- Log rows carry PII (emails, IP addresses, user agents); only operators with `logs.read` may view them. There are no write endpoints; writes happen only in server code.
+- All three read endpoints demand `logs:log:read`. The gateway resolves the effective permission list through the access service cache, checks the requirement, and forwards the HMAC signed list. The logs service verifies the signature and checks the same permission again. No role mapping participates in either decision.
+- Log rows carry PII (emails, IP addresses, user agents); only operators with `logs:log:read` may view them. There are no write endpoints; writes happen only in server code.
 - Browser route events are not accepted as security evidence. The gateway request that releases data is the authoritative access event.
 - `x-client-route` and client supplied `x-correlation-id` are diagnostic hints only. An attacker may forge them, so the viewer labels the client route and flow as client supplied.
 - Raw cookies, authorization values, query values, and credential bodies never enter stored context or access metadata.
 - Session details are selected from a closed server owned type. The generic logger cannot store a request body, response body, permission list, or expiry timestamp as endpoint details.
-- Invalid reasons are visible only through the logs API guarded by `logs.read`. The public session response preserves one indistinguishable unauthenticated shape.
+- Invalid reasons are visible only through the logs API guarded by `logs:log:read`. The public session response preserves one indistinguishable unauthenticated shape.
 - Audit trails are append only by convention; no update or delete surface exists.
 
 **Configuration required**:
@@ -291,7 +295,7 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 - Happy path: write an application log, flush its writer process, and read it back with jsonb context parsed and camelCase fields, verifies **AC-1**, **AC-7**.
 - Failure case: insert against a missing partition raises `23514` "no partition"; the helper creates the child and the retry succeeds, verifies **AC-3**.
 - Injection case: a search of `login' OR 1=1 --` never appears in SQL text and returns safely, verifies **AC-6**.
-- Auth case: a user without `logs.read` gets a denial from each endpoint, verifies **AC-5**.
+- Auth case: a user without `logs:log:read` gets a denial from each endpoint, verifies **AC-5**.
 - Pagination case: 26 rows and `page=2` yields meta `{ page: 2, perPage: 25, total: 26, totalPages: 2 }`, verifies **AC-4**.
 - Audit failure case: a failing audit INSERT propagates to the caller, verifies **AC-2**.
 - Gateway access case: an authenticated `GET /api/v1/users` response produces one row with actor, route, method, 200 status, request id, and success outcome, verifies **AC-10**, **AC-11**.
@@ -300,7 +304,9 @@ Ordering is `<time column> DESC, id DESC`. Search targets per endpoint: audit (a
 - Application case: `logger.warn('user.invited.skipped', context)` emits one sanitized console record and one database row at level `warning`, verifies **AC-13**, **AC-14**.
 - Process boundary case: flushing the logs service cannot claim visibility for a queued gateway write; graceful gateway shutdown drains its own queue before closing PostgreSQL, verifies **AC-8**.
 - Viewer case: the access page displays and searches method, path, status, route, and request id, verifies **AC-15**.
-- Session summary case: an authenticated public session request produces one row with verified actor and session columns plus `{ kind: 'auth_session', state: 'authenticated', reason: null, role: 'admin', permissionCount: 2 }`, verifies **AC-16**.
+- Session summary case: an authenticated public session request whose effective list has two distinct names produces one row with verified actor and session columns plus `{ kind: 'auth_session', state: 'authenticated', reason: null, permissionCount: 2 }`, verifies **AC-16**.
+- Permission source case: the internal auth observation contains only state and reason, while the gateway uses one access lookup result for both the public permission array and the stored count; a manage permission contributes one to the count and is not expanded, verifies **AC-16**.
+- Permission lookup failure case: auth verifies the user but the access lookup fails, so the public request returns 503 and its access row keeps the verified actor and session, records `permission_lookup_failed`, and has null session details rather than count 0, verifies **AC-5**, **AC-16**.
 - Invalid session case: missing, unknown, revoked, expired, missing user, deleted, blocked, and suspended sessions map to the fixed internal reasons while every public response remains `{ authenticated: false }`, verifies **AC-16**, **AC-20**.
 - Session outcome case: an anonymous or invalid session response logs HTTP 200 and outcome success with its state only in endpoint details; a malformed or unavailable auth response logs the mapped failure with null details, verifies **AC-16**, **AC-20**.
 - Session race case: a session crossing idle expiry during inspection is either refreshed as authenticated or returned invalid from one database decision, never both and never from stale application time, verifies **AC-16**.
@@ -316,9 +322,9 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 - [x] 1. Migration `0010` in `packages/database/migrations/logs`: create schema `partition`, drop the old non partitioned `logs` tables from 0002, recreate the three partitioned parents with composite PKs, all indexes, grants, and the current Jakarta year children, satisfies **AC-3**, **AC-7**.
 - [x] 2. Shared partition helpers in `packages/logger` (`jakartaYear`, `jakartaYearBoundaryUtc`, `logPartitionName`, `ensureLogPartition`, `withLogPartitionRecovery`, `isMissingLogPartitionError`) with unit tests on the year boundary math and error matching, satisfies **AC-3**.
 - [x] 3. Shared `ActivityLog` writer in `packages/logger` (async queue for `writeLog`, awaited `writeAudit`, `flush`, configured with a database client by each composition root) plus the `isoFromDbTimestamp` utility, satisfies **AC-1**, **AC-2**, **AC-7**, **AC-8**.
-- [x] 4. Thin thread: new `apps/services/logs` service (port 3103) with one endpoint (`/internal/logs/application-logs`) through route, schema, service, repository (queries plus mappers), the auth identity plugin with the `logs.read` role check, a gateway proxy for `/api/v1/logs/*`, and wiring into root scripts, env, OpenAPI generation, and CI, satisfies **AC-4**, **AC-5**, **AC-6**.
+- [x] 4. Thin thread: new `apps/services/logs` service (port 3103) with one endpoint (`/internal/logs/application-logs`) through route, schema, service, repository (queries plus mappers), the auth identity plugin with the `logs:log:read` permission check, a gateway proxy for `/api/v1/logs/*`, and wiring into root scripts, env, OpenAPI generation, and CI, satisfies **AC-4**, **AC-5**, **AC-6**.
 - [x] 5. Thicken: add `/internal/logs/audit-trails` and `/internal/logs/access-logs` with their filters, options queries, and mappers, satisfies **AC-4**, **AC-5**, **AC-6**.
-- [x] 6. Auth session `permissions` array mapped from the role (admin and manager get `logs.read` and `users.manage`) so the web permission guard and navigation work, satisfies **AC-5**, **AC-9**.
+- [x] 6. Auth session `permissions` array filled by the gateway from the access service lookup so the web permission guard and navigation use canonical permission names without a role, satisfies **AC-5**, **AC-9**.
 - [x] 7. Frontend: upgrade the three standalone signal based pages on the existing `ApiService` methods with search, dropdown filters, clear filters, paging, and id-ID date formatting, satisfies **AC-9**.
 - [x] 8. Repository and service tests pinning injection safety, pagination clamping, jsonb parsing, field mapping, and distinct options, satisfies **AC-4**, **AC-6**.
 - [x] 9. Regenerate the OpenAPI specs and the Angular SDK and commit the generated output (CI fails on uncommitted diffs), satisfies **AC-4**, **AC-9**.
@@ -331,7 +337,8 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 - [x] 16. Thin enrichment thread: define `AccessMetadataV1` and its closed detail union, let the public session gateway handler project one authenticated `auth_session` summary into request context, map the safe projection through the logs service, and show it in the access viewer without a table migration, satisfies **AC-16**, **AC-19**, **AC-20**.
 - [x] 17. Add the Angular navigation context and gateway origin HTTP interceptor, allow its two headers through CORS, validate them at the gateway, expose exact `traceId` filtering, and prove the session guard plus first users request share one visible flow without an OPTIONS row, satisfies **AC-17**, **AC-18**, **AC-19**.
 - [x] 18. Thicken auth inspection with one atomic database decision for sliding refresh plus the fixed state and reason union, return the observation only on the internal contract, strip it from every public response, and cover each invalid state without storing credential material, satisfies **AC-16**, **AC-20**.
-- [ ] 19. Add gateway, auth, logs service, Angular, and E2E coverage for metadata compatibility, forged client context, safe projection, flow grouping, and duplicate prevention, then regenerate OpenAPI and SDK artifacts, satisfies **AC-16**, **AC-17**, **AC-18**, **AC-19**, **AC-20**.
+- [ ] 19. Reconcile the role free session contract end to end. Remove `permissionCount` from the internal auth observation, derive it in the gateway from the exact effective permission list used in the public session response, preserve verified actor and session context with null details on lookup failure, keep legacy role metadata ignored, and update schemas plus generated contracts, satisfies **AC-5**, **AC-16**, **AC-19**, **AC-20**.
+- [ ] 20. Add gateway, auth, logs service, Angular, and E2E coverage for permission count sourcing, metadata compatibility, forged client context, safe projection, flow grouping, and duplicate prevention, then regenerate OpenAPI and SDK artifacts, satisfies **AC-16**, **AC-17**, **AC-18**, **AC-19**, **AC-20**.
 
 ## Migration plan
 
@@ -343,9 +350,9 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 2. Enable application logging on one process and inspect volume, redaction, and failures.
 3. Enable gateway access logging, verify one row per public request, then enable the remaining processes.
 4. Deploy the nullable metadata projection, trace filter, and viewer fields before any producer writes version 1 details.
-5. Deploy the auth observation, gateway session extractor, and Angular navigation context. Verify grouped rows and safe summaries, then treat version 1 as the canonical access metadata shape.
+5. Deploy the auth observation with state and reason only, then let the gateway derive the diagnostic count from its effective permission lookup. Verify grouped rows, role free summaries, and compatibility with older version 1 rows before treating the shape as canonical.
 
-**Rollback**: stop the Angular headers and endpoint detail extraction, or set `BEST_EFFORT_LOGGING_ENABLED=false` to stop best effort persistence. Readers tolerate absent details, so strict audit writes and existing access rows remain active.
+**Rollback**: stop the Angular headers and endpoint detail extraction, or set `BEST_EFFORT_LOGGING_ENABLED=false` to stop best effort persistence. The reader accepts both older version 1 rows with a role and newer rows without one, so reverting one producer does not make stored rows unreadable.
 
 **Risks**: request volume can grow PostgreSQL faster than current fixtures suggest. Incorrect lifecycle scope can miss plugin routes or write duplicates. A session observation can leak internal diagnosis if the gateway forwards it instead of mapping the public body explicitly. A client can forge navigation context, so operators must not mistake it for authoritative security evidence.
 
@@ -359,6 +366,7 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 - Operators can see that the session check and users request belong to one navigation while each request remains independently auditable.
 - Endpoint details can grow through a versioned allowlist without adding a table column for every route.
 - Session failures become diagnosable for authorized operators without exposing their reason to the browser.
+- Authentication and authorization ownership stay separate. Auth reports session validity, while the gateway reports the size of the effective permission snapshot it already resolved.
 - Application events already emitted through `Logger` become visible in the existing viewer without changing each caller.
 - The route, schema, service, repository split matches the rest of the backend, so the module is familiar to maintain.
 
@@ -371,6 +379,7 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 - Client navigation context can be missing or forged. It improves diagnosis but can never prove user intent.
 - Inspecting invalid session state requires a more detailed auth repository result and adds contract work between auth and gateway.
 - JSONB details are less convenient for ad hoc SQL than dedicated columns and require a defensive typed projection in the logs service.
+- Permission count is only a coarse diagnostic. It can reflect the gateway cache window, and it does not describe which actions a manage permission satisfies.
 - Application errors and failed requests intentionally appear in different log types with the same request id.
 - The Jakarta year boundary is hardcoded at UTC+7; a project in another timezone must change the offset.
 
@@ -378,6 +387,7 @@ The project's build approach is Tracer Bullet (from the scope header): a thin wo
 - No retention policy is implemented; partitions persist until someone drops them manually.
 - Cross process reads remain eventually consistent because each process owns its own in memory queue.
 - Existing rows have no client route or session summary and continue to display null values.
+- Older version 1 rows may retain a role in stored JSONB. The API and viewer ignore it, and no rewrite is required.
 
 ## Follow-up
 
