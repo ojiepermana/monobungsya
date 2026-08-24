@@ -135,8 +135,6 @@ paths:
           in: query
           required: true
           schema:
-            minLength: 20
-            maxLength: 512
             type: string
       operationId: getInternalAuthVerify
   /internal/auth/session:
