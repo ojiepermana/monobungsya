@@ -18,7 +18,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 5   | Auth passkey login                  | Foundation | done        |
 | 6   | Log subsystem                       | Foundation | done        |
 | 7   | User lifecycle management           | Domain     | done        |
-| 8   | Permission access control           | Foundation | in-progress |
+| 8   | Permission access control           | Foundation | done        |
 | 9   | TOTP two factor authentication      | Foundation | done        |
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | in-progress |
@@ -178,7 +178,7 @@ Add a PostgreSQL backed durable job runtime with bounded retries, schedules, lea
 
 Spec [0012](../specs/0012-reliable-jobs-notifications/index.md) · code in `packages/jobs`, `packages/database`, `packages/contracts`, `apps/services/jobs`, `apps/services/auth`, `apps/services/user`, `apps/gateway/erp` · planned in `apps/services/notification`, `apps/services/access`, and `apps/web`
 
-### 8. Permission access control · in-progress
+### 8. Permission access control · done
 
 Permission first access control without roles: a new access service owns a permission catalog and direct per user grants, the gateway checks permission names on every protected route and forwards them in the signed identity header, services re check independently, and the role concept is removed from user, auth, gateway, and web. Admin pages manage the catalog and grants with multi select and copy from user.
 **Done when:** A bootstrap admin (from env) can grant and revoke permissions per user through the web UI, every protected route allows or denies purely by permission names (manage wildcard included), a permission change takes effect within the cache window, no code path reads a role anymore, and a lookup failure denies instead of allowing.
@@ -191,7 +191,7 @@ Permission first access control without roles: a new access service owns a permi
   - [x] Admin UI: stacked catalog page with a hidden by default filter toggle, compact `xs` header and table actions, and the user detail access tab (AC-14)
   - [x] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, env docs (AC-16)
 - [x] Verify it: `/check verify permission access control`
-- [ ] Test it: `/test permission access control`
+- [x] Test it: `/test permission access control`
 
 Spec [0008](../specs/0008-permission-acl/index.md) · code in `apps/services/access`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/logs`, `apps/web`, `packages/acl`, `packages/contracts`, and `packages/database`
 

@@ -63,10 +63,34 @@ await db`
 `;
 
 await db`
+  INSERT INTO "access"."permission" (
+    name, code, namespace, resource, action, scope, description
+  )
+  VALUES (
+    'access:permission:list',
+    'ACCESS_PERMISSION_LIST',
+    'access',
+    'permission',
+    'list',
+    NULL,
+    'List permissions'
+  )
+  ON CONFLICT (code) DO NOTHING
+`;
+
+await db`
   INSERT INTO "access"."permission_user" (permission_id, user_id)
   SELECT permission.id, ${adminUser.id}
   FROM "access"."permission" AS permission
   WHERE permission.name IN ('logs:log:read', 'user:user:manage')
+  ON CONFLICT (permission_id, user_id) DO NOTHING
+`;
+
+await db`
+  INSERT INTO "access"."permission_user" (permission_id, user_id)
+  SELECT permission.id, ${adminUser.id}
+  FROM "access"."permission" AS permission
+  WHERE permission.name = 'access:permission:list'
   ON CONFLICT (permission_id, user_id) DO NOTHING
 `;
 
