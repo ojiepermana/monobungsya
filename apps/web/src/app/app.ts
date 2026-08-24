@@ -149,16 +149,13 @@ export class App {
       const sessionState = this.auth.sessionState();
       const onGuestRoute = this.isGuestRoute();
 
-      if (sessionState !== 'authenticated') {
+      // Guest routes render LayoutFluid, whose constructor writes 'fluid' into
+      // the shared LayoutService, and this effect can run before the wrapper
+      // swaps the layout back on re-entry. Layout state is only trustworthy
+      // while authenticated on a workspace route; anywhere else, re-arm the
+      // restore so every return re-asserts the operator's saved choice.
+      if (sessionState !== 'authenticated' || onGuestRoute) {
         this.restoreAuthenticatedLayout.set(true);
-        return;
-      }
-
-      // Guest routes render LayoutFluid, whose constructor writes 'fluid' into the
-      // shared LayoutService. Recording or restoring while a guest route is active
-      // corrupts the operator's saved layout choice and desyncs the service from
-      // the wrapper input, which unhides the navigation inside the fluid layout.
-      if (onGuestRoute) {
         return;
       }
 

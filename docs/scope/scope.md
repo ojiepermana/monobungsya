@@ -85,8 +85,8 @@ and `apps/tauri` packages the same Angular output.
   - [x] Package theme, shell, navigation, page, settings, and icon integration
   - [x] Root web scripts, generated SDK dependency, and Tauri build wiring
   - [x] Validation gate: build, lint, and web unit tests pass; initial bundle measured at 740.11 kB and the warning budget set to 850kB (AC-10, AC-11, AC-12)
-- [ ] Verify it: `/check verify Angular UI package and CSS standard`
-- [ ] Test it: `/test Angular UI package and CSS standard`
+- [ ] Verify it: `/check verify Angular UI package and CSS standard` (re-run after the icon font and layout state fixes)
+- [x] Test it: `/test Angular UI package and CSS standard`
 
 Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
 
