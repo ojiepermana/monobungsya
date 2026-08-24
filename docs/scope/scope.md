@@ -13,7 +13,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | B   | Central multischema database tooling | Foundation | existing    |
 | 1   | Auth magic link and session         | Foundation | done        |
 | 2   | Auth login and callback UI          | Foundation | done        |
-| 3   | Angular UI package and CSS standard | Foundation | in-progress |
+| 3   | Angular UI package and CSS standard | Foundation | done        |
 | 4   | MCP server for ERP tool access      | Foundation | done        |
 | 5   | Auth passkey login                  | Foundation | in-progress |
 | 6   | Log subsystem                       | Foundation | in-progress |
@@ -72,7 +72,7 @@ session callback, and receive deterministic error states.
 
 Spec [0004](../specs/0004-auth-ui-callback/index.md) · code in `apps/web` and `apps/tauri`
 
-### 3. Angular UI package and CSS standard · in-progress
+### 3. Angular UI package and CSS standard · done
 
 Use `@ojiepermana/angular` for the web and desktop shell composition, with
 Tailwind v4, package theme tokens, responsive navigation, and shared layout
@@ -85,7 +85,7 @@ and `apps/tauri` packages the same Angular output.
   - [x] Package theme, shell, navigation, page, settings, and icon integration
   - [x] Root web scripts, generated SDK dependency, and Tauri build wiring
   - [x] Validation gate: build, lint, and web unit tests pass; initial bundle measured at 740.11 kB and the warning budget set to 850kB (AC-10, AC-11, AC-12)
-- [ ] Verify it: `/check verify Angular UI package and CSS standard` (re-run after the icon font and layout state fixes)
+- [x] Verify it: `/check verify Angular UI package and CSS standard` (passed 2026-08-24 against 22.1.5, after the icon font and layout state fixes)
 - [x] Test it: `/test Angular UI package and CSS standard`
 
 Spec [0010](../specs/0010-angular-ui-standard/index.md) · code in `apps/web`, `apps/tauri`, `package.json`, and `bun.lock`
@@ -105,7 +105,7 @@ Use the public gateway OpenAPI contract to generate a typed SDK in `packages/ang
 - [ ] Verify it: `/check verify generated gateway SDK integration`
 - [ ] Test it: `/test generated gateway SDK integration`
 
-Spec [0010 SDK child](../specs/0010-angular-ui-standard/0010-angular-sdk-integration.md) · code in `apps/gateway/erp`, `apps/services`, `apps/web`, `packages/angular-sdk`, and root scripts
+Spec [0013](../specs/0013-angular-sdk-integration/index.md) · code in `apps/gateway/erp`, `apps/services`, `apps/web`, `packages/angular-sdk`, and root scripts
 
 ### 4. MCP server for ERP tool access · done
 

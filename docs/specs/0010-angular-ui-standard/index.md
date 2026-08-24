@@ -1,7 +1,7 @@
 # 0010. Adopt the Angular UI package and CSS standard
 
 **Date**: 2026-08-21
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
@@ -13,7 +13,7 @@
 2. [CSS migration](0010-css-migration.md), menetapkan perpindahan seluruh style `apps/web` dari SCSS ke CSS.
 3. [Layout integration](0010-layout-integration.md), menetapkan session gate, komposisi `Shell` dan `LayoutWrapperDefault`, halaman sebagai routed component, shell login fluid, responsive behavior, dan aksesibilitas.
 4. [Upstream library API](0010-upstream-library-api.md), menetapkan dua penambahan aditif di `@ojiepermana/angular` yang menjadi prasyarat: aksi logout yang dapat diikat consumer dan adapter settings yang dipublikasikan.
-5. [Generated gateway SDK integration](0010-angular-sdk-integration.md), menetapkan generator OpenAPI, typed client, facade Angular, konfigurasi cookie, dan migrasi request gateway.
+5. [Generated gateway SDK integration](../0013-angular-sdk-integration/index.md), menetapkan generator OpenAPI, typed client, facade Angular, konfigurasi cookie, dan migrasi request gateway. Dipisah menjadi spec 0013 pada 2026-08-24 agar siklus verify dan test nya berjalan sendiri.
 
 ## Requirements
 
@@ -27,7 +27,7 @@
 
 **Acceptance criteria**:
 
-1. **AC-1**: The root project declares `@ojiepermana/angular` at `^22.1.4`, `@ojiepermana/angular-theme` at `^22.1.4` for the imported CSS assets, `tailwindcss` at `^4.3.0`, and `@fontsource/material-symbols-rounded` at `5.3.3`, with the Bun lockfile updated.
+1. **AC-1**: The root project declares `@ojiepermana/angular` at `^22.1.5` and `@ojiepermana/angular-theme` at `^22.1.5` for the imported CSS assets, plus `tailwindcss` at `^4.3.0` or a compatible newer minor, with the Bun lockfile updated. The Material Symbols Rounded font is self hosted as repository assets in `apps/web/public/assets/icons`, vendored from `@fontsource/material-symbols-rounded` `5.3.3` and loaded through `provideMaterialSymbols`, with no fontsource runtime dependency. (Amended 2026-08-24, authorized by the engineer: vendored assets replace the fontsource dependency, and the package pins follow the 22.1.5 release.)
 2. **AC-2**: Production TypeScript imports use the package subpath API for the components, theme, navigation, and settings used by `apps/web`. The bare root barrel is not imported by production code.
 3. **AC-3**: `apps/web` loads the package theme CSS, Tailwind v4, the package Tailwind token map, and the self hosted Material Symbols font without a request to an external font host.
 4. **AC-4**: The theme provider supports `light`, `dark`, and `system`, uses system mode as the initial default, persists the package owned theme choice, and falls back to `system` when storage is unavailable or invalid.
@@ -46,7 +46,7 @@
 
 ## Decision
 
-Adopt `@ojiepermana/angular` version `22.1.x` as the Angular design system for `apps/web`, and follow the consumer composition the package's own showcase app uses. Use its production subpaths for theme services, shell, layout wrapper, navigation, page, settings, and UI components. Use `@ojiepermana/angular-theme` directly for the published CSS assets, `tailwindcss` `^4.3.0` for utility generation, and `@fontsource/material-symbols-rounded` `5.3.3` for local icon assets.
+Adopt `@ojiepermana/angular` version `22.1.x` as the Angular design system for `apps/web`, and follow the consumer composition the package's own showcase app uses. Use its production subpaths for theme services, shell, layout wrapper, navigation, page, settings, and UI components. Use `@ojiepermana/angular-theme` directly for the published CSS assets, `tailwindcss` `^4.3.0` for utility generation, and Material Symbols Rounded assets vendored from `@fontsource/material-symbols-rounded` `5.3.3` into `apps/web/public/assets/icons` for local icons.
 
 The canonical theme is system mode with light and dark support, brand teal, base neutral, extra small radius, and compact spacing. `Shell` is the unconditional application root with no axis inputs, so the shell controls on the settings surface stay live. `LayoutWrapperDefault` owns the frame, navigation placement, mobile drawer, skip link, content landmark, and focus on navigation. Pages are lazy loaded routed components that use `Page` and its slots. The session gate and the auth routes render inside `Shell` using `layout-type="fluid"`, which the package treats as brand only, so login gets its fluid shell from package geometry rather than local CSS.
 
@@ -82,7 +82,11 @@ export const appConfig = {
 @import "@ojiepermana/angular-theme/theme-full.css";
 @import "tailwindcss";
 @import "@ojiepermana/angular-theme/styles/css/base/tailwind.css";
-@import "@fontsource/material-symbols-rounded/400.css";
+```
+
+```ts
+// Icon font: self hosted assets vendored from @fontsource/material-symbols-rounded 5.3.3.
+provideMaterialSymbols({ href: '/assets/icons/material-symbols.css' });
 ```
 
 1. Production components import from subpaths such as `@ojiepermana/angular/component/button`, `@ojiepermana/angular/navigation`, `@ojiepermana/angular/theme/shell`, `@ojiepermana/angular/theme/layout`, `@ojiepermana/angular/theme/layout/wrapper`, `@ojiepermana/angular/theme/page`, and `@ojiepermana/angular/theme/component/settings`.
@@ -171,7 +175,7 @@ export const appConfig = {
 
 1. [ ] Capture the Angular package and CSS rules in the `## Agent skills` section of the appropriate `AGENTS.md` before implementation begins.
 2. [ ] Run `/check verify` against the acceptance criteria after the migration, including AXE and browser responsive checks.
-3. [x] Ship the two additive package changes in [upstream library API](0010-upstream-library-api.md), then record the released version number here and raise the dependency. Released: `@ojiepermana/angular` and `@ojiepermana/angular-theme` `22.1.4`, root dependency raised to `^22.1.4`.
+3. [x] Ship the two additive package changes in [upstream library API](0010-upstream-library-api.md), then record the released version number here and raise the dependency. Released: `@ojiepermana/angular` and `@ojiepermana/angular-theme` `22.1.4`, root dependency raised to `^22.1.4`; updated by the engineer to `22.1.5` with the root dependency at `^22.1.5` on 2026-08-24, and the verification run below passed against `22.1.5`.
 4. [x] Measure the production initial bundle after the wrapper adoption and the lazy dashboard route, record the number here, and set the initial warning budget from it. Measured 2026-08-24: initial total 740.11 kB raw, 164.25 kB estimated transfer. The initial warning budget is set to 850kB with a 1MB error budget in `apps/web/angular.json`. The `qrcode` CommonJS dependency of `angularx-qrcode` is declared in `allowedCommonJsDependencies`, so the production build completes with no warning.
 5. [ ] Revisit the package update policy if a future release changes the Angular peer range or the published theme entry points.
 6. [ ] Confirm with the team that a `dockbar` icon rail is the right default for operators, since it replaces the labelled sidebar currently shown.

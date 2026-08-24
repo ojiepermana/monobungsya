@@ -1,6 +1,9 @@
-# 0010. Integrate the generated gateway SDK into Angular
+# 0013. Integrate the generated gateway SDK into Angular
 
 **Date**: 2026-08-23
+**Status**: In Progress
+
+> Split out of [spec 0010](../0010-angular-ui-standard/index.md) on 2026-08-24, authorized by the engineer, so this SDK integration can finish its own verify and test cycle while the umbrella UI standard is accepted. The decision content is unchanged.
 
 ## Summary
 
