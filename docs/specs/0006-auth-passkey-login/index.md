@@ -1,7 +1,7 @@
 # 0006. Add passkey login alongside magic link
 
 **Date**: 2026-08-21
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

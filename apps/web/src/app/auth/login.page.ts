@@ -91,6 +91,11 @@ type LoginState =
                     <Icon name="fingerprint" [size]="14" aria-hidden="true" />
                     {{ passkeyLoading() ? 'Menunggu passkey...' : 'Masuk dengan passkey' }}
                   </button>
+                  @if (passkeyMessage(); as message) {
+                    <p class="border-l-2 border-primary bg-muted px-3 py-2 text-sm leading-5 text-foreground" role="status" aria-live="polite">
+                      {{ message }}
+                    </p>
+                  }
                   <div class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
                     <span class="h-px flex-1 bg-border"></span>
                     atau gunakan email
@@ -157,6 +162,7 @@ export class LoginPage {
   protected readonly email = signal('');
   protected readonly state = signal<LoginState>('idle');
   protected readonly passkeyLoading = signal(false);
+  protected readonly passkeyMessage = signal<string | null>(null);
 
   updateEmail(event: Event): void {
     this.email.set((event.target as HTMLInputElement).value);
@@ -191,10 +197,19 @@ export class LoginPage {
 
   signInWithPasskey(): void {
     this.passkeyLoading.set(true);
+    this.passkeyMessage.set(null);
     void this.passkey
       .signIn()
       .then((user) =>
         this.router.navigateByUrl(user ? '/' : '/auth/two-factor'),
+      )
+      .catch((error: unknown) =>
+        this.passkeyMessage.set(
+          this.passkey.messageFrom(
+            error,
+            'Passkey gagal. Coba lagi atau gunakan magic link.',
+          ),
+        ),
       )
       .finally(() => this.passkeyLoading.set(false));
   }

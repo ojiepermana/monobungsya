@@ -1,6 +1,120 @@
 import { expect, test } from '@playwright/test';
 
+const passkeyUser = {
+  id: 'passkey-user-1',
+  name: 'Passkey User',
+  email: 'passkey@example.test',
+  permissions: [],
+};
+
+async function stubPasskeyBrowser(
+  page: import('@playwright/test').Page,
+  outcome: 'success' | 'cancel',
+): Promise<void> {
+  await page.addInitScript((ceremonyOutcome) => {
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: function PublicKeyCredential() {},
+    });
+
+    Object.defineProperty(navigator.credentials, 'get', {
+      configurable: true,
+      value:
+        ceremonyOutcome === 'cancel'
+          ? async () => {
+              const error = new DOMException(
+                'The operation was cancelled.',
+                'NotAllowedError',
+              );
+              throw error;
+            }
+          : async () => ({
+              id: 'credential-id',
+              rawId: Uint8Array.from([1, 2, 3]).buffer,
+              response: {
+                authenticatorData: Uint8Array.from([4]).buffer,
+                clientDataJSON: Uint8Array.from([5]).buffer,
+                signature: Uint8Array.from([6]).buffer,
+                userHandle: null,
+              },
+              type: 'public-key',
+              authenticatorAttachment: 'platform',
+              getClientExtensionResults: () => ({}),
+            }),
+    });
+  }, outcome);
+
+  await page.route('**/api/v1/auth/passkey/login/options', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        challenge: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        rpId: 'localhost',
+        allowCredentials: [],
+        userVerification: 'preferred',
+        timeout: 60_000,
+      }),
+    }),
+  );
+}
+
 test.describe('auth login and callback UI', () => {
+  test('covers AC-1 and AC-3: passkey login completes without an email', async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await stubPasskeyBrowser(page, 'success');
+    await page.route('**/api/v1/auth/passkey/login/verify', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ authenticated: true, user: passkeyUser }),
+      }),
+    );
+    let sessionRequests = 0;
+    await page.route('**/api/v1/auth/session', (route) => {
+      sessionRequests += 1;
+      const authenticated = sessionRequests > 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          authenticated
+            ? { authenticated: true, user: passkeyUser }
+            : {
+                authenticated: false,
+                sessionObservation: { state: 'anonymous', reason: 'missing' },
+              },
+        ),
+      });
+    });
+
+    await page.goto('/auth/login');
+    await expect(
+      page.getByRole('button', { name: 'Masuk dengan passkey' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Email')).toHaveValue('');
+
+    await page.getByRole('button', { name: 'Masuk dengan passkey' }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test('covers AC-7: cancelling passkey login stays on the page with a soft status', async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await stubPasskeyBrowser(page, 'cancel');
+
+    await page.goto('/auth/login');
+    await page.getByRole('button', { name: 'Masuk dengan passkey' }).click();
+
+    await expect(page.getByRole('status')).toHaveText('Passkey dibatalkan.');
+    await expect(page).toHaveURL(/\/auth\/login$/);
+    await expect(page.getByLabel('Email')).toBeVisible();
+  });
+
   test('covers AC-8 and AC-15: login is one centered package page without app navigation', async ({
     page,
   }) => {

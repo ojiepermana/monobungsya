@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GatewayRequestError } from '../../api/generated-client';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService, type AuthUser } from './auth.service';
 import { LoginPage } from './login.page';
-import { PasskeyService } from './passkey.service';
+import { PasskeyCancelled, PasskeyService } from './passkey.service';
 import { VerifyPage } from './verify.page';
 
 const user: AuthUser = {
@@ -60,6 +60,139 @@ describe('auth UI', () => {
     expect(fixture.nativeElement.querySelector('main')).toBeNull();
     expect(fixture.nativeElement.querySelector('nav')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Masuk ke Monobungsya');
+  });
+
+  it('covers AC-7: shows a soft passkey cancellation and keeps magic link available', async () => {
+    const signIn = vi.fn(() => Promise.reject(new PasskeyCancelled()));
+    const messageFrom = vi.fn((_error: unknown, fallback: string) =>
+      _error instanceof PasskeyCancelled ? 'Passkey dibatalkan.' : fallback,
+    );
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        {
+          provide: PasskeyService,
+          useValue: {
+            supported: () => true,
+            promptDismissed: () => false,
+            signIn,
+            messageFrom,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        'button[type="button"]',
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(signIn).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.textContent).toContain('Passkey dibatalkan.');
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('input[type="email"]'),
+    ).toBeTruthy();
+  });
+
+  it('covers AC-3: signs in with a passkey and routes to the workspace', async () => {
+    let resolveSignIn: (value: AuthUser) => void = () => undefined;
+    const signIn = vi.fn(
+      () =>
+        new Promise<AuthUser>((resolve) => {
+          resolveSignIn = resolve;
+        }),
+    );
+    const navigateByUrl = vi.fn(() => Promise.resolve(true));
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        {
+          provide: PasskeyService,
+          useValue: {
+            supported: () => true,
+            promptDismissed: () => false,
+            signIn,
+            messageFrom: vi.fn(),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockImplementation(
+      navigateByUrl,
+    );
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      'button[type="button"]',
+    ) as HTMLButtonElement;
+
+    button.click();
+    fixture.detectChanges();
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Menunggu passkey');
+
+    resolveSignIn(user);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(button.disabled).toBe(false));
+    fixture.detectChanges();
+
+    expect(navigateByUrl).toHaveBeenCalledWith('/');
+  });
+
+  it('covers AC-7: shows a generic passkey failure and re-enables the action', async () => {
+    const signIn = vi.fn(() => Promise.reject(new Error('backend detail')));
+    const messageFrom = vi.fn((_error: unknown, fallback: string) => fallback);
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        {
+          provide: PasskeyService,
+          useValue: {
+            supported: () => true,
+            promptDismissed: () => false,
+            signIn,
+            messageFrom,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      'button[type="button"]',
+    ) as HTMLButtonElement;
+
+    button.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(messageFrom).toHaveBeenCalledWith(
+      expect.any(Error),
+      'Passkey gagal. Coba lagi atau gunakan magic link.',
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Passkey gagal. Coba lagi atau gunakan magic link.',
+    );
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
+    expect(button.disabled).toBe(false);
   });
 
   it('covers AC-2 and AC-6: rejects invalid email with linked alert semantics', async () => {

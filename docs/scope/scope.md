@@ -15,7 +15,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 2   | Auth login and callback UI          | Foundation | done        |
 | 3   | Angular UI package and CSS standard | Foundation | done        |
 | 4   | MCP server for ERP tool access      | Foundation | done        |
-| 5   | Auth passkey login                  | Foundation | in-progress |
+| 5   | Auth passkey login                  | Foundation | done        |
 | 6   | Log subsystem                       | Foundation | in-progress |
 | 7   | User lifecycle management           | Domain     | done        |
 | 8   | Permission access control           | Foundation | in-progress |
@@ -122,7 +122,7 @@ Scaffold an MCP server app at `apps/mcp` (Bun, TypeScript, STDIO transport) with
 
 Spec [0005](../specs/0005-mcp-server-scaffold/index.md) · code in `apps/mcp`, `package.json`, and `.env.example`
 
-### 5. Auth passkey login · in-progress
+### 5. Auth passkey login · done
 
 Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the existing sessions, cookie, rate limits, and cleanup. Magic link stays unchanged as the universal fallback, and the Tauri desktop shell keeps magic link only.
 **Done when:** A user can register up to 5 passkeys, sign in with one and receive a session identical to a magic link session, manage (rename, delete) their own passkeys on a settings page that follows the shared Page pattern, and magic link login still works unchanged for everyone.
@@ -135,8 +135,8 @@ Add passkey (WebAuthn) as a second sign in method beside magic link, reusing the
   - [x] Management UI, post login prompt, rate limits, caps, and logging (AC-2, AC-5, AC-6, AC-8, AC-9)
   - [x] Cleanup worker extension, tests, and env documentation (AC-7, AC-10)
   - [x] Passkey settings page recomposition with shared header, content, footer, appearance, one main landmark, and preserved interactions (AC-11)
-- [ ] Verify it: `/check verify auth passkey login` (re-run for the page recomposition)
-- [ ] Test it: `/test auth passkey login`
+- [x] Verify it: `/check verify auth passkey login` (re-run for the page recomposition)
+- [x] Test it: `/test auth passkey login`
 
 Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/errors`
 

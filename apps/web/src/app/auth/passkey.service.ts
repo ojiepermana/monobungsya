@@ -126,7 +126,7 @@ export class PasskeyService {
 
     // The session cookie is already set, so the shared user state is refreshed
     // from the session endpoint the same way every other login path does it.
-    const user = await firstValueFrom(this.auth.loadCurrentUser());
+    const user = await firstValueFrom(this.auth.retrySession());
 
     return user ?? result.user ?? null;
   }

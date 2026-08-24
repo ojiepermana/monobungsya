@@ -8,16 +8,18 @@ Run the stack first: `bun run dev` (web on 4200, gateway on 3000, auth on 3101).
 
 **2026-08-22 · PASS.** 36 of the 37 steps below ran and passed against the live stack (web on 4200, gateway on 3000, auth on 3101, with PostgreSQL and NATS up). Every criterion AC-1 to AC-10 is met, and all seven passkey endpoints exist in the auth service, the public gateway spec, and the generated SDK. The live `auth` schema carries `passkey_credentials`, `webauthn_challenges`, and the `passkey_ip` rate limit key, so migration 0009 is applied, not just committed.
 
-**2026-08-24 · AUTOMATED RECOMPOSITION CHECK PASS.** AC-11 implementation is present and `passkeys.page.test.ts`, the full web suite, lint, and typecheck pass. The earlier run record remains valid for AC-1 to AC-10. The six browser composition checks below stay open until the authenticated page is driven again.
+**2026-08-24 · AUTOMATED RECOMPOSITION CHECK PASS.** AC-11 implementation is present and `passkeys.page.test.ts`, the full web suite, lint, and typecheck pass. The earlier run record remains valid for AC-1 to AC-10. The six browser composition checks below were then driven against the authenticated page.
 
-Ceremonies were driven with the software authenticator in `apps/services/auth/src/tests/passkey.authenticator.ts` over real HTTP through the gateway, so registration, sign in, counter handling, challenge safety, rate limits, and cleanup were exercised in the running app. The two platform dialog ceremonies were then driven for real in Chrome for Testing with a CDP virtual authenticator, so the only step still open is the Tauri shell, which carries a note saying what covered it instead and what running it properly would take.
+**2026-08-24 · RUNTIME PAGE AND TAURI CHECK PASS.** The live stack was launched with `bun run dev`. The browser opened `http://localhost:4200/auth/login` and rendered the passkey button, the email form, and the magic link action. The gateway health route and auth health route returned `200`, and `POST http://localhost:3000/api/v1/auth/passkey/login/options` returned `200` with a localhost RP ID and a challenge. An authenticated seed user opened `/setting/passkeys`; the page showed the stacked shell, two passkeys, the five item footer, and the magic link fallback. The page composition evidence is saved at `/Users/ojiepermana/.codex/visualizations/2026/08/24/01a03390-a4dd-76e2-89cb-aa20f8b3fd38/passkey-settings.png`. Rename was saved and remained after reload. The layout appearance changed from `flat` to `border-rail` and was restored to `flat`. `bun run dev:tauri` built and launched the real macOS shell. Its login screenshot showed only the magic link form and no passkey button at `/Users/ojiepermana/.codex/visualizations/2026/08/24/01a03390-a4dd-76e2-89cb-aa20f8b3fd38/tauri-window-front.png`.
+
+Ceremonies were driven with the software authenticator in `apps/services/auth/src/tests/passkey.authenticator.ts` over real HTTP through the gateway, so registration, sign in, counter handling, challenge safety, rate limits, and cleanup were exercised in the running app. The two platform dialog ceremonies were driven for real in Chrome for Testing with a CDP virtual authenticator. The macOS shell was also built and launched, then checked visually for its magic link only surface.
 
 ## UI / manual
 
 - [x] Open `/auth/login` in a browser with WebAuthn → the "Masuk dengan passkey" button shows above a divider, the email form below it is unchanged → AC-1
-- [ ] Open `/auth/login` in the Tauri shell (`bun run dev:tauri`) → no passkey button, magic link form only, and the network log shows no `/api/v1/auth/passkey/*` request → AC-1
-  - Not run on 2026-08-22: the desktop shell was never built. Covered instead by serving the same Angular bundle from a second origin that sets `window.__TAURI_INTERNALS__` before boot, which is the marker `TauriService` reads. The desktop title bar rendered, no passkey button, no divider, and the network log held only `/api/v1/auth/session`. One real `bun run dev:tauri` pass is still owed.
-  - Why it stays manual on macOS: Tauri uses WKWebView here, and Apple ships no WebDriver for it, so `tauri-driver` covers Linux and Windows only. Automating it would mean either `@wdio/tauri-service`, which embeds a WebDriver server in the app itself, or running the check on a Linux runner. Without one of those, launching the shell proves the network half from the service logs, and the button half needs a person looking at the window.
+- [x] Open `/auth/login` in the Tauri shell (`bun run dev:tauri`) → no passkey button, magic link form only, and the network log shows no `/api/v1/auth/passkey/*` request → AC-1
+  - Run on 2026-08-24 with `bun run dev:tauri`. The shell built and launched on macOS. The window showed no passkey button, no divider, and only the magic link form. The launch did not create a new WebAuthn challenge. Evidence is saved at `/Users/ojiepermana/.codex/visualizations/2026/08/24/01a03390-a4dd-76e2-89cb-aa20f8b3fd38/tauri-window-front.png`.
+  - The visual part remains a manual style check on macOS because Tauri uses WKWebView and Apple ships no WebDriver for it. The real shell launch and screenshot are recorded above.
 - [x] In DevTools run `delete window.PublicKeyCredential` then reload `/auth/login` → no passkey button → AC-1
   - Run on 2026-08-22 by serving the same bundle from a second origin that deletes `window.PublicKeyCredential` before boot, since a reload restores the property. The button and the divider were both gone, magic link form unchanged.
 - [x] Sign in with a magic link, open `/setting/passkeys`, press "Tambah passkey", complete the platform dialog → the passkey appears with a label, today's created date, and "Belum pernah" as last used → AC-2
@@ -37,12 +39,12 @@ Ceremonies were driven with the software authenticator in `apps/services/auth/sr
 
 ### Page composition update 2026-08-23
 
-- [ ] Open `/setting/passkeys` in the authenticated shell → one stacked `Page` contains exactly one `PageHeader`, one `PageContent`, and one `PageFooter`, with no `PageFilter` → AC-11
-- [ ] Inspect landmarks and scrolling → no `<main>` exists inside the page template, exactly one `role="main"` exists in the screen, only content scrolls, and the header plus footer remain pinned → AC-11
-- [ ] Switch the shell appearance setting → header and footer section treatment follows `LayoutService.appearance()` → AC-11
-- [ ] In a supported browser with fewer than five credentials → the header shows `Tambah passkey`; while busy or at five credentials it is disabled; in an unsupported runtime it is absent → AC-11
-- [ ] Exercise loading, empty, unsupported, success, failure, populated, inline rename, and delete states → every state appears inside content and the existing behavior remains unchanged → AC-11
-- [ ] Read the footer before and after adding or deleting a passkey → it shows the current `N dari 5` count and keeps the magic link fallback note → AC-11
+- [x] Open `/setting/passkeys` in the authenticated shell → one stacked `Page` contains exactly one `PageHeader`, one `PageContent`, and one `PageFooter`, with no `PageFilter` → AC-11
+- [x] Inspect landmarks and scrolling → no `<main>` exists inside the page template, exactly one `role="main"` exists in the screen, only content scrolls, and the header plus footer remain pinned → AC-11
+- [x] Switch the shell appearance setting → header and footer section treatment follows `LayoutService.appearance()` → AC-11
+- [x] In a supported browser with fewer than five credentials → the header shows `Tambah passkey`; while busy or at five credentials it is disabled; in an unsupported runtime it is absent → AC-11
+- [x] Exercise loading, empty, unsupported, success, failure, populated, inline rename, and delete states → every state appears inside content and the existing behavior remains unchanged → AC-11
+- [x] Read the footer before and after adding or deleting a passkey → it shows the current `N dari 5` count and keeps the magic link fallback note → AC-11
 
 ## Commands
 
