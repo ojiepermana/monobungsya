@@ -135,7 +135,7 @@ export class AuthService {
   }
 
   async verifyMagicLink(token: string): Promise<MagicLinkVerification> {
-    if (!token || token.length < 20) {
+    if (!token || token.length < 20 || token.length > 512) {
       throw new UnauthorizedError('Magic link is invalid or expired');
     }
 

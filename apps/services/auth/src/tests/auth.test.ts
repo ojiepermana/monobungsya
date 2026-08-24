@@ -194,6 +194,43 @@ describe('auth service', () => {
       });
     }
   });
+
+  it('bounds an SMTP connection that never responds', async () => {
+    const server = createServer();
+
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
+    });
+
+    const address = server.address() as AddressInfo;
+
+    try {
+      const mailer = new SmtpAuthMailer({
+        host: '127.0.0.1',
+        port: address.port,
+        username: '',
+        password: '',
+        from: 'no-reply@localhost',
+        publicApiUrl: 'http://localhost:3000',
+        webAppUrl: 'http://localhost:4200',
+        timeoutMs: 50,
+      });
+
+      await expect(
+        mailer.sendMagicLink({
+          recipient: 'system@project.local',
+          recipientName: 'System User',
+          token: 'token-with-more-than-twenty-characters',
+          expiresAt: new Date('2026-08-21T03:00:00.000Z'),
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
 });
 
 describe('AuthService.sendInvitation (spec docs/specs/0007-user-management, AC-2)', () => {

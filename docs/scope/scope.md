@@ -11,7 +11,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | --- | ----------------------------------- | ---------- | ----------- |
 | A   | Enterprise monorepo foundation      | Foundation | existing    |
 | B   | Central multischema database tooling | Foundation | existing    |
-| 1   | Auth magic link and session         | Foundation | in-progress |
+| 1   | Auth magic link and session         | Foundation | done        |
 | 2   | Auth login and callback UI          | Foundation | in-progress |
 | 3   | Angular UI package and CSS standard | Foundation | in-progress |
 | 4   | MCP server for ERP tool access      | Foundation | done        |
@@ -39,7 +39,7 @@ The canonical Bun SQL runner owns ordered migrations, seeds, reset safety, check
 
 Spec [0002](../specs/0002-central-multischema-database-tooling/index.md) · code in `packages/database`
 
-### 1. Auth magic link and session · in-progress
+### 1. Auth magic link and session · done
 
 Implement passwordless login, server side sessions, permission authorization, and signed identity forwarding for the single organization phase.
 **Done when:** Registered users can request and consume a one time magic link, use a bounded session, logout, and access only routes allowed by their effective permissions.
@@ -51,7 +51,7 @@ Implement passwordless login, server side sessions, permission authorization, an
   - [x] Gateway HMAC identity forwarding and service identity guards (AC-7)
   - [x] Permission authorization policy superseding the original role policy through spec 0008 (AC-8)
   - [x] Cleanup worker, redacted logging, tests, and deployment configuration (AC-9, AC-10)
-- [ ] Verify it: `/check verify auth magic link and session`
+- [x] Verify it: `/check verify auth magic link and session`
 - [x] Test it: `/test auth magic link and session`
 
 Spec [0003](../specs/0003-auth-magic-link-session/index.md) · code in `apps/services/auth`, `apps/gateway/erp`, and `packages/contracts`

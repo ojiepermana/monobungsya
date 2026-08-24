@@ -12,7 +12,7 @@ export const magicLinkRequestBody = t.Object({
 });
 
 export const magicLinkQuery = t.Object({
-  token: t.String({ minLength: 20, maxLength: 512 }),
+  token: t.String(),
 });
 
 export const magicLinkAcceptedResponse = t.Object({

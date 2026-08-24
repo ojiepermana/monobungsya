@@ -97,6 +97,26 @@ describe('auth magic link integration', () => {
         'http://localhost:4200/auth/callback-error',
       );
 
+      const malformed = await app.handle(
+        new Request('http://localhost/internal/auth/verify?token=bad'),
+      );
+
+      expect(malformed.status).toBe(302);
+      expect(malformed.headers.get('location')).toBe(
+        'http://localhost:4200/auth/callback-error',
+      );
+
+      const oversized = await app.handle(
+        new Request(
+          `http://localhost/internal/auth/verify?token=${'t'.repeat(513)}`,
+        ),
+      );
+
+      expect(oversized.status).toBe(302);
+      expect(oversized.headers.get('location')).toBe(
+        'http://localhost:4200/auth/callback-error',
+      );
+
       const logout = await app.handle(
         new Request('http://localhost/internal/auth/logout', {
           method: 'POST',

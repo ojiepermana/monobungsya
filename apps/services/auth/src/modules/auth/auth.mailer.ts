@@ -9,16 +9,21 @@ export interface SmtpMailerConfig {
   from: string;
   publicApiUrl: string;
   webAppUrl: string;
+  timeoutMs?: number;
 }
 
 export class SmtpAuthMailer implements AuthMailer {
   private readonly transporter: Transporter;
 
   constructor(private readonly config: SmtpMailerConfig) {
+    const timeoutMs = config.timeoutMs ?? 10_000;
     this.transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.port === 465,
+      connectionTimeout: timeoutMs,
+      greetingTimeout: timeoutMs,
+      socketTimeout: timeoutMs,
       auth:
         config.username && config.password
           ? { user: config.username, pass: config.password }
