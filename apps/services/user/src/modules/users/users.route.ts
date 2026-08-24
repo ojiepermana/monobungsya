@@ -101,15 +101,22 @@ export function createUsersRoute(
       // the resolved identity is the audit actor for every mutation below.
       // Registered before the parameterised routes so the stub keeps answering
       // on /internal/users/status instead of being read as a user id.
-      .get('/internal/users/status', () => service.getStatus(), {
-        response: { 200: usersStatusResponse },
-        detail: { tags: ['Users'], summary: 'Return users module status' },
-      })
       .use(
         createAuthIdentityPlugin(
           options.signingSecret ?? '',
           options.clockSkewSeconds ?? 30,
         ),
+      )
+      .get(
+        '/internal/users/status',
+        ({ requirePermissions }) => {
+          requirePermissions(PERMISSIONS.userUserRead);
+          return service.getStatus();
+        },
+        {
+          response: { 200: usersStatusResponse },
+          detail: { tags: ['Users'], summary: 'Return users module status' },
+        },
       )
       .get(
         '/internal/users',

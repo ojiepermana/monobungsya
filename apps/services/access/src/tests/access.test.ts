@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import { signAuthIdentity } from '#project/contracts';
+import type { DatabaseClient } from '#project/database';
+import { ActivityLog } from '#project/logger';
 import { createApp } from '../app';
 import { loadAccessEnv } from '../config/env';
 import { PermissionLookupCache } from '../modules/access/access.cache';
-import type { AccessRepository } from '../modules/access/access.repository';
+import { AccessRepository } from '../modules/access/access.repository';
+import { AccessService } from '../modules/access/access.service';
 
 const SECRET = 'access-test-signing-secret';
 const USER_ID = '0198f8a0-0000-7000-8000-000000000001';
@@ -92,5 +95,76 @@ describe('access service', () => {
     await cache.get('user-b');
     await cache.get('user-a');
     expect(calls).toBe(4);
+  });
+
+  it('rolls back a catalog create when its audit write fails', async () => {
+    let persisted = false;
+    const permission = {
+      id: '0198f8a0-0000-7000-8000-0000000000aa',
+      name: 'verify:permission:create',
+      code: 'VERIFY_PERMISSION_CREATE',
+      namespace: 'verify',
+      resource: 'permission',
+      action: 'create',
+      scope: null,
+      description: 'Verification permission',
+      grantCount: 0,
+      createdAt: '2026-08-24T00:00:00.000Z',
+      updatedAt: '2026-08-24T00:00:00.000Z',
+    };
+    const findPermission = spyOn(
+      AccessRepository.prototype,
+      'findPermissionByNameOrCode',
+    ).mockResolvedValue(null);
+    const createPermission = spyOn(
+      AccessRepository.prototype,
+      'createPermission',
+    ).mockImplementation(async () => {
+      persisted = true;
+      return permission;
+    });
+    const transaction = spyOn(
+      AccessRepository.prototype,
+      'transaction',
+    ).mockImplementation(async (operation) => {
+      try {
+        return await operation(new AccessRepository());
+      } catch (error) {
+        persisted = false;
+        throw error;
+      }
+    });
+    const audit = spyOn(ActivityLog, 'writeAudit').mockRejectedValue(
+      new Error('logs database is unreachable'),
+    );
+
+    try {
+      const service = new AccessService({
+        database: {} as DatabaseClient,
+      });
+
+      await expect(
+        service.createPermission(
+          { name: permission.name, description: permission.description },
+          { id: USER_ID, email: 'admin@local.app' },
+          {
+            requestId: 'request-1',
+            ipAddress: null,
+            userAgent: null,
+          },
+        ),
+      ).rejects.toThrow('logs database is unreachable');
+
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(findPermission).toHaveBeenCalledTimes(1);
+      expect(createPermission).toHaveBeenCalledTimes(1);
+      expect(audit).toHaveBeenCalledTimes(1);
+      expect(persisted).toBe(false);
+    } finally {
+      transaction.mockRestore();
+      createPermission.mockRestore();
+      findPermission.mockRestore();
+      audit.mockRestore();
+    }
   });
 });

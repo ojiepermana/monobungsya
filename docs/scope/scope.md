@@ -190,7 +190,7 @@ Permission first access control without roles: a new access service owns a permi
   - [x] Admin API: catalog CRUD, grants, lockout guards, audit writes, cache invalidation events (AC-7, AC-8, AC-10, AC-15)
   - [x] Admin UI: stacked catalog page with a hidden by default filter toggle, compact `xs` header and table actions, and the user detail access tab (AC-14)
   - [x] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, env docs (AC-16)
-- [ ] Verify it: `/check verify permission access control`
+- [x] Verify it: `/check verify permission access control`
 - [ ] Test it: `/test permission access control`
 
 Spec [0008](../specs/0008-permission-acl/index.md) · code in `apps/services/access`, `apps/gateway/erp`, `apps/services/auth`, `apps/services/user`, `apps/services/logs`, `apps/web`, `packages/acl`, `packages/contracts`, and `packages/database`

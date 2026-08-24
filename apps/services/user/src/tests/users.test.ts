@@ -171,7 +171,7 @@ const CREATE_USER_BODY = {
 } as const;
 
 describe('user service', () => {
-  it('exposes health and module status endpoints', async () => {
+  it('exposes health and protects module status with its read permission', async () => {
     const app = createApp(loadEnv('user', { NODE_ENV: 'test', PORT: '3102' }));
     const health = await app.handle(new Request('http://localhost/health'));
     const moduleStatus = await app.handle(
@@ -180,12 +180,7 @@ describe('user service', () => {
 
     expect(health.status).toBe(200);
     expect(await health.json()).toEqual({ status: 'ok', service: 'user' });
-    expect(moduleStatus.status).toBe(200);
-    expect(await moduleStatus.json()).toEqual({
-      service: 'user',
-      status: 'ok',
-      module: 'users',
-    });
+    expect(moduleStatus.status).toBe(401);
   });
 
   it('rejects unsigned internal requests when identity signing is enabled', async () => {
@@ -214,7 +209,15 @@ describe('user service', () => {
     const unsigned = await app.handle(
       new Request('http://localhost/internal/users/status'),
     );
-    expect(unsigned.status).toBe(200);
+    expect(unsigned.status).toBe(401);
+
+    const denied = await app.handle(
+      signedRequest('GET', '/internal/users/status', {
+        ...identity,
+        permissions: [],
+      }),
+    );
+    expect(denied.status).toBe(403);
 
     const signed = await app.handle(
       new Request('http://localhost/internal/users/status', {

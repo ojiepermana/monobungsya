@@ -314,7 +314,12 @@ export class PermissionsPage {
   }
 
   protected remove(permission: PermissionRecord): void {
-    if (!window.confirm(`Delete ${permission.name}?`)) return;
+    if (
+      !window.confirm(
+        `Delete ${permission.name}? This will cascade and remove all user grants.`,
+      )
+    )
+      return;
     this.api.deletePermission(permission.id).subscribe({
       next: () => this.load(this.meta().page),
       error: () => this.error.set('Failed to delete permission.'),

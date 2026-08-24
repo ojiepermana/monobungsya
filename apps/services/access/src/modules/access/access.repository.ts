@@ -13,6 +13,15 @@ const MAX_PAGE_SIZE = 100;
 export class AccessRepository {
   constructor(private readonly database?: DatabaseClient) {}
 
+  async transaction<T>(
+    operation: (repository: AccessRepository) => Promise<T>,
+  ): Promise<T> {
+    const database = this.requireDatabase();
+    return database.begin(async (transaction) =>
+      operation(new AccessRepository(transaction)),
+    );
+  }
+
   async lookupPermissions(userId: string): Promise<string[]> {
     const database = this.requireDatabase();
     const rows = await database`

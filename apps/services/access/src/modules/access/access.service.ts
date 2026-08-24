@@ -64,27 +64,30 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<PermissionRecord> {
-    const parts = derivePermissionParts(input.name);
-    if (!parts)
-      throw new ValidationError('Permission name has an invalid format');
-    const existing = await this.repository.findPermissionByNameOrCode(
-      input.name,
-      parts.code,
-    );
-    if (existing)
-      throw new ConflictError(
-        'A permission with this name or code already exists',
-        'permission_duplicate',
+    const permission = await this.repository.transaction(async (repository) => {
+      const parts = derivePermissionParts(input.name);
+      if (!parts)
+        throw new ValidationError('Permission name has an invalid format');
+      const existing = await repository.findPermissionByNameOrCode(
+        input.name,
+        parts.code,
       );
+      if (existing)
+        throw new ConflictError(
+          'A permission with this name or code already exists',
+          'permission_duplicate',
+        );
 
-    const permission = await this.repository.createPermission({
-      name: input.name,
-      ...parts,
-      description: normalizeDescription(input.description),
-    });
-    await this.audit('create', permission, actor, correlation, {
-      afterState: permission,
-      changeSummary: `created ${permission.name}`,
+      const created = await repository.createPermission({
+        name: input.name,
+        ...parts,
+        description: normalizeDescription(input.description),
+      });
+      await this.audit('create', created, actor, correlation, {
+        afterState: created,
+        changeSummary: `created ${created.name}`,
+      });
+      return created;
     });
     this.publish({});
     return permission;
@@ -96,16 +99,20 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<PermissionRecord> {
-    const before = await this.getPermission(id);
-    const permission = await this.repository.updateDescription(
-      id,
-      normalizeDescription(description),
-    );
-    if (!permission) throw new NotFoundError('Permission not found');
-    await this.audit('update', permission, actor, correlation, {
-      beforeState: before,
-      afterState: permission,
-      changeSummary: `updated description for ${permission.name}`,
+    const permission = await this.repository.transaction(async (repository) => {
+      const before = await repository.findPermission(id);
+      if (!before) throw new NotFoundError('Permission not found');
+      const updated = await repository.updateDescription(
+        id,
+        normalizeDescription(description),
+      );
+      if (!updated) throw new NotFoundError('Permission not found');
+      await this.audit('update', updated, actor, correlation, {
+        beforeState: before,
+        afterState: updated,
+        changeSummary: `updated description for ${updated.name}`,
+      });
+      return updated;
     });
     this.publish({});
     return permission;
@@ -116,18 +123,21 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<void> {
-    const permission = await this.getPermission(id);
-    if (permission.namespace === 'access') {
-      throw new ForbiddenError(
-        'Permissions in the access namespace cannot be deleted',
-      );
-    }
-    if (!(await this.repository.deletePermission(id))) {
-      throw new NotFoundError('Permission not found');
-    }
-    await this.audit('delete', permission, actor, correlation, {
-      beforeState: permission,
-      changeSummary: `deleted ${permission.name} with grants`,
+    await this.repository.transaction(async (repository) => {
+      const permission = await repository.findPermission(id);
+      if (!permission) throw new NotFoundError('Permission not found');
+      if (permission.namespace === 'access') {
+        throw new ForbiddenError(
+          'Permissions in the access namespace cannot be deleted',
+        );
+      }
+      if (!(await repository.deletePermission(id))) {
+        throw new NotFoundError('Permission not found');
+      }
+      await this.audit('delete', permission, actor, correlation, {
+        beforeState: permission,
+        changeSummary: `deleted ${permission.name} with grants`,
+      });
     });
     this.publish({});
   }
@@ -142,44 +152,49 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<{ granted: string[]; skipped: string[] }> {
-    const uniqueIds = [...new Set(permissionIds)];
-    const duplicateIds = permissionIds.filter(
-      (id, index) => permissionIds.indexOf(id) !== index,
-    );
-    const permissions = await this.repository.findPermissionsByIds(uniqueIds);
-    if (permissions.length !== uniqueIds.length) {
-      const known = new Set(permissions.map((permission) => permission.id));
-      const missing = uniqueIds.find((id) => !known.has(id));
-      throw new NotFoundError(`Permission ${missing ?? 'unknown'} not found`);
-    }
-    const existing = new Set(
-      await this.repository.existingGrantPermissionIds(userId, uniqueIds),
-    );
-    const granted: string[] = [];
-    const skipped = [...duplicateIds];
+    const result = await this.repository.transaction(async (repository) => {
+      const uniqueIds = [...new Set(permissionIds)];
+      const duplicateIds = permissionIds.filter(
+        (id, index) => permissionIds.indexOf(id) !== index,
+      );
+      const permissions = await repository.findPermissionsByIds(uniqueIds);
+      if (permissions.length !== uniqueIds.length) {
+        const known = new Set(permissions.map((permission) => permission.id));
+        const missing = uniqueIds.find((id) => !known.has(id));
+        throw new NotFoundError(`Permission ${missing ?? 'unknown'} not found`);
+      }
+      const existing = new Set(
+        await repository.existingGrantPermissionIds(userId, uniqueIds),
+      );
+      const granted: string[] = [];
+      const skipped = [...duplicateIds];
 
-    for (const permission of permissions) {
-      if (existing.has(permission.id)) {
-        skipped.push(permission.id);
-        continue;
+      for (const permission of permissions) {
+        if (existing.has(permission.id)) {
+          skipped.push(permission.id);
+          continue;
+        }
+        const inserted = await repository.insertGrant(userId, permission.id);
+        if (!inserted) {
+          skipped.push(permission.id);
+          continue;
+        }
+        granted.push(permission.id);
+        await this.audit('grant', permission, actor, correlation, {
+          entityType: 'permission_user',
+          entityId: inserted,
+          entityLabel: `${userId} · ${permission.name}`,
+          metadata: { userId, permissionId: permission.id },
+          changeSummary: `granted ${permission.name} to ${userId}`,
+        });
       }
-      const inserted = await this.repository.insertGrant(userId, permission.id);
-      if (!inserted) {
-        skipped.push(permission.id);
-        continue;
-      }
-      granted.push(permission.id);
-      await this.audit('grant', permission, actor, correlation, {
-        entityType: 'permission_user',
-        entityId: inserted,
-        entityLabel: `${userId} · ${permission.name}`,
-        metadata: { userId, permissionId: permission.id },
-        changeSummary: `granted ${permission.name} to ${userId}`,
-      });
+
+      return { granted, skipped };
+    });
+    if (result.granted.length > 0) {
       this.publish({ userId });
     }
-
-    return { granted, skipped };
+    return result;
   }
 
   async copyPermissions(
@@ -205,22 +220,24 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<void> {
-    const permission = await this.repository.permissionForGrant(permissionId);
-    if (!permission) throw new NotFoundError('Permission not found');
-    if (userId === actor.id && permission.namespace === 'access') {
-      throw new ForbiddenError(
-        'You cannot revoke your own access administration permission',
-      );
-    }
-    if (!(await this.repository.revokeGrant(userId, permissionId))) {
-      throw new NotFoundError('Permission grant not found');
-    }
-    await this.audit('revoke', permission, actor, correlation, {
-      entityType: 'permission_user',
-      entityId: `${userId}:${permissionId}`,
-      entityLabel: `${userId} · ${permission.name}`,
-      metadata: { userId, permissionId },
-      changeSummary: `revoked ${permission.name} from ${userId}`,
+    await this.repository.transaction(async (repository) => {
+      const permission = await repository.permissionForGrant(permissionId);
+      if (!permission) throw new NotFoundError('Permission not found');
+      if (userId === actor.id && permission.namespace === 'access') {
+        throw new ForbiddenError(
+          'You cannot revoke your own access administration permission',
+        );
+      }
+      if (!(await repository.revokeGrant(userId, permissionId))) {
+        throw new NotFoundError('Permission grant not found');
+      }
+      await this.audit('revoke', permission, actor, correlation, {
+        entityType: 'permission_user',
+        entityId: `${userId}:${permissionId}`,
+        entityLabel: `${userId} · ${permission.name}`,
+        metadata: { userId, permissionId },
+        changeSummary: `revoked ${permission.name} from ${userId}`,
+      });
     });
     this.publish({ userId });
   }
