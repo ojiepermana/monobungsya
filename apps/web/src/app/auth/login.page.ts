@@ -2,8 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   faApple,
+  faFacebook,
+  faGithub,
   faGoogle,
   faMicrosoft,
+  faXTwitter,
+  faYahoo,
 } from '@fortawesome/free-brands-svg-icons';
 import {
   AlertComponent,
@@ -32,9 +36,13 @@ import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
 
 const SOCIAL_PROVIDERS = [
-  { label: 'Google', icon: faGoogle },
-  { label: 'Microsoft', icon: faMicrosoft },
-  { label: 'Apple', icon: faApple },
+  { label: 'Google', icon: faGoogle, iconScale: 1 },
+  { label: 'Microsoft', icon: faMicrosoft, iconScale: 1.11 },
+  { label: 'Apple', icon: faApple, iconScale: 1.11 },
+  { label: 'GitHub', icon: faGithub, iconScale: 1 },
+  { label: 'Facebook', icon: faFacebook, iconScale: 0.97 },
+  { label: 'X', icon: faXTwitter, iconScale: 1.19 },
+  { label: 'Yahoo', icon: faYahoo, iconScale: 1.11 },
 ] as const;
 
 type LoginState =
@@ -152,13 +160,12 @@ type LoginState =
                   atau login dengan
                   <span class="h-px flex-1 bg-border"></span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="flex items-center justify-between gap-2">
                   @for (provider of socialProviders; track provider.label) {
-                    <button Button size="xs" type="button" class="w-full min-w-0 gap-1.5 px-2" [attr.aria-label]="'Login dengan ' + provider.label">
-                      <svg class="size-4 shrink-0" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
+                    <button Button size="xs" type="button" class="shrink-0 p-0" [style.height.px]="32" [style.width.px]="32" [attr.aria-label]="'Login dengan ' + provider.label" [title]="'Login dengan ' + provider.label">
+                      <svg class="size-4 shrink-0" [style.transform]="'scale(' + provider.iconScale + ')'" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
                         <path [attr.d]="provider.icon.icon[4]"></path>
                       </svg>
-                      {{ provider.label }}
                     </button>
                   }
                 </div>

@@ -96,7 +96,32 @@ describe('auth UI', () => {
       'Login dengan Google',
       'Login dengan Microsoft',
       'Login dengan Apple',
+      'Login dengan GitHub',
+      'Login dengan Facebook',
+      'Login dengan X',
+      'Login dengan Yahoo',
     ]);
+    expect(
+      providerButtons.every((button) => button.textContent.trim() === ''),
+    ).toBe(true);
+    expect(
+      providerButtons.every(
+        (button) =>
+          button.getAttribute('title') === button.getAttribute('aria-label'),
+      ),
+    ).toBe(true);
+    expect(
+      providerButtons.every(
+        (button) =>
+          button.style.height === '32px' && button.style.width === '32px',
+      ),
+    ).toBe(true);
+    expect(providerButtons[0].parentElement?.classList.contains('gap-2')).toBe(
+      true,
+    );
+    expect(
+      providerButtons[0].parentElement?.classList.contains('justify-between'),
+    ).toBe(true);
     expect(
       providerButtons.every((button) =>
         button.querySelector('svg path')?.getAttribute('d'),
@@ -108,6 +133,11 @@ describe('auth UI', () => {
           .querySelector('svg')
           ?.getAttribute('viewBox')
           ?.startsWith('0 0 '),
+      ),
+    ).toBe(true);
+    expect(
+      providerButtons.every(
+        (button) => button.querySelector('svg')?.style.transform,
       ),
     ).toBe(true);
   });
