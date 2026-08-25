@@ -47,7 +47,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
   ],
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layoutAppearance" class="h-full min-h-0">
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div>
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <h1 class="text-lg font-semibold text-foreground">Notifikasi</h1>
@@ -59,7 +59,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
       </PageHeader>
 
       <PageContent class="grid min-h-0 content-start gap-3">
-        <div class="flex flex-wrap items-center gap-3 border-b border-border px-6 py-4">
+        <div class="flex flex-wrap items-center gap-3 border-b border-border px-3 py-4">
           <select NativeSelect [value]="category()" (change)="changeCategory($event)">
             @for (option of categoryOptions; track option.value) { <option NativeSelectOption [value]="option.value">{{ option.label }}</option> }
           </select>
@@ -70,7 +70,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
         </div>
 
         @if (preferencesOpen()) {
-          <section class="grid gap-3 border-b border-border bg-card px-6 py-4" aria-labelledby="preference-title">
+          <section class="grid gap-3 border-b border-border bg-card px-3 py-4" aria-labelledby="preference-title">
             <h2 id="preference-title" class="text-sm font-semibold text-foreground">Preferensi notifikasi</h2>
             @if (preferencesLoading()) { <p class="text-sm text-muted-foreground">Memuat preferensi...</p> }
             @for (group of preferences(); track group.category) {
@@ -111,7 +111,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
           }
         }
       </PageContent>
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} notifikasi</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button>

@@ -83,7 +83,7 @@ type TotpVerifyResult = { authenticated: true; redirectTo: string };
           </CardContent>
         </Card>
       </PageContent>
-      <PageFooter class="flex items-center px-4"><p class="mx-auto w-full max-w-lg text-xs text-muted-foreground">Gunakan recovery code jika perangkat authenticator tidak tersedia.</p></PageFooter>
+      <PageFooter class="flex items-center px-4"><p class="mx-auto w-full max-w-lg text-sm text-muted-foreground">Gunakan recovery code jika perangkat authenticator tidak tersedia.</p></PageFooter>
     </Page>
   `,
 })

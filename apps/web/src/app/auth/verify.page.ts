@@ -29,7 +29,7 @@ type VerifyState = 'verifying' | 'success' | 'error';
   template: `
     <Page variant="stacked" height="fix" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0 bg-surface [--layout-grid-size:2rem] bg-[linear-gradient(var(--layout-grid-color)_1px,transparent_1px),linear-gradient(to_right,var(--layout-grid-color)_1px,transparent_1px)] bg-position-[center_center] bg-size-[var(--layout-grid-size)_var(--layout-grid-size)] text-surface-foreground">
       <PageHeader class="invisible h-0 overflow-hidden" aria-hidden="true"></PageHeader>
-      <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">
+      <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-10">
         <Card class="relative block w-full max-w-xl">
           <section class="p-6 sm:p-8" aria-labelledby="callback-title">
         @if (state() === 'verifying') {

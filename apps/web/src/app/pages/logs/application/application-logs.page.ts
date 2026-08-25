@@ -47,7 +47,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
   ],
   template: `
     <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Application Logs</h1>
@@ -65,7 +65,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
         placement="stacked"
         collapsible
         [hidden]="!filterOpen()"
-        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:flex-wrap md:items-center"
+        class="grid shrink-0 gap-3 px-3 py-4 md:flex md:flex-wrap md:items-center"
       >
         <input
           Input
@@ -111,7 +111,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
       } @else {
         <div class="overflow-auto">
           <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-border text-xs uppercase text-muted-foreground">
+            <thead class="border-b border-border text-sm uppercase text-muted-foreground">
               <tr>
                 <th class="px-4 py-3">Time</th>
                 <th class="px-4 py-3">Level</th>
@@ -123,7 +123,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
             <tbody>
               @for (row of rows(); track row.id) {
                 <tr class="border-b border-border align-top last:border-0">
-                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ formatDate(row.occurredAt) }}</td>
+                  <td class="whitespace-nowrap px-4 py-3">{{ formatDate(row.occurredAt) }}</td>
                   <td class="px-4 py-3">
                     <span Badge [variant]="levelVariant(row.level)">{{ row.level }}</span>
                   </td>
@@ -142,7 +142,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>

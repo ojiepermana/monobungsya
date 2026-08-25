@@ -113,7 +113,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
   ],
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
           <h1 class="truncate text-lg font-semibold text-foreground">{{ user()?.name ?? 'User' }}</h1>
@@ -202,7 +202,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Audit trail user</caption>
-                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                <thead TableHeader class="text-sm uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Action</th>
@@ -213,7 +213,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
                 <tbody TableBody>
                   @for (row of auditRows(); track row.id) {
                     <tr TableRow class="align-top">
-                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.auditedAt) }}</td>
+                      <td TableCell class="whitespace-nowrap">{{ formatDate(row.auditedAt) }}</td>
                       <td TableCell>{{ row.action }}</td>
                       <td TableCell>
                         <p class="font-medium text-foreground">{{ row.module }}</p>
@@ -239,7 +239,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Access log user</caption>
-                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                <thead TableHeader class="text-sm uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Event</th>
@@ -250,7 +250,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
                 <tbody TableBody>
                   @for (row of accessRows(); track row.accessedAt + row.event) {
                     <tr TableRow class="align-top">
-                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.accessedAt) }}</td>
+                      <td TableCell class="whitespace-nowrap">{{ formatDate(row.accessedAt) }}</td>
                       <td TableCell>{{ row.event }}</td>
                       <td TableCell>{{ row.outcome }}</td>
                       <td TableCell class="text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
@@ -267,7 +267,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Application log user</caption>
-                <thead TableHeader class="text-xs uppercase text-muted-foreground">
+                <thead TableHeader class="text-sm uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Level</th>
@@ -278,7 +278,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
                 <tbody TableBody>
                   @for (row of applicationRows(); track row.id) {
                     <tr TableRow class="align-top">
-                      <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(row.occurredAt) }}</td>
+                      <td TableCell class="whitespace-nowrap">{{ formatDate(row.occurredAt) }}</td>
                       <td TableCell>{{ row.level }}</td>
                       <td TableCell>{{ row.module ?? '-' }}</td>
                       <td TableCell class="text-muted-foreground">{{ row.message }}</td>
@@ -314,7 +314,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
 
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>

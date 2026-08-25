@@ -65,7 +65,7 @@ import {
       [appearance]="layout.appearance()"
       class="h-full min-h-0"
     >
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Settings</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Passkey</h1>
@@ -86,7 +86,7 @@ import {
       </PageHeader>
 
       <PageContent class="grid min-h-0 content-start gap-6">
-        <section class="grid gap-4 border border-border bg-card p-5">
+        <section class="grid gap-4 border-b border-border bg-card p-5">
           <div><h2 class="text-base font-semibold">Two factor authentication</h2><p class="mt-1 text-sm text-muted-foreground">Gunakan kode 6 digit dari aplikasi authenticator. Recovery code hanya ditampilkan sekali.</p></div>
           @if (totpStatus(); as status) {
             @if (status.enabled) {
@@ -135,7 +135,7 @@ import {
         } @else {
           <Table class="min-w-full bg-card">
             <caption TableCaption class="sr-only">Daftar passkey</caption>
-              <thead TableHeader class="text-xs uppercase text-muted-foreground">
+              <thead TableHeader class="text-sm uppercase text-muted-foreground">
                 <tr TableRow>
                   <th TableHead scope="col">Nama</th>
                   <th TableHead scope="col">Dibuat</th>
@@ -218,7 +218,7 @@ import {
         </section>
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">
           {{ passkeys().length }} dari {{ maxPasskeys }} passkey terpakai
         </p>

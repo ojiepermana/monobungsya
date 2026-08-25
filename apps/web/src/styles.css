@@ -60,7 +60,7 @@ body:has([data-shell-root][data-shell-mode="desktop"]) {
 }
 
 table[class*="text-"] {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 400;
 }
 
@@ -78,6 +78,29 @@ table[class*="text-"] .font-semibold {
 
 table[class*="text-"] .font-bold {
   font-weight: 600;
+}
+
+table > :is(thead, tbody, tfoot) > tr > :first-child {
+  padding-left: calc(var(--spacing-base) * 3);
+}
+
+table > :is(thead, tbody, tfoot) > tr > :last-child {
+  padding-right: calc(var(--spacing-base) * 3);
+}
+
+pagefooter p {
+  font-size: 0.875rem;
+}
+
+pageheader,
+pagefooter {
+  padding-left: calc(var(--spacing-base) * 3) !important;
+  padding-right: calc(var(--spacing-base) * 3) !important;
+}
+
+app-job-detail-page pagecontent {
+  padding-left: calc(var(--spacing-base) * 3) !important;
+  padding-right: calc(var(--spacing-base) * 3) !important;
 }
 
 pageheader h1 {

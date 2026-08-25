@@ -128,7 +128,7 @@ interface DraftUser {
       [appearance]="layout.appearance()"
       class="h-full min-h-0"
     >
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
           <h1 class="truncate text-lg font-semibold text-foreground">User Management</h1>
@@ -152,7 +152,7 @@ interface DraftUser {
         placement="stacked"
         collapsible
         [hidden]="!filterOpen()"
-        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:flex-wrap md:items-center"
+        class="grid shrink-0 gap-3 px-3 py-4 md:flex md:flex-wrap md:items-center"
       >
         <input
           Input
@@ -186,7 +186,7 @@ interface DraftUser {
         } @else {
           <Table class="min-w-full bg-card">
             <caption TableCaption class="sr-only">Daftar user</caption>
-            <thead TableHeader class="text-xs uppercase text-muted-foreground">
+            <thead TableHeader class="text-sm uppercase text-muted-foreground">
               <tr TableRow>
                 <th TableHead scope="col">Nama</th>
                 <th TableHead scope="col">Email</th>
@@ -207,7 +207,7 @@ interface DraftUser {
                   <td TableCell>
                     <span Badge [variant]="statusVariant(user.status)">{{ statusLabel(user.status) }}</span>
                   </td>
-                  <td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(user.createdAt) }}</td>
+                  <td TableCell class="whitespace-nowrap">{{ formatDate(user.createdAt) }}</td>
                   <td TableCell>
                     <div class="flex flex-wrap justify-end gap-2">
                       @if (user.status !== 'deleted') {
@@ -285,7 +285,7 @@ interface DraftUser {
         </Dialog>
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>

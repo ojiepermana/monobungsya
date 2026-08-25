@@ -64,7 +64,7 @@ const UPDATED_FORMAT = new Intl.DateTimeFormat('id-ID', {
   ],
   template: `
     <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
-      <PageDashboard class="grid min-h-0 content-start gap-6 overflow-auto p-6">
+      <PageDashboard class="grid min-h-0 content-start gap-6 overflow-auto px-3 py-6">
         <section class="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
         <div>
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Operations console</p>
@@ -179,7 +179,7 @@ const UPDATED_FORMAT = new Intl.DateTimeFormat('id-ID', {
                 <a routerLink="/logs/audit" class="grid gap-2 border-l-2 border-primary bg-muted p-4 no-underline transition-colors hover:bg-accent/10">
                   <div class="flex items-center justify-between gap-3">
                     <span class="text-xs font-medium uppercase tracking-[0.12em] text-primary">{{ row.module }} · {{ row.action }}</span>
-                    <time class="whitespace-nowrap font-mono text-[11px] text-muted-foreground">{{ formatDate(row.auditedAt) }}</time>
+                    <time class="whitespace-nowrap text-muted-foreground">{{ formatDate(row.auditedAt) }}</time>
                   </div>
                   <p class="text-sm font-medium text-foreground">{{ row.entityLabel ?? row.entityType }}</p>
                   <p class="line-clamp-2 text-xs leading-5 text-muted-foreground">{{ row.changeSummary ?? 'Activity recorded in the audit trail.' }}</p>

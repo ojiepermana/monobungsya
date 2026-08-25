@@ -57,7 +57,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
   ],
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div><p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Operations</p><h1 class="text-lg font-semibold text-foreground">Durable jobs</h1></div>
         <div class="flex shrink-0 justify-end">
           <select NativeSelect class="w-36 text-center pl-10! pr-10!" [value]="status()" (change)="changeStatus($event)">
@@ -70,12 +70,12 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
         @if (loading()) { <p class="text-sm text-muted-foreground">Memuat jobs...</p> }
         @else if (rows().length === 0) { <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada job.</p> }
         @else {
-          <Table class="min-w-full bg-card"><caption TableCaption class="sr-only">Daftar durable jobs</caption><thead TableHeader class="text-xs uppercase text-muted-foreground"><tr TableRow><th TableHead scope="col">Jenis</th><th TableHead scope="col">Target</th><th TableHead scope="col">Status</th><th TableHead scope="col">Percobaan</th><th TableHead scope="col">Dibuat</th></tr></thead><tbody TableBody>
-            @for (job of rows(); track job.id) { <tr TableRow><td TableCell><a class="font-medium text-foreground underline-offset-4 hover:underline" [routerLink]="['/operations/jobs', job.id]">{{ job.type }} @{{ job.version }}</a></td><td TableCell class="text-muted-foreground">{{ job.sourceService }} → {{ job.targetService }}</td><td TableCell><span class="font-mono text-xs">{{ job.status }}</span></td><td TableCell>{{ job.attemptCount }} / {{ job.maxAttempts }}</td><td TableCell class="whitespace-nowrap font-mono text-xs">{{ formatDate(job.createdAt) }}</td></tr> }
+          <Table class="min-w-full bg-card"><caption TableCaption class="sr-only">Daftar durable jobs</caption><thead TableHeader class="text-sm uppercase text-muted-foreground"><tr TableRow><th TableHead scope="col">Jenis</th><th TableHead scope="col">Target</th><th TableHead scope="col">Status</th><th TableHead scope="col">Percobaan</th><th TableHead scope="col">Dibuat</th></tr></thead><tbody TableBody>
+            @for (job of rows(); track job.id) { <tr TableRow><td TableCell><a class="font-medium text-foreground underline-offset-4 hover:underline" [routerLink]="['/operations/jobs', job.id]">{{ job.type }} @{{ job.version }}</a></td><td TableCell class="text-muted-foreground">{{ job.sourceService }} → {{ job.targetService }}</td><td TableCell><span>{{ job.status }}</span></td><td TableCell>{{ job.attemptCount }} / {{ job.maxAttempts }}</td><td TableCell class="whitespace-nowrap">{{ formatDate(job.createdAt) }}</td></tr> }
           </tbody></Table>
         }
       </PageContent>
-      <PageFooter class="flex min-h-(--layout-topbar-height) items-center justify-between gap-3 px-6"><p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} jobs</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Berikutnya</button></div></PageFooter>
+      <PageFooter class="flex min-h-(--layout-topbar-height) items-center justify-between gap-3 px-3"><p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} jobs</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Berikutnya</button></div></PageFooter>
     </Page>
   `,
 })

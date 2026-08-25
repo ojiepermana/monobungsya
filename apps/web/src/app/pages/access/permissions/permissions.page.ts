@@ -85,7 +85,7 @@ const EMPTY_META: PermissionListMeta = {
       [appearance]="layout.appearance()"
       class="h-full min-h-0"
     >
-      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Permissions</h1>
@@ -109,7 +109,7 @@ const EMPTY_META: PermissionListMeta = {
         placement="stacked"
         collapsible
         [hidden]="!filterOpen()"
-        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:items-center"
+        class="grid shrink-0 gap-3 px-3 py-4 md:flex md:items-center"
       >
         <input Input type="search" placeholder="Search name or code..." [value]="search()" (input)="setSearch($event)" />
         <input Input placeholder="Namespace" [value]="namespace()" (input)="setNamespace($event)" class="md:max-w-xs" />
@@ -126,9 +126,8 @@ const EMPTY_META: PermissionListMeta = {
         } @else {
           <Table class="min-w-full bg-card">
             <caption TableCaption class="sr-only">Permissions</caption>
-            <thead TableHeader class="text-xs uppercase text-muted-foreground">
+            <thead TableHeader class="text-sm uppercase text-muted-foreground">
               <tr TableRow>
-                <th TableHead scope="col">Permission</th>
                 <th TableHead scope="col">Namespace</th>
                 <th TableHead scope="col">Description</th>
                 <th TableHead scope="col" class="text-right">Actions</th>
@@ -137,10 +136,6 @@ const EMPTY_META: PermissionListMeta = {
             <tbody TableBody>
               @for (permission of rows(); track permission.id) {
                 <tr TableRow class="align-top">
-                  <td TableCell>
-                    <p class="font-mono text-sm text-foreground">{{ permission.name }}</p>
-                    <p class="font-mono text-xs text-muted-foreground">{{ permission.code }}</p>
-                  </td>
                   <td TableCell>{{ permission.namespace }}:{{ permission.resource }}</td>
                   <td TableCell class="text-muted-foreground">{{ permission.description }}</td>
                   <td TableCell>
@@ -188,7 +183,7 @@ const EMPTY_META: PermissionListMeta = {
         </Dialog>
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Page {{ meta().page }} of {{ pageCount() }} · {{ meta().total }} permissions</p>
         <div class="flex items-center gap-2">
           <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
