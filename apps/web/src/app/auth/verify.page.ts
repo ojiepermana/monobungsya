@@ -1,5 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CardComponent } from '@ojiepermana/angular/component/card';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   PageComponent,
@@ -18,6 +19,7 @@ type VerifyState = 'verifying' | 'success' | 'error';
   host: { class: 'block h-full min-h-0' },
   imports: [
     RouterLink,
+    CardComponent,
     IconComponent,
     PageComponent,
     PageContentComponent,
@@ -25,20 +27,21 @@ type VerifyState = 'verifying' | 'success' | 'error';
     PageHeaderComponent,
   ],
   template: `
-    <Page variant="stacked" height="fix" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
+    <Page variant="stacked" height="fix" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0 bg-surface [--layout-grid-size:2rem] bg-[linear-gradient(var(--layout-grid-color)_1px,transparent_1px),linear-gradient(to_right,var(--layout-grid-color)_1px,transparent_1px)] bg-position-[center_center] bg-size-[var(--layout-grid-size)_var(--layout-grid-size)] text-surface-foreground">
       <PageHeader class="invisible h-0 overflow-hidden" aria-hidden="true"></PageHeader>
       <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">
-        <section class="w-full max-w-xl" aria-labelledby="callback-title">
+        <Card class="relative block w-full max-w-xl">
+          <section class="p-6 sm:p-8" aria-labelledby="callback-title">
         @if (state() === 'verifying') {
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Checking access</p>
           <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">One moment.</h1>
           <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground" role="status" aria-live="polite">We are checking your secure workspace session.</p>
           <div class="mt-8 flex items-center gap-3 text-sm text-muted-foreground" role="status" aria-live="polite"><span class="size-4 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>Verifying session</div>
         } @else if (state() === 'success') {
+          <div class="absolute right-6 top-5 font-mono text-4xl font-semibold leading-none text-primary sm:right-8 sm:top-6 sm:text-5xl" role="status" aria-live="polite" [attr.aria-label]="'Redirecting in ' + redirectCountdown() + ' seconds'">{{ redirectCountdown() }}</div>
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Access confirmed</p>
-          <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl">Welcome{{ userName() ? ', ' + userName() : '' }}.</h1>
+          <h1 id="callback-title" class="mt-5 max-w-lg font-serif text-5xl font-normal leading-[0.98] tracking-[-0.03em] text-surface-foreground sm:text-6xl">Welcome{{ userName() ? ', ' + userName() : '' }}.</h1>
           <p class="mt-6 max-w-lg text-base leading-7 text-muted-foreground">Your workspace session is ready. Continue when you are set.</p>
-          <div class="mt-8 max-w-lg border-l-2 border-primary bg-muted px-5 py-4 text-sm leading-6 text-foreground" role="status" aria-live="polite">Your browser session has been confirmed.</div>
           <a routerLink="/" class="mt-7 inline-flex min-h-12 items-center justify-center gap-2 bg-foreground px-5 text-sm font-semibold text-background no-underline transition-colors hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Icon name="arrow_forward" [size]="17" aria-hidden="true" />Continue to workspace</a>
 
           @if (showPasskeyPrompt()) {
@@ -59,7 +62,8 @@ type VerifyState = 'verifying' | 'success' | 'error';
           <div class="mt-8 max-w-lg border-l-2 border-accent bg-accent/10 px-5 py-4 text-sm leading-6 text-foreground" role="alert">The link is invalid or no longer available.</div>
           <a routerLink="/auth/login" class="mt-7 inline-flex min-h-12 items-center justify-center gap-2 border border-border bg-background px-5 text-sm font-semibold text-foreground no-underline transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Icon name="arrow_back" [size]="17" aria-hidden="true" />Return to sign in</a>
         }
-        </section>
+          </section>
+        </Card>
       </PageContent>
       <PageFooter class="invisible h-0 overflow-hidden" aria-hidden="true"></PageFooter>
     </Page>
@@ -67,6 +71,8 @@ type VerifyState = 'verifying' | 'success' | 'error';
 })
 export class VerifyPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly tauri = inject(TauriService);
   private readonly passkey = inject(PasskeyService);
@@ -76,8 +82,16 @@ export class VerifyPage {
   protected readonly showPasskeyPrompt = signal(false);
   protected readonly passkeyLoading = signal(false);
   protected readonly passkeyMessage = signal<string | null>(null);
+  protected readonly redirectCountdown = signal(5);
+  private redirectTimer: number | undefined;
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.redirectTimer !== undefined) {
+        window.clearInterval(this.redirectTimer);
+      }
+    });
+
     const token = this.route.snapshot.queryParamMap.get('token');
     const desktop = this.route.snapshot.queryParamMap.get('desktop') === '1';
     // biome-ignore lint/complexity/useLiteralKeys: route data uses an index signature
@@ -155,7 +169,21 @@ export class VerifyPage {
   private complete(name: string): void {
     this.userName.set(name);
     this.state.set('success');
+    this.startRedirectCountdown();
     this.offerPasskey();
+  }
+
+  private startRedirectCountdown(): void {
+    this.redirectTimer = window.setInterval(() => {
+      const next = this.redirectCountdown() - 1;
+      this.redirectCountdown.set(next);
+
+      if (next === 0 && this.redirectTimer !== undefined) {
+        window.clearInterval(this.redirectTimer);
+        this.redirectTimer = undefined;
+        void this.router.navigateByUrl('/');
+      }
+    }, 1000);
   }
 
   private offerPasskey(): void {
