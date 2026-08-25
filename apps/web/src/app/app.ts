@@ -84,7 +84,7 @@ import { UiLabelLocalizationService } from './shell/ui-label-localization.servic
         [surface]="layout.surface()"
         [layout-appearance]="layout.appearance()"
         [width]="layout.width()"
-        content-class="h-full min-h-0"
+        [content-class]="contentClass()"
         (logout)="logout()"
       >
         @if (auth.sessionState() === 'checking') {
@@ -131,6 +131,10 @@ export class App {
   protected readonly appBrandIcon = APP_BRAND_ICON;
   private readonly lastAuthenticatedLayoutType = signal(this.layout.type());
   private readonly restoreAuthenticatedLayout = signal(true);
+
+  protected readonly contentClass = computed(() =>
+    this.isGuestRoute() ? 'h-full min-h-0 max-w-none!' : 'h-full min-h-0',
+  );
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(

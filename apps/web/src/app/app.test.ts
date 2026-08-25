@@ -113,6 +113,10 @@ describe('App layout state', () => {
     return fixture.componentInstance['effectiveLayoutType']();
   }
 
+  function contentClass(fixture: { componentInstance: App }): string {
+    return fixture.componentInstance['contentClass']();
+  }
+
   it('covers AC-13 and AC-14: restores the operator layout once the session gate resolves on a workspace route', async () => {
     const { fixture, layout } = createApp();
 
@@ -140,6 +144,17 @@ describe('App layout state', () => {
 
     expect(layout.type()).toBe('fluid');
     expect(effectiveLayoutType(fixture)).toBe('fluid');
+  });
+
+  it('makes guest content full width while preserving the workspace content class', async () => {
+    const { fixture, router } = createApp();
+
+    expect(contentClass(fixture)).toBe('h-full min-h-0');
+
+    await router.navigateByUrl('/auth/login');
+    fixture.detectChanges();
+
+    expect(contentClass(fixture)).toBe('h-full min-h-0 max-w-none!');
   });
 
   it('covers AC-13: does not record the transient fluid frame of an auth route as the operator choice', async () => {
