@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   NativeSelectComponent,
   NativeSelectOptionDirective,
@@ -38,6 +39,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
   host: { class: 'block h-full min-h-0' },
   imports: [
     ButtonComponent,
+    IconComponent,
     NativeSelectComponent,
     NativeSelectOptionDirective,
     PageComponent,
@@ -57,9 +59,11 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <div><p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Operations</p><h1 class="text-lg font-semibold text-foreground">Durable jobs</h1></div>
-        <select NativeSelect [value]="status()" (change)="changeStatus($event)">
-          @for (option of statuses; track option.value) { <option NativeSelectOption [value]="option.value">{{ option.label }}</option> }
-        </select>
+        <div class="flex shrink-0 justify-end">
+          <select NativeSelect class="w-36 text-center pl-10! pr-10!" [value]="status()" (change)="changeStatus($event)">
+            @for (option of statuses; track option.value) { <option NativeSelectOption [value]="option.value">{{ option.label }}</option> }
+          </select>
+        </div>
       </PageHeader>
       <PageContent class="grid min-h-0 content-start gap-4">
         @if (error()) { <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p> }
@@ -71,7 +75,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
           </tbody></Table>
         }
       </PageContent>
-      <PageFooter class="flex min-h-(--layout-topbar-height) items-center justify-between gap-3 px-6"><p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} jobs</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)">Sebelumnya</button><button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Berikutnya</button></div></PageFooter>
+      <PageFooter class="flex min-h-(--layout-topbar-height) items-center justify-between gap-3 px-6"><p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} jobs</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Berikutnya</button></div></PageFooter>
     </Page>
   `,
 })

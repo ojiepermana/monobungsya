@@ -16,6 +16,7 @@ import {
   CardHeaderComponent,
   CardTitleComponent,
 } from '@ojiepermana/angular/component/card';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   TableBodyComponent,
   TableCaptionComponent,
@@ -83,6 +84,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
   imports: [
     BadgeComponent,
     ButtonComponent,
+    IconComponent,
     CardComponent,
     CardContentComponent,
     CardDescriptionComponent,
@@ -116,7 +118,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
           <h1 class="truncate text-lg font-semibold text-foreground">{{ user()?.name ?? 'User' }}</h1>
         </div>
-        <a Button variant="outline" size="xs" routerLink="/users">Kembali ke daftar</a>
+        <a Button variant="outline" size="xs" class="gap-1.5" routerLink="/users"><Icon name="arrow_back" [size]="14" aria-hidden="true" />Kembali ke daftar</a>
       </PageHeader>
 
       <PageContent class="grid min-h-0 content-start gap-6">
@@ -315,10 +317,10 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)">First</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)">Next</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)">Last</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
         </div>
       </PageFooter>
     </Page>

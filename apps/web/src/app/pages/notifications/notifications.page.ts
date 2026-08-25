@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
   NativeSelectComponent,
   NativeSelectOptionDirective,
@@ -35,6 +36,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
   host: { class: 'block h-full min-h-0' },
   imports: [
     ButtonComponent,
+    IconComponent,
     NativeSelectComponent,
     NativeSelectOptionDirective,
     PageComponent,
@@ -50,7 +52,10 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <h1 class="text-lg font-semibold text-foreground">Notifikasi</h1>
         </div>
-        <button Button variant="outline" size="xs" type="button" [disabled]="loading()" (click)="markAllRead()">Tandai semua dibaca</button>
+        <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading()" (click)="markAllRead()">
+          <Icon name="done_all" [size]="14" aria-hidden="true" />
+          Tandai semua dibaca
+        </button>
       </PageHeader>
 
       <PageContent class="grid min-h-0 content-start gap-3">
@@ -109,8 +114,8 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} notifikasi</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)">Sebelumnya</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Berikutnya</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Berikutnya</button>
         </div>
       </PageFooter>
     </Page>

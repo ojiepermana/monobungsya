@@ -383,7 +383,10 @@ export class ApiService {
 
   jobs(filters: { page: number; status: string }): Observable<JobsResponse> {
     return this.http.get<JobsResponse>('/api/v1/jobs', {
-      params: { page: filters.page, status: filters.status },
+      params: {
+        page: filters.page,
+        ...(filters.status ? { status: filters.status } : {}),
+      },
     });
   }
 

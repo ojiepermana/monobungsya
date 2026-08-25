@@ -11,6 +11,7 @@ import {
   DialogHeaderComponent,
   DialogTitleComponent,
 } from '@ojiepermana/angular/component/dialog';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import { LabelComponent } from '@ojiepermana/angular/component/label';
 import {
@@ -91,6 +92,7 @@ interface DraftUser {
   imports: [
     BadgeComponent,
     ButtonComponent,
+    IconComponent,
     DialogCloseDirective,
     DialogComponent,
     DialogContentComponent,
@@ -136,9 +138,13 @@ interface DraftUser {
             ariaLabel="Tampilkan atau sembunyikan filter"
             (toggled)="filterOpen.set($event)"
           >
+            <Icon name="filter_list" [size]="14" aria-hidden="true" />
             <span>Filter</span>
           </PageFilterToggle>
-          <button Button size="xs" type="button" (click)="openCreate()">Tambah User</button>
+          <button Button size="xs" type="button" class="gap-1.5" (click)="openCreate()">
+            <Icon name="person_add" [size]="14" aria-hidden="true" />
+            Tambah User
+          </button>
         </div>
       </PageHeader>
 
@@ -282,10 +288,10 @@ interface DraftUser {
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)">First</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)">Next</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)">Last</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
         </div>
       </PageFooter>
 

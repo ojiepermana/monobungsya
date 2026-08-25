@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { BadgeComponent } from '@ojiepermana/angular/component/badge';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import {
   NativeSelectComponent,
@@ -9,6 +10,8 @@ import {
 import {
   PageComponent,
   PageContentComponent,
+  PageFilterComponent,
+  PageFilterToggleComponent,
   PageFooterComponent,
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
@@ -31,23 +34,39 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
   imports: [
     BadgeComponent,
     ButtonComponent,
+    IconComponent,
     InputComponent,
     NativeSelectComponent,
     NativeSelectOptionDirective,
     PageComponent,
     PageContentComponent,
+    PageFilterComponent,
+    PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
   ],
   template: `
     <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
-      <PageHeader class="px-6 pt-6">
-        <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
-        <h1 class="mt-2 text-2xl font-semibold text-foreground">Application Logs</h1>
+      <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
+          <h1 class="truncate text-lg font-semibold text-foreground">Application Logs</h1>
+        </div>
+        <PageFilterToggle
+          ariaLabel="Tampilkan atau sembunyikan filter"
+          (toggled)="filterOpen.set($event)"
+        >
+          <Icon name="filter_list" [size]="14" aria-hidden="true" />
+          <span>Filter</span>
+        </PageFilterToggle>
       </PageHeader>
 
-      <PageContent class="grid min-h-0 content-start gap-6 overflow-auto p-6">
-        <section class="grid gap-3 md:flex md:flex-wrap md:items-center">
+      <PageFilter
+        placement="stacked"
+        collapsible
+        [hidden]="!filterOpen()"
+        class="grid shrink-0 gap-3 px-6 py-4 md:flex md:flex-wrap md:items-center"
+      >
         <input
           Input
           type="search"
@@ -77,7 +96,9 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
         <button Button variant="outline" size="xs" type="button" [disabled]="!hasFilters()" (click)="clearFilters()">
           Clear Filters
         </button>
-      </section>
+      </PageFilter>
+
+      <PageContent class="grid min-h-0 content-start gap-6 overflow-auto">
 
       @if (error()) {
         <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{{ error() }}</p>
@@ -88,7 +109,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
       } @else if (rows().length === 0) {
         <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log.</p>
       } @else {
-        <div class="overflow-auto border border-border bg-card">
+        <div class="overflow-auto">
           <table class="min-w-full text-left text-sm">
             <thead class="border-b border-border text-xs uppercase text-muted-foreground">
               <tr>
@@ -121,13 +142,13 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
       </PageContent>
 
-      <PageFooter class="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)">First</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)">Next</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)">Last</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
         </div>
       </PageFooter>
     </Page>
@@ -140,6 +161,7 @@ export class ApplicationLogsPage {
   protected readonly error = signal<string | null>(null);
   protected readonly rows = signal<ApplicationLogItem[]>([]);
   protected readonly meta = signal<LogsMeta>(EMPTY_META);
+  protected readonly filterOpen = signal(false);
   protected readonly search = signal('');
   protected readonly level = signal('');
   protected readonly module = signal('');

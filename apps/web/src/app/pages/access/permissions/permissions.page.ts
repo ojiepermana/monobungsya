@@ -9,6 +9,7 @@ import {
   DialogHeaderComponent,
   DialogTitleComponent,
 } from '@ojiepermana/angular/component/dialog';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import { LabelComponent } from '@ojiepermana/angular/component/label';
 import {
@@ -53,6 +54,7 @@ const EMPTY_META: PermissionListMeta = {
   host: { class: 'block h-full min-h-0' },
   imports: [
     ButtonComponent,
+    IconComponent,
     DialogCloseDirective,
     DialogComponent,
     DialogContentComponent,
@@ -93,9 +95,13 @@ const EMPTY_META: PermissionListMeta = {
             ariaLabel="Show or hide filters"
             (toggled)="filterOpen.set($event)"
           >
+            <Icon name="filter_list" [size]="14" aria-hidden="true" />
             <span>Filter</span>
           </PageFilterToggle>
-          <button Button size="xs" type="button" (click)="openCreate()">Create permission</button>
+          <button Button size="xs" type="button" class="gap-1.5" (click)="openCreate()">
+            <Icon name="add" [size]="14" aria-hidden="true" />
+            Create permission
+          </button>
         </div>
       </PageHeader>
 
@@ -185,8 +191,8 @@ const EMPTY_META: PermissionListMeta = {
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <p class="text-sm text-muted-foreground">Page {{ meta().page }} of {{ pageCount() }} · {{ meta().total }} permissions</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
         </div>
       </PageFooter>
     </Page>

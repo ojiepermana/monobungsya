@@ -53,6 +53,14 @@ describe('ApiService reliable jobs and notifications', () => {
     preferenceRequest.flush({});
   });
 
+  it('omits an empty jobs status so the all-statuses query passes validation', () => {
+    service.jobs({ page: 1, status: '' }).subscribe();
+    const request = http.expectOne('/api/v1/jobs?page=1');
+
+    expect(request.request.method).toBe('GET');
+    request.flush({});
+  });
+
   it('AC-12 sends a retry reason and a fresh idempotency key', () => {
     service.retryJob('job-1', 'Retry from test').subscribe();
     const request = http.expectOne('/api/v1/jobs/job-1/retry');
