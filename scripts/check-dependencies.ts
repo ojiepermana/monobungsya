@@ -22,3 +22,5 @@ for await (const file of sourceFiles.scan('.')) {
 }
 
 console.log('No cross service package or source imports found.');
+
+export {};

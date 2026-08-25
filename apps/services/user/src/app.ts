@@ -6,11 +6,13 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
+  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
+import type { TelemetryRuntime } from '#project/telemetry';
 import { createUsersRoute } from './modules/users/users.route';
 
 export interface UserAppDependencies {
@@ -18,6 +20,7 @@ export interface UserAppDependencies {
   messaging?: Publisher;
   jobs?: JobRegistry;
   durableJobsEnabled?: boolean;
+  telemetry?: TelemetryRuntime;
 }
 
 export function createApp(
@@ -30,6 +33,7 @@ export function createApp(
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
+    .use(createTelemetryPlugin(dependencies.telemetry))
     .use(createLoggerPlugin(logger, 'user-logger'))
     .use(createErrorHandler('user-error-handler', { logger }))
     .use(

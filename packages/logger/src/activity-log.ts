@@ -39,6 +39,8 @@ export interface AccessMetadataV1 {
 interface CorrelationInput {
   requestId?: string | null;
   traceId?: string | null;
+  runtimeTraceId?: string | null;
+  runtimeSpanId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
 }
@@ -83,6 +85,8 @@ export interface ApplicationLogRecord {
   branchCode: string | null;
   requestId: string | null;
   traceId: string | null;
+  runtimeTraceId: string | null;
+  runtimeSpanId: string | null;
   sessionId: string | null;
   ipAddress: string | null;
   userAgent: string | null;
@@ -160,6 +164,8 @@ export interface AccessLogRecord {
   sessionId: string | null;
   requestId: string | null;
   traceId: string | null;
+  runtimeTraceId: string | null;
+  runtimeSpanId: string | null;
   routeName: string | null;
   path: string | null;
   method: string | null;
@@ -259,6 +265,8 @@ export abstract class ActivityLog {
       branchCode: text(input.branchCode),
       requestId: text(input.requestId),
       traceId: text(input.traceId),
+      runtimeTraceId: text(input.runtimeTraceId),
+      runtimeSpanId: text(input.runtimeSpanId),
       sessionId: text(input.sessionId),
       ipAddress: text(input.ipAddress),
       userAgent: text(input.userAgent),
@@ -279,7 +287,8 @@ export abstract class ActivityLog {
             exception_class, exception_message, stack_trace,
             actor_user_id, actor_name, actor_email,
             entity_type, entity_id, reference_no, branch_code,
-            request_id, trace_id, session_id, ip_address, user_agent,
+            request_id, trace_id, runtime_trace_id, runtime_span_id,
+            session_id, ip_address, user_agent,
             occurred_at, created_at
           ) VALUES (
             ${record.id}, ${record.level}, ${record.channel},
@@ -289,7 +298,8 @@ export abstract class ActivityLog {
             ${record.stackTrace}, ${record.actorUserId}, ${record.actorName},
             ${record.actorEmail}, ${record.entityType}, ${record.entityId},
             ${record.referenceNo}, ${record.branchCode}, ${record.requestId},
-            ${record.traceId}, ${record.sessionId}, ${record.ipAddress},
+            ${record.traceId}, ${record.runtimeTraceId},
+            ${record.runtimeSpanId}, ${record.sessionId}, ${record.ipAddress},
             ${record.userAgent}, ${record.occurredAt}, ${record.createdAt}
           )
         `,
@@ -317,6 +327,8 @@ export abstract class ActivityLog {
       sessionId: text(input.sessionId),
       requestId: text(input.requestId),
       traceId: text(input.traceId),
+      runtimeTraceId: text(input.runtimeTraceId),
+      runtimeSpanId: text(input.runtimeSpanId),
       routeName: text(input.routeName),
       path: text(input.path),
       method: text(input.method),
@@ -340,7 +352,7 @@ export abstract class ActivityLog {
             actor_user_id, actor_name, actor_email, branch_code,
             ip_address, forwarded_ip, user_agent,
             device_name, platform, browser,
-            session_id, request_id, trace_id,
+            session_id, request_id, trace_id, runtime_trace_id, runtime_span_id,
             route_name, path, method, http_status, failure_reason, metadata,
             accessed_at, created_at
           ) VALUES (
@@ -353,7 +365,8 @@ export abstract class ActivityLog {
             ${record.userAgent}, ${text(input.deviceName)},
             ${text(input.platform)}, ${text(input.browser)},
             ${record.sessionId}, ${record.requestId},
-            ${record.traceId}, ${record.routeName},
+            ${record.traceId}, ${record.runtimeTraceId},
+            ${record.runtimeSpanId}, ${record.routeName},
             ${record.path}, ${record.method},
             ${record.httpStatus}, ${record.failureReason},
             ${encodeJson(record.metadata)},
@@ -398,7 +411,8 @@ export abstract class ActivityLog {
           amount, currency_code, status_before, status_after,
           actor_user_id, actor_name, actor_email, actor_role,
           reason, change_summary, before_state, after_state, metadata,
-          request_id, trace_id, ip_address, user_agent,
+          request_id, trace_id, runtime_trace_id, runtime_span_id,
+          ip_address, user_agent,
           audited_at, created_at
         ) VALUES (
           ${record.id}, ${record.action}, ${record.module},
@@ -413,6 +427,7 @@ export abstract class ActivityLog {
           ${encodeJson(input.beforeState)}, ${encodeJson(input.afterState)},
           ${encodeJson(input.metadata)},
           ${text(input.requestId)}, ${text(input.traceId)},
+          ${text(input.runtimeTraceId)}, ${text(input.runtimeSpanId)},
           ${text(input.ipAddress)}, ${text(input.userAgent)},
           ${record.auditedAt}, ${record.createdAt}
         )

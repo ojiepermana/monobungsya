@@ -1,5 +1,6 @@
 import type { DatabaseClient } from '#project/database';
 import { isoFromDbTimestamp } from '#project/logger';
+import type { TelemetryRuntime } from '#project/telemetry';
 import type {
   AccessLogItem,
   ApplicationLogItem,
@@ -209,7 +210,10 @@ function buildWhere(
 }
 
 export class LogsRepository {
-  constructor(private readonly database?: DatabaseClient) {}
+  constructor(
+    private readonly database?: DatabaseClient,
+    private readonly telemetry?: TelemetryRuntime,
+  ) {}
 
   async listAuditTrails(query: {
     search: string;
@@ -391,20 +395,33 @@ export class LogsRepository {
     if (!this.database) {
       return { items: [], total: 0 };
     }
+    const database = this.database;
 
-    const countRows = (await this.database.unsafe(
-      `SELECT count(*)::int AS total FROM ${table}${clause.where}`,
-      clause.params as never[],
+    const countRows = (await this.runQuery(
+      'logs.count',
+      async () =>
+        await database.unsafe(
+          `SELECT count(*)::int AS total FROM ${table}${clause.where}`,
+          clause.params as never[],
+        ),
     )) as Array<{ total: number }>;
     const total = Number(countRows[0]?.total ?? 0);
 
     const limitParam = clause.params.length + 1;
     const offsetParam = clause.params.length + 2;
-    const items = (await this.database.unsafe(
-      `SELECT ${selectColumns} FROM ${table}${clause.where} ` +
-        `ORDER BY ${timeColumn} DESC, id DESC ` +
-        `LIMIT $${limitParam} OFFSET $${offsetParam}`,
-      [...clause.params, LOGS_PER_PAGE, (page - 1) * LOGS_PER_PAGE] as never[],
+    const items = (await this.runQuery(
+      'logs.list',
+      async () =>
+        await database.unsafe(
+          `SELECT ${selectColumns} FROM ${table}${clause.where} ` +
+            `ORDER BY ${timeColumn} DESC, id DESC ` +
+            `LIMIT $${limitParam} OFFSET $${offsetParam}`,
+          [
+            ...clause.params,
+            LOGS_PER_PAGE,
+            (page - 1) * LOGS_PER_PAGE,
+          ] as never[],
+        ),
     )) as Array<Record<string, unknown>>;
 
     return { items, total };
@@ -417,12 +434,32 @@ export class LogsRepository {
     if (!this.database) {
       return [];
     }
+    const database = this.database;
 
-    const rows = (await this.database.unsafe(
-      `SELECT DISTINCT ${column} AS value FROM ${table} ` +
-        `WHERE ${column} IS NOT NULL ORDER BY ${column}`,
+    const rows = (await this.runQuery(
+      'logs.options',
+      async () =>
+        await database.unsafe(
+          `SELECT DISTINCT ${column} AS value FROM ${table} ` +
+            `WHERE ${column} IS NOT NULL ORDER BY ${column}`,
+        ),
     )) as Array<{ value: unknown }>;
 
     return rows.map((row) => String(row.value));
+  }
+
+  private runQuery<T>(
+    resourceName: string,
+    action: () => Promise<T | undefined>,
+  ): Promise<T | undefined> {
+    if (!this.telemetry) return action();
+    return this.telemetry.withSpan(
+      {
+        resourceKind: 'db.query',
+        resourceName,
+        operation: 'select',
+      },
+      action,
+    );
   }
 }

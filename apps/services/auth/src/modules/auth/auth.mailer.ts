@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import type { Telemetry } from '#project/telemetry';
 import type { AuthMailer, MagicLinkMessage } from './auth.types';
 
 export interface SmtpMailerConfig {
@@ -10,6 +11,7 @@ export interface SmtpMailerConfig {
   publicApiUrl: string;
   webAppUrl: string;
   timeoutMs?: number;
+  telemetry?: Telemetry;
 }
 
 export class SmtpAuthMailer implements AuthMailer {
@@ -37,12 +39,25 @@ export class SmtpAuthMailer implements AuthMailer {
       : new URL('/api/v1/auth/verify', this.config.publicApiUrl);
     verifyUrl.searchParams.set('token', message.token);
 
-    await this.transporter.sendMail({
-      from: this.config.from,
-      to: message.recipient,
-      subject: 'Your Monobungsia sign in link',
-      text: `Hello ${message.recipientName},\n\nSign in with this link: ${verifyUrl}\n\nThis link expires at ${message.expiresAt.toISOString()} and can only be used once.`,
-    });
+    const send = () =>
+      this.transporter.sendMail({
+        from: this.config.from,
+        to: message.recipient,
+        subject: 'Your Monobungsia sign in link',
+        text: `Hello ${message.recipientName},\n\nSign in with this link: ${verifyUrl}\n\nThis link expires at ${message.expiresAt.toISOString()} and can only be used once.`,
+      });
+    if (this.config.telemetry) {
+      await this.config.telemetry.withSpan(
+        {
+          resourceKind: 'smtp.send',
+          resourceName: 'auth.magic_link',
+          operation: 'send',
+        },
+        send,
+      );
+    } else {
+      await send();
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '#project/database';
+import type { Telemetry } from '#project/telemetry';
 import { jobFailureNotificationContract } from './contracts';
 
 export const JOB_PAYLOAD_LIMIT_BYTES = 64 * 1024;
@@ -28,6 +29,7 @@ export interface JobRecord {
   target_service: string;
   idempotency_key: string;
   correlation_id: string | null;
+  trace_parent?: string | null;
   actor_user_id: string | null;
   status: JobStatus;
   priority: number;
@@ -98,6 +100,7 @@ export interface EnqueueJobInput {
   maxAttempts?: number;
   scheduleCode?: string | null;
   retryOfJobId?: string | null;
+  traceParent?: string | null;
 }
 
 export interface JobFailure {
@@ -153,6 +156,7 @@ export interface JobWorkerOptions {
   pollIntervalMs?: number;
   shutdownTimeoutMs?: number;
   onEvent?: (event: JobWorkerEvent) => void;
+  telemetry?: Telemetry;
 }
 
 export class JobRegistry {
@@ -295,10 +299,16 @@ export class DurableJobRuntime {
   constructor(
     private readonly database: DatabaseClient,
     private readonly registry: JobRegistry,
+    private readonly options: { telemetry?: Telemetry } = {},
   ) {}
 
   async enqueue(input: EnqueueJobInput): Promise<JobRecord> {
-    return enqueueJob(this.database, this.registry, input);
+    return enqueueJob(
+      this.database,
+      this.registry,
+      input,
+      this.options.telemetry,
+    );
   }
 
   async claim(
@@ -314,9 +324,20 @@ export class DurableJobRuntime {
     if (!Number.isInteger(leaseMs) || leaseMs < 1)
       throw new Error('lease must be positive');
 
-    const rows = await this.database`
-      SELECT * FROM jobs.claim_jobs(${workerId}, ${targetService}, ${limit}, ${leaseMs})
-    `;
+    const query = () =>
+      this.database`
+        SELECT * FROM jobs.claim_jobs(${workerId}, ${targetService}, ${limit}, ${leaseMs})
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.claim',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return rows as JobRecord[];
   }
 
@@ -325,23 +346,56 @@ export class DurableJobRuntime {
     workerId: string,
     leaseMs = DEFAULT_LEASE_MS,
   ): Promise<boolean> {
-    const rows = await this.database`
-      SELECT jobs.heartbeat_job(${jobId}, ${workerId}, ${leaseMs}) AS ok
-    `;
+    const query = () =>
+      this.database`
+        SELECT jobs.heartbeat_job(${jobId}, ${workerId}, ${leaseMs}) AS ok
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.heartbeat',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return Boolean((rows[0] as { ok?: boolean } | undefined)?.ok);
   }
 
   async complete(jobId: string, workerId: string): Promise<boolean> {
-    const rows = await this.database`
-      SELECT jobs.complete_job(${jobId}, ${workerId}) AS ok
-    `;
+    const query = () =>
+      this.database`
+        SELECT jobs.complete_job(${jobId}, ${workerId}) AS ok
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.complete',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return Boolean((rows[0] as { ok?: boolean } | undefined)?.ok);
   }
 
   async release(jobId: string, workerId: string): Promise<boolean> {
-    const rows = await this.database`
-      SELECT jobs.release_job(${jobId}, ${workerId}) AS ok
-    `;
+    const query = () =>
+      this.database`
+        SELECT jobs.release_job(${jobId}, ${workerId}) AS ok
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.release',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return Boolean((rows[0] as { ok?: boolean } | undefined)?.ok);
   }
 
@@ -358,23 +412,45 @@ export class DurableJobRuntime {
     const retryAt = retryable
       ? new Date(now.getTime() + retryDelayMs(job.attempt_count, Math.random()))
       : null;
-    const rows = await this.database`
-      SELECT jobs.fail_job(
+    const query = () =>
+      this.database`
+        SELECT jobs.fail_job(
         ${job.id},
         ${workerId},
         ${failure.code.slice(0, 100)},
         ${failure.message.slice(0, 1000)},
         ${retryable},
         ${retryAt}
-      ) AS ok
-    `;
+        ) AS ok
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.fail',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return Boolean((rows[0] as { ok?: boolean } | undefined)?.ok);
   }
 
   async recoverExpired(now = new Date()): Promise<number> {
-    const rows = await this.database`
-      SELECT jobs.reap_expired_jobs(${now}) AS recovered
-    `;
+    const query = () =>
+      this.database`
+        SELECT jobs.reap_expired_jobs(${now}) AS recovered
+      `;
+    const rows = this.options.telemetry
+      ? await this.options.telemetry.withSpan(
+          {
+            resourceKind: 'db.query',
+            resourceName: 'jobs.recover_expired',
+            operation: 'select',
+          },
+          query,
+        )
+      : await query();
     return Number(
       (rows[0] as { recovered?: number } | undefined)?.recovered ?? 0,
     );
@@ -390,6 +466,7 @@ export class DurableJobWorker {
   private readonly pollIntervalMs: number;
   private readonly shutdownTimeoutMs: number;
   private readonly onEvent?: (event: JobWorkerEvent) => void;
+  private readonly telemetry?: Telemetry;
   private readonly active = new Map<string, Promise<void>>();
   private readonly controllers = new Map<string, AbortController>();
   private readonly activeByType = new Map<string, number>();
@@ -431,6 +508,7 @@ export class DurableJobWorker {
       'worker shutdown timeout',
     );
     this.onEvent = options.onEvent;
+    this.telemetry = options.telemetry;
     this.registry.assertReadyForTarget(this.targetService);
   }
 
@@ -560,10 +638,37 @@ export class DurableJobWorker {
       const typedDefinition = definition as unknown as JobDefinition<
         Record<string, unknown>
       >;
-      await typedDefinition.handler(job.payload, {
-        job,
-        signal: controller.signal,
-      });
+      const execute = () =>
+        typedDefinition.handler(job.payload, {
+          job,
+          signal: controller.signal,
+        });
+      if (this.telemetry) {
+        const telemetry = this.telemetry;
+        const extracted = job.trace_parent
+          ? telemetry.extract({
+              traceparent: job.trace_parent,
+              correlationId: job.correlation_id,
+            })
+          : (telemetry.currentContext() ??
+            telemetry.extract({ correlationId: job.correlation_id }));
+        const parent = job.correlation_id
+          ? { ...extracted, correlationId: job.correlation_id.slice(0, 100) }
+          : extracted;
+        await telemetry.withContext(parent, () =>
+          telemetry.withSpan(
+            {
+              resourceKind: 'job.execute',
+              resourceName: `${job.type}@${job.version}`,
+              operation: 'execute',
+              attributes: { attempt: job.attempt_count },
+            },
+            execute,
+          ),
+        );
+      } else {
+        await execute();
+      }
 
       if (!leaseLost && !this.forcedShutdown && !controller.signal.aborted) {
         try {
@@ -701,6 +806,7 @@ export async function enqueueJob(
   database: DatabaseClient,
   registry: JobRegistry,
   input: EnqueueJobInput,
+  telemetry?: Telemetry,
 ): Promise<JobRecord> {
   const definition = registry.assertPayload(
     input.type,
@@ -719,23 +825,39 @@ export async function enqueueJob(
     );
   }
 
-  const rows = await database`
-    SELECT * FROM jobs.enqueue_job(
-      ${input.type},
-      ${input.version},
-      ${input.payload}::jsonb,
-      ${input.sourceService},
-      ${input.targetService},
-      ${input.idempotencyKey},
-      ${input.correlationId ?? null},
-      ${input.actorUserId ?? null},
-      ${input.priority ?? 0},
-      ${input.runAt ?? new Date()},
-      ${input.maxAttempts ?? definition.maxAttempts ?? DEFAULT_MAX_ATTEMPTS},
-      ${input.scheduleCode ?? null},
-      ${input.retryOfJobId ?? null}
-    )
-  `;
+  const currentContext = telemetry?.currentContext();
+  const traceParent =
+    input.traceParent ??
+    (currentContext ? telemetry?.inject(currentContext).traceparent : null);
+  const query = () =>
+    database`
+      SELECT * FROM jobs.enqueue_job(
+        ${input.type},
+        ${input.version},
+        ${input.payload}::jsonb,
+        ${input.sourceService},
+        ${input.targetService},
+        ${input.idempotencyKey},
+        ${input.correlationId ?? currentContext?.correlationId ?? null},
+        ${input.actorUserId ?? null},
+        ${input.priority ?? 0},
+        ${input.runAt ?? new Date()},
+        ${input.maxAttempts ?? definition.maxAttempts ?? DEFAULT_MAX_ATTEMPTS},
+        ${input.scheduleCode ?? null},
+        ${input.retryOfJobId ?? null},
+        ${traceParent}
+      )
+    `;
+  const rows = telemetry
+    ? await telemetry.withSpan(
+        {
+          resourceKind: 'job.enqueue',
+          resourceName: `${input.type}@${input.version}`,
+          operation: 'enqueue',
+        },
+        query,
+      )
+    : await query();
 
   const row = rows[0] as JobRecord | undefined;
   if (!row) throw new Error('job enqueue returned no row');
@@ -927,6 +1049,8 @@ export type {
   NotificationEmailDeliveryPayload,
   NotificationRecipientCapabilitySyncPayload,
   NotificationRecipientSyncPayload,
+  ObservabilityAlertEvaluatePayload,
+  ObservabilityAlertNotificationPayload,
 } from './contracts';
 export {
   AUTH_JOB_CONTRACTS,
@@ -940,6 +1064,8 @@ export {
   notificationCreateContract,
   notificationEmailDeliveryContract,
   notificationRecipientSyncContract,
+  observabilityAlertEvaluateContract,
+  observabilityAlertNotificationContract,
 } from './contracts';
 export {
   DurableJobScheduler,

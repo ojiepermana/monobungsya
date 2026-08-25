@@ -22,6 +22,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 9   | TOTP two factor authentication      | Foundation | done        |
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | done        |
+| 12  | Bun observability and benchmarking standard | Foundation | done        |
 
 ## Foundations
 
@@ -211,6 +212,23 @@ Add a 6 digit authenticator app code (TOTP) as a second login step after magic l
 
 Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/services/auth`, `apps/services/user`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
 
+### 12. Bun observability and benchmarking standard · done
+
+Extend the log subsystem with one typed telemetry contract for every Bun backend, bounded PostgreSQL storage, reproducible Git baselines, and operator evidence.
+**Done when:** Required backend resource seams use the typed contract without changing business behavior, runtime traces connect to logs, metrics, benchmarks, alerts, and operator views, benchmark comparisons are reproducible, and instrumentation overhead stays within the accepted limits.
+
+- [x] Design it (spec): `/architect Bun observability and benchmarking standard`
+- [x] Build it: `/develop Bun observability and benchmarking standard`
+  - [x] Typed runtime contract, bounded PostgreSQL writer, W3C Elysia roots, and log correlation links
+  - [x] Trace, metric, benchmark, and alert operator read API with dedicated permission, logs service queries, gateway proxy, and generated contracts
+  - [x] Observability enforcement check, migration grants, retrying writer, focused tests, and repository typecheck
+  - [x] Benchmark runner, Git baselines, comparison projection, and CI ingestion
+  - [x] Angular trace/metric viewer, alert projection/evaluator, and remaining resource seams
+- [x] Verify it: `/check verify Bun observability and benchmarking standard`
+- [x] Test it: `/test Bun observability and benchmarking standard`
+
+Spec [0014](../specs/0014-bun-observability-benchmarking/index.md)
+
 ## Domain
 
 ### 7. User lifecycle management · done
@@ -246,3 +264,4 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Remember this device for 30 days (skip the TOTP step in a trusted browser) · reason: Trusted device behavior is outside the current 2FA contract · from spec 0009
 - Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
 - Access and jobs Dockerfiles plus CI image matrix coverage · reason: Runtime code is available, but deployment images have not been implemented · from spec 0001
+- Revisit OpenTelemetry integration · reason: Wait for official Bun support or evidence that maintaining the internal telemetry stack costs more than operating a Collector · from spec 0014

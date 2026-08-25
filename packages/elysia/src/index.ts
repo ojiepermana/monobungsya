@@ -13,3 +13,7 @@ export {
   type TraceSource,
 } from './request-id.plugin';
 export { enumSchema } from './schema';
+export {
+  createTelemetryPlugin,
+  getTelemetryContext,
+} from './telemetry.plugin';

@@ -8,6 +8,7 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { telemetry } from './services/telemetry';
 import { tools } from './tools/index';
 import { errorToolResponse } from './utils/toolResponse';
 
@@ -63,3 +64,6 @@ main().catch((error) => {
   console.error('monobungsia-mcp failed to start:', error);
   process.exit(1);
 });
+
+process.on('SIGINT', () => void telemetry?.shutdown(1_000));
+process.on('SIGTERM', () => void telemetry?.shutdown(1_000));

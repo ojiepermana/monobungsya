@@ -24,6 +24,7 @@ import {
 } from '#project/errors';
 import type { AuthSessionDetail } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
+import type { Telemetry } from '#project/telemetry';
 import {
   grantMutationResponse,
   grantsResponse,
@@ -61,6 +62,24 @@ import {
   auditTrailsResponse,
 } from '../../../../services/logs/src/modules/logs/logs.schema';
 import {
+  alertDetailQuery,
+  alertParams,
+  alertsQuery,
+  alertsResponse,
+  benchmarkBaselinesQuery,
+  benchmarkBaselinesResponse,
+  benchmarkRunParams,
+  benchmarkRunResponse,
+  benchmarkRunsQuery,
+  benchmarkRunsResponse,
+  metricsQuery,
+  metricsResponse,
+  traceDetailResponse,
+  traceParams,
+  tracesQuery,
+  tracesResponse,
+} from '../../../../services/logs/src/modules/observability/observability.schema';
+import {
   notificationIdParams,
   notificationResponse,
   notificationsQuery,
@@ -82,6 +101,8 @@ import { GatewayPermissionCache } from '../shared/permission-cache';
 
 type ResponseTransform = (response: Response) => Promise<Response>;
 
+const telemetryByEnvironment = new WeakMap<GatewayEnvironment, Telemetry>();
+
 async function forwardRequest(
   request: Request,
   serviceUrl: string,
@@ -94,6 +115,7 @@ async function forwardRequest(
   permissionCache?: GatewayPermissionCache,
   transformResponse?: ResponseTransform,
 ): Promise<Response> {
+  const telemetry = telemetryByEnvironment.get(environment);
   const incomingUrl = new URL(request.url);
   const suffix = incomingUrl.pathname.slice(publicPrefix.length);
   const upstreamUrl = new URL(
@@ -133,6 +155,7 @@ async function forwardRequest(
       environment,
       requiredPermissions,
       permissionCache,
+      telemetry,
     );
 
     if (identityError) {
@@ -141,18 +164,31 @@ async function forwardRequest(
   }
 
   try {
-    const response = await fetch(upstreamUrl, {
-      method: request.method,
-      headers,
-      redirect: 'manual',
-      body:
-        request.method === 'GET' || request.method === 'HEAD'
-          ? undefined
-          : requestBody === undefined
-            ? await request.arrayBuffer()
-            : JSON.stringify(requestBody),
-    });
-    return transformResponse ? transformResponse(response) : response;
+    const forward = async () => {
+      const response = await fetch(upstreamUrl, {
+        method: request.method,
+        headers,
+        redirect: 'manual',
+        body:
+          request.method === 'GET' || request.method === 'HEAD'
+            ? undefined
+            : requestBody === undefined
+              ? await request.arrayBuffer()
+              : JSON.stringify(requestBody),
+      });
+      return transformResponse ? transformResponse(response) : response;
+    };
+    return telemetry
+      ? await telemetry.withSpan(
+          {
+            resourceKind: 'http.client',
+            resourceName: `${new URL(serviceUrl).host}${normalizeRouteName(internalPrefix + suffix)}`,
+            operation: request.method,
+            attributes: { http_method: request.method },
+          },
+          forward,
+        )
+      : await forward();
   } catch (error) {
     updateAccessLogContext(request, {
       failureReason: 'service_unavailable',
@@ -317,6 +353,7 @@ async function addIdentityHeaders(
   environment: GatewayEnvironment,
   requiredPermissions: readonly string[],
   permissionCache?: GatewayPermissionCache,
+  telemetry?: Telemetry,
 ): Promise<Response | undefined> {
   if (!environment.INTERNAL_AUTH_SIGNING_SECRET) {
     return undefined;
@@ -326,15 +363,23 @@ async function addIdentityHeaders(
   let response: Response;
 
   try {
-    response = await fetch(
-      new URL('/internal/auth/session', environment.serviceUrls.auth),
-      {
+    const readSession = () =>
+      fetch(new URL('/internal/auth/session', environment.serviceUrls.auth), {
         headers: {
           cookie: request.headers.get('cookie') ?? '',
           'x-request-id': requestId,
         },
-      },
-    );
+      });
+    response = telemetry
+      ? await telemetry.withSpan(
+          {
+            resourceKind: 'http.client',
+            resourceName: `${new URL(environment.serviceUrls.auth).host}/internal/auth/session`,
+            operation: 'GET',
+          },
+          readSession,
+        )
+      : await readSession();
   } catch {
     updateAccessLogContext(request, {
       failureReason: 'auth_service_unavailable',
@@ -497,12 +542,15 @@ function statusActionRoute(summary: string) {
 
 export function createProxyRoute(
   environment: GatewayEnvironment,
-  options: { messaging?: Subscriber } = {},
+  options: { messaging?: Subscriber; telemetry?: Telemetry } = {},
 ) {
+  if (options.telemetry)
+    telemetryByEnvironment.set(environment, options.telemetry);
   const permissionCache = new GatewayPermissionCache(
     environment.serviceUrls.access,
     environment.GATEWAY_PERMISSION_CACHE_TTL_MS,
     environment.GATEWAY_PERMISSION_CACHE_MAX_ENTRIES,
+    options.telemetry,
   );
   options.messaging?.subscribe<AccessPermissionChangedEvent>(
     ACCESS_PERMISSION_CHANGED_SUBJECT,
@@ -1341,6 +1389,194 @@ export function createProxyRoute(
         detail: {
           tags: ['Logs'],
           summary: 'List application logs (requires logs:log:read)',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/traces',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        query: tracesQuery,
+        response: { 200: tracesResponse },
+        detail: {
+          tags: ['Observability'],
+          summary:
+            'List runtime traces (requires observability:telemetry:read)',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/traces/:traceId',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        params: traceParams,
+        response: { 200: traceDetailResponse },
+        detail: {
+          tags: ['Observability'],
+          summary:
+            'Read a runtime trace (requires observability:telemetry:read)',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/metrics',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        query: metricsQuery,
+        response: { 200: metricsResponse },
+        detail: {
+          tags: ['Observability'],
+          summary:
+            'Read runtime metrics (requires observability:telemetry:read)',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/benchmarks/runs',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        query: benchmarkRunsQuery,
+        response: { 200: benchmarkRunsResponse },
+        detail: {
+          tags: ['Observability'],
+          summary: 'List benchmark runs',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/benchmarks/runs/:runId',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        params: benchmarkRunParams,
+        response: { 200: benchmarkRunResponse },
+        detail: {
+          tags: ['Observability'],
+          summary: 'Read a benchmark run and comparisons',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/benchmarks/baselines',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        query: benchmarkBaselinesQuery,
+        response: { 200: benchmarkBaselinesResponse },
+        detail: {
+          tags: ['Observability'],
+          summary: 'List benchmark baselines',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/alerts',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        query: alertsQuery,
+        response: { 200: alertsResponse },
+        detail: {
+          tags: ['Observability'],
+          summary: 'List runtime alert states',
+        },
+      },
+    )
+    .get(
+      '/api/v1/observability/alerts/:ruleId',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.logs,
+          '/api/v1/observability',
+          '/internal/observability',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.observabilityTelemetryRead],
+          permissionCache,
+        ),
+      {
+        params: alertParams,
+        query: alertDetailQuery,
+        response: { 200: alertsResponse },
+        detail: {
+          tags: ['Observability'],
+          summary: 'Read alert states for a rule',
         },
       },
     )

@@ -56,6 +56,7 @@ export interface NotificationCreatePayload {
   version: number;
   payload: Record<string, unknown>;
   occurredAt: string;
+  severity?: 'info' | 'warning' | 'critical';
   correlationId?: string | null;
   eventKey?: string;
 }
@@ -66,11 +67,23 @@ export interface NotificationRecipientSyncPayload {
   email: string;
   active: boolean;
   canReadJobs?: boolean;
+  canReadObservability?: boolean;
 }
 
 export interface NotificationRecipientCapabilitySyncPayload {
   userId: string;
   canReadJobs: boolean;
+  canReadObservability?: boolean;
+}
+
+export interface ObservabilityAlertNotificationPayload {
+  ruleId: string;
+  ruleVersion: string;
+  severity: 'warning' | 'critical';
+  service: string;
+  transition: 'firing' | 'resolved';
+  transitionSequence: number;
+  evaluatedAt: string;
 }
 
 export interface NotificationEmailDeliveryPayload {
@@ -106,6 +119,10 @@ const isNotificationCreatePayload = (
     payload.version > 0 &&
     isObject(payload.payload) &&
     isDateString(payload.occurredAt) &&
+    (payload.severity === undefined ||
+      payload.severity === 'info' ||
+      payload.severity === 'warning' ||
+      payload.severity === 'critical') &&
     (payload.correlationId === undefined ||
       payload.correlationId === null ||
       typeof payload.correlationId === 'string') &&
@@ -123,7 +140,9 @@ const isNotificationRecipientSyncPayload = (
     typeof payload.email === 'string' &&
     typeof payload.active === 'boolean' &&
     (payload.canReadJobs === undefined ||
-      typeof payload.canReadJobs === 'boolean')
+      typeof payload.canReadJobs === 'boolean') &&
+    (payload.canReadObservability === undefined ||
+      typeof payload.canReadObservability === 'boolean')
   );
 };
 
@@ -137,7 +156,9 @@ const isNotificationRecipientCapabilitySyncPayload = (
 ): payload is NotificationRecipientCapabilitySyncPayload =>
   isObject(payload) &&
   isUuid(payload.userId) &&
-  typeof payload.canReadJobs === 'boolean';
+  typeof payload.canReadJobs === 'boolean' &&
+  (payload.canReadObservability === undefined ||
+    typeof payload.canReadObservability === 'boolean');
 
 export const notificationCreateContract: JobContract<NotificationCreatePayload> =
   {
@@ -203,7 +224,7 @@ export const accessNotificationRecipientCapabilitySyncContract: JobContract<Noti
     validate: isNotificationRecipientCapabilitySyncPayload,
     domainIdempotencyKey: (payload) =>
       `recipient-capability:${payload.userId}:${payload.canReadJobs}`,
-    operatorPayloadKeys: ['userId', 'canReadJobs'],
+    operatorPayloadKeys: ['userId', 'canReadJobs', 'canReadObservability'],
     maxAttempts: 5,
     terminalFailureNotification: false,
   };
@@ -241,6 +262,60 @@ export const jobFailureNotificationContract: JobContract<JobFailureNotificationP
     terminalFailureNotification: false,
   };
 
+export const observabilityAlertNotificationContract: JobContract<ObservabilityAlertNotificationPayload> =
+  {
+    type: 'observability.alert.notification',
+    version: 1,
+    sourceService: 'jobs',
+    targetService: 'notification',
+    validate: (payload): payload is ObservabilityAlertNotificationPayload =>
+      isObject(payload) &&
+      typeof payload.ruleId === 'string' &&
+      typeof payload.ruleVersion === 'string' &&
+      (payload.severity === 'warning' || payload.severity === 'critical') &&
+      typeof payload.service === 'string' &&
+      (payload.transition === 'firing' || payload.transition === 'resolved') &&
+      typeof payload.transitionSequence === 'number' &&
+      Number.isInteger(payload.transitionSequence) &&
+      isDateString(payload.evaluatedAt),
+    domainIdempotencyKey: (payload) =>
+      `observability-alert:${payload.ruleId}:${payload.ruleVersion}:${payload.transition}:${payload.transitionSequence}`,
+    operatorPayloadKeys: [
+      'ruleId',
+      'ruleVersion',
+      'severity',
+      'service',
+      'transition',
+      'transitionSequence',
+    ],
+    maxAttempts: 5,
+    terminalFailureNotification: false,
+  };
+
+export type ObservabilityAlertEvaluatePayload = Record<string, never>;
+
+export const observabilityAlertEvaluateContract: JobContract<ObservabilityAlertEvaluatePayload> =
+  {
+    type: 'observability.alert.evaluate',
+    version: 1,
+    sourceService: 'jobs',
+    targetService: 'jobs',
+    validate: (payload): payload is ObservabilityAlertEvaluatePayload =>
+      isObject(payload) && Object.keys(payload).length === 0,
+    domainIdempotencyKey: () => 'observability-alert-evaluate',
+    operatorPayloadKeys: [],
+    maxAttempts: 3,
+    terminalFailureNotification: false,
+    schedules: [
+      {
+        code: 'observability.alert.evaluate',
+        cronExpression: '*/5 * * * *',
+        timezone: 'UTC',
+        enabled: true,
+      },
+    ],
+  };
+
 export const NOTIFICATION_JOB_CONTRACTS = [
   notificationCreateContract,
   authNotificationCreateContract,
@@ -249,4 +324,6 @@ export const NOTIFICATION_JOB_CONTRACTS = [
   accessNotificationRecipientCapabilitySyncContract,
   notificationEmailDeliveryContract,
   jobFailureNotificationContract,
+  observabilityAlertNotificationContract,
+  observabilityAlertEvaluateContract,
 ] as const;

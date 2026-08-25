@@ -14,6 +14,8 @@ tags:
     description: Public users boundary
   - name: Logs
     description: Public log viewer boundary
+  - name: Observability
+    description: Runtime telemetry and trace boundary
   - name: Access
     description: Public permission access boundary
   - name: Jobs
@@ -3808,6 +3810,1083 @@ paths:
                         items:
                           type: string
       operationId: getApiV1LogsApplication-logs
+  /api/v1/observability/traces:
+    get:
+      tags:
+        - Observability
+      summary: List runtime traces (requires observability:telemetry:read)
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: service
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: resourceKind
+          in: query
+          required: false
+          schema:
+            maxLength: 40
+            type: string
+        - name: resourceName
+          in: query
+          required: false
+          schema:
+            maxLength: 150
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ok
+              - error
+              - unset
+        - name: correlationId
+          in: query
+          required: false
+          schema:
+            maxLength: 100
+            type: string
+        - name: requestId
+          in: query
+          required: false
+          schema:
+            maxLength: 100
+            type: string
+        - name: runId
+          in: query
+          required: false
+          schema:
+            format: uuid
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            maxLength: 512
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                  - completeness
+                  - storageStatus
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - traceId
+                        - serviceName
+                        - resourceName
+                        - status
+                        - startedAt
+                        - finishedAt
+                        - durationMs
+                        - spanCount
+                        - samplingReason
+                        - complete
+                        - correlationId
+                        - requestId
+                        - runId
+                      properties:
+                        traceId:
+                          type: string
+                        serviceName:
+                          type: string
+                        resourceName:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - ok
+                            - error
+                            - unset
+                        startedAt:
+                          type: string
+                        finishedAt:
+                          type: string
+                        durationMs:
+                          type: number
+                        spanCount:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        samplingReason:
+                          type: string
+                        complete:
+                          type: boolean
+                        correlationId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        requestId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        runId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  completeness:
+                    type: string
+                    enum:
+                      - complete
+                      - partial
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityTraces
+  /api/v1/observability/traces/{traceId}:
+    get:
+      tags:
+        - Observability
+      summary: Read a runtime trace (requires observability:telemetry:read)
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-f]{32}$
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - traceId
+                  - spans
+                  - orphanRoots
+                  - completeness
+                  - samplingReasons
+                  - storageStatus
+                properties:
+                  traceId:
+                    type: string
+                  spans:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - traceId
+                        - spanId
+                        - parentSpanId
+                        - serviceName
+                        - serviceInstanceId
+                        - resourceKind
+                        - resourceName
+                        - operation
+                        - status
+                        - samplingReason
+                        - attributes
+                        - errorType
+                        - startedAt
+                        - finishedAt
+                        - durationMs
+                        - orphan
+                      properties:
+                        traceId:
+                          type: string
+                        spanId:
+                          type: string
+                        parentSpanId:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        serviceName:
+                          type: string
+                        serviceInstanceId:
+                          type: string
+                        resourceKind:
+                          type: string
+                        resourceName:
+                          type: string
+                        operation:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - ok
+                            - error
+                            - unset
+                        samplingReason:
+                          type: string
+                        attributes: {}
+                        errorType:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        startedAt:
+                          type: string
+                        finishedAt:
+                          type: string
+                        durationMs:
+                          type: number
+                        orphan:
+                          type: boolean
+                  orphanRoots:
+                    type: array
+                    items:
+                      type: string
+                  completeness:
+                    type: string
+                    enum:
+                      - complete
+                      - partial
+                  samplingReasons:
+                    type: array
+                    items:
+                      type: string
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityTracesByTraceId
+  /api/v1/observability/metrics:
+    get:
+      tags:
+        - Observability
+      summary: Read runtime metrics (requires observability:telemetry:read)
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: metric
+          in: query
+          required: false
+          schema:
+            maxLength: 100
+            type: string
+        - name: service
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: resourceKind
+          in: query
+          required: false
+          schema:
+            maxLength: 40
+            type: string
+        - name: resourceName
+          in: query
+          required: false
+          schema:
+            maxLength: 150
+            type: string
+        - name: group
+          in: query
+          required: false
+          schema:
+            maxLength: 120
+            type: string
+        - name: statistic
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - count
+              - sum
+              - min
+              - max
+        - name: step
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - statistic
+                  - stepSeconds
+                  - coverage
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - bucketStart
+                        - value
+                        - count
+                        - serviceName
+                        - resourceKind
+                        - resourceName
+                        - metricName
+                        - unit
+                        - labels
+                      properties:
+                        bucketStart:
+                          type: string
+                        value:
+                          type: number
+                        count:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        serviceName:
+                          type: string
+                        resourceKind:
+                          type: string
+                        resourceName:
+                          type: string
+                        metricName:
+                          type: string
+                        unit:
+                          type: string
+                        labels: {}
+                  statistic:
+                    type: string
+                    enum:
+                      - count
+                      - sum
+                      - min
+                      - max
+                  stepSeconds:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  coverage:
+                    type: object
+                    required:
+                      - expectedBuckets
+                      - storedBuckets
+                      - missingBuckets
+                      - storageStatus
+                    properties:
+                      expectedBuckets:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      storedBuckets:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      missingBuckets:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      storageStatus:
+                        type: string
+                        enum:
+                          - available
+                          - blind_spot
+      operationId: getApiV1ObservabilityMetrics
+  /api/v1/observability/benchmarks/runs:
+    get:
+      tags:
+        - Observability
+      summary: List benchmark runs
+      parameters:
+        - name: scenarioId
+          in: query
+          required: false
+          schema:
+            maxLength: 120
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            maxLength: 30
+            type: string
+        - name: sourceCommitSha
+          in: query
+          required: false
+          schema:
+            maxLength: 64
+            type: string
+        - name: bunVersion
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            maxLength: 512
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                  - storageStatus
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - runId
+                        - scenarioId
+                        - scenarioVersion
+                        - status
+                        - sourceCommitSha
+                        - fixtureVersion
+                        - environment
+                        - bunVersion
+                        - completeness
+                        - startedAt
+                        - finishedAt
+                        - createdAt
+                        - comparisonStatus
+                      properties:
+                        runId:
+                          format: uuid
+                          type: string
+                        scenarioId:
+                          type: string
+                        scenarioVersion:
+                          type: string
+                        status:
+                          type: string
+                        sourceCommitSha:
+                          type: string
+                        fixtureVersion:
+                          type: string
+                        environment:
+                          type: string
+                        bunVersion:
+                          type: string
+                        completeness:
+                          type: string
+                        startedAt:
+                          type: string
+                        finishedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                        comparisonStatus:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityBenchmarksRuns
+  /api/v1/observability/benchmarks/runs/{runId}:
+    get:
+      tags:
+        - Observability
+      summary: Read a benchmark run and comparisons
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - runId
+                  - scenarioId
+                  - scenarioVersion
+                  - status
+                  - sourceCommitSha
+                  - fixtureVersion
+                  - environment
+                  - bunVersion
+                  - completeness
+                  - startedAt
+                  - finishedAt
+                  - createdAt
+                  - comparisonStatus
+                  - sourceBranch
+                  - sourceChecksum
+                  - runnerProfile
+                  - instrumentationSchemaVersion
+                  - thresholdPolicyVersion
+                  - artifactUri
+                  - traceUri
+                  - artifactChecksum
+                  - comparisons
+                properties:
+                  runId:
+                    format: uuid
+                    type: string
+                  scenarioId:
+                    type: string
+                  scenarioVersion:
+                    type: string
+                  status:
+                    type: string
+                  sourceCommitSha:
+                    type: string
+                  fixtureVersion:
+                    type: string
+                  environment:
+                    type: string
+                  bunVersion:
+                    type: string
+                  completeness:
+                    type: string
+                  startedAt:
+                    type: string
+                  finishedAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+                  comparisonStatus:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  sourceBranch:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  sourceChecksum:
+                    type: string
+                  runnerProfile: {}
+                  instrumentationSchemaVersion:
+                    type: string
+                  thresholdPolicyVersion:
+                    type: string
+                  artifactUri:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  traceUri:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  artifactChecksum:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  comparisons:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - comparisonId
+                        - resourceKind
+                        - resourceName
+                        - metricKey
+                        - statistic
+                        - unit
+                        - baselineValue
+                        - candidateValue
+                        - absoluteDelta
+                        - relativeDeltaPercent
+                        - absoluteThreshold
+                        - relativeThreshold
+                        - decision
+                        - evidenceUri
+                      properties:
+                        comparisonId:
+                          format: uuid
+                          type: string
+                        resourceKind:
+                          type: string
+                        resourceName:
+                          type: string
+                        metricKey:
+                          type: string
+                        statistic:
+                          type: string
+                        unit:
+                          type: string
+                        baselineValue:
+                          anyOf:
+                            - type: number
+                            - type: "null"
+                        candidateValue:
+                          type: number
+                        absoluteDelta:
+                          anyOf:
+                            - type: number
+                            - type: "null"
+                        relativeDeltaPercent:
+                          anyOf:
+                            - type: number
+                            - type: "null"
+                        absoluteThreshold:
+                          anyOf:
+                            - type: number
+                            - type: "null"
+                        relativeThreshold:
+                          anyOf:
+                            - type: number
+                            - type: "null"
+                        decision:
+                          type: string
+                          enum:
+                            - pass
+                            - fail
+                            - not_comparable
+                        evidenceUri:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+      operationId: getApiV1ObservabilityBenchmarksRunsByRunId
+  /api/v1/observability/benchmarks/baselines:
+    get:
+      tags:
+        - Observability
+      summary: List benchmark baselines
+      parameters:
+        - name: scenarioId
+          in: query
+          required: false
+          schema:
+            maxLength: 120
+            type: string
+        - name: scenarioVersion
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: fixtureVersion
+          in: query
+          required: false
+          schema:
+            maxLength: 100
+            type: string
+        - name: environment
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - storageStatus
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - baselineId
+                        - scenarioId
+                        - scenarioVersion
+                        - approvedRunId
+                        - fixtureVersion
+                        - environment
+                        - instrumentationSchemaVersion
+                        - thresholdPolicyVersion
+                        - approvalCommitSha
+                        - active
+                        - promotedAt
+                      properties:
+                        baselineId:
+                          format: uuid
+                          type: string
+                        scenarioId:
+                          type: string
+                        scenarioVersion:
+                          type: string
+                        approvedRunId:
+                          format: uuid
+                          type: string
+                        fixtureVersion:
+                          type: string
+                        environment:
+                          type: string
+                        instrumentationSchemaVersion:
+                          type: string
+                        thresholdPolicyVersion:
+                          type: string
+                        approvalCommitSha:
+                          type: string
+                        active:
+                          type: boolean
+                        promotedAt:
+                          type: string
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityBenchmarksBaselines
+  /api/v1/observability/alerts:
+    get:
+      tags:
+        - Observability
+      summary: List runtime alert states
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - firing
+              - resolved
+              - unknown
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - warning
+              - critical
+        - name: service
+          in: query
+          required: false
+          schema:
+            maxLength: 50
+            type: string
+        - name: ruleId
+          in: query
+          required: false
+          schema:
+            maxLength: 120
+            type: string
+        - name: seriesFingerprint
+          in: query
+          required: false
+          schema:
+            maxLength: 64
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            maxLength: 512
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                  - storageStatus
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - ruleId
+                        - ruleVersion
+                        - seriesFingerprint
+                        - serviceName
+                        - resourceKind
+                        - resourceName
+                        - status
+                        - consecutiveBreachWindows
+                        - consecutiveHealthyWindows
+                        - transitionSequence
+                        - firstBreachedAt
+                        - lastEvaluatedAt
+                        - evidenceBucket
+                        - lastNotifiedAt
+                        - resolvedAt
+                      properties:
+                        ruleId:
+                          type: string
+                        ruleVersion:
+                          type: string
+                        seriesFingerprint:
+                          type: string
+                        serviceName:
+                          type: string
+                        resourceKind:
+                          type: string
+                        resourceName:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - pending
+                            - firing
+                            - resolved
+                            - unknown
+                        consecutiveBreachWindows:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        consecutiveHealthyWindows:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        transitionSequence:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        firstBreachedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastEvaluatedAt:
+                          type: string
+                        evidenceBucket:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastNotifiedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        resolvedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        title:
+                          type: string
+                        severity:
+                          type: string
+                          enum:
+                            - warning
+                            - critical
+                        metric:
+                          type: string
+                        threshold:
+                          type: number
+                        windowSeconds:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        ruleChecksum:
+                          type: string
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityAlerts
+  /api/v1/observability/alerts/{ruleId}:
+    get:
+      tags:
+        - Observability
+      summary: Read alert states for a rule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            maxLength: 120
+            type: string
+        - name: seriesFingerprint
+          in: query
+          required: false
+          schema:
+            maxLength: 64
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                  - storageStatus
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - ruleId
+                        - ruleVersion
+                        - seriesFingerprint
+                        - serviceName
+                        - resourceKind
+                        - resourceName
+                        - status
+                        - consecutiveBreachWindows
+                        - consecutiveHealthyWindows
+                        - transitionSequence
+                        - firstBreachedAt
+                        - lastEvaluatedAt
+                        - evidenceBucket
+                        - lastNotifiedAt
+                        - resolvedAt
+                      properties:
+                        ruleId:
+                          type: string
+                        ruleVersion:
+                          type: string
+                        seriesFingerprint:
+                          type: string
+                        serviceName:
+                          type: string
+                        resourceKind:
+                          type: string
+                        resourceName:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - pending
+                            - firing
+                            - resolved
+                            - unknown
+                        consecutiveBreachWindows:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        consecutiveHealthyWindows:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        transitionSequence:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        firstBreachedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastEvaluatedAt:
+                          type: string
+                        evidenceBucket:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        lastNotifiedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        resolvedAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        title:
+                          type: string
+                        severity:
+                          type: string
+                          enum:
+                            - warning
+                            - critical
+                        metric:
+                          type: string
+                        threshold:
+                          type: number
+                        windowSeconds:
+                          anyOf:
+                            - format: integer
+                              default: 0
+                              type: string
+                            - type: integer
+                        ruleChecksum:
+                          type: string
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  storageStatus:
+                    type: string
+                    enum:
+                      - available
+                      - blind_spot
+      operationId: getApiV1ObservabilityAlertsByRuleId
   /api/v1/access/permissions:
     get:
       tags:

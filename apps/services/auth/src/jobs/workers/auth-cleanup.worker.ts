@@ -8,6 +8,7 @@ import {
   jobFailureNotificationContract,
 } from '#project/jobs';
 import type { Logger } from '#project/logger';
+import type { Telemetry } from '#project/telemetry';
 import type { AuthRepository } from '../../modules/auth/auth.repository';
 import type { AuthService } from '../../modules/auth/auth.service';
 
@@ -16,6 +17,7 @@ export function startAuthJobWorker(
   repository: AuthRepository,
   service: AuthService,
   logger: Logger,
+  telemetry?: Telemetry,
 ): () => Promise<void> {
   const registry = new JobRegistry();
   registry.registerContract(authSendUserInvitationContract);
@@ -35,10 +37,11 @@ export function startAuthJobWorker(
     logger.info('auth.cleanup.completed', { ...result });
   });
 
-  const runtime = new DurableJobRuntime(database, registry);
+  const runtime = new DurableJobRuntime(database, registry, { telemetry });
   const worker = new DurableJobWorker(runtime, registry, {
     workerId: `auth-${process.pid}`,
     targetService: 'auth',
+    telemetry,
     onEvent: (event) => {
       if (event.name === 'job.failed' && event.failure) {
         logger.error('auth.job.failed', {

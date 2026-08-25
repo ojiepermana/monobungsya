@@ -4,11 +4,13 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
+  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
+import type { TelemetryRuntime } from '#project/telemetry';
 import { type AccessEnvironment, loadAccessEnv } from './config/env';
 import { createAccessRoute } from './modules/access/access.route';
 
@@ -17,6 +19,7 @@ export interface AccessAppOptions {
   messaging?: Publisher;
   jobs?: JobRegistry;
   durableJobsEnabled?: boolean;
+  telemetry?: TelemetryRuntime;
 }
 
 export function createApp(
@@ -34,6 +37,7 @@ export function createApp(
 
   return new Elysia({ name: accessEnvironment.serviceName })
     .use(requestIdPlugin)
+    .use(createTelemetryPlugin(options.telemetry))
     .use(createLoggerPlugin(logger, 'access-logger'))
     .use(createErrorHandler('access-error-handler', { logger }))
     .use(

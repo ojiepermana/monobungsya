@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '17 2 * * *'
   release:
     types: [published]
 
@@ -35,6 +37,13 @@ jobs:
       DATABASE_RESET_ALLOWED: true
       DATABASE_TIMEZONE: Asia/Jakarta
       NODE_ENV: test
+      OBSERVABILITY_INGESTION_URL: ${{ secrets.OBSERVABILITY_INGESTION_URL }}
+      OBSERVABILITY_INGESTION_KEY_ID: ${{ secrets.OBSERVABILITY_INGESTION_KEY_ID }}
+      OBSERVABILITY_INGESTION_SECRET: ${{ secrets.OBSERVABILITY_INGESTION_SECRET }}
+      BENCHMARK_HTTP_URL: ${{ secrets.BENCHMARK_HTTP_URL }}
+      BENCHMARK_JOURNEY_STEPS: ${{ secrets.BENCHMARK_JOURNEY_STEPS }}
+      BENCHMARK_STAGING_CREATE_COMMAND: ${{ secrets.BENCHMARK_STAGING_CREATE_COMMAND }}
+      BENCHMARK_STAGING_DESTROY_COMMAND: ${{ secrets.BENCHMARK_STAGING_DESTROY_COMMAND }}
 
     steps:
       - name: Check out repository
@@ -71,6 +80,21 @@ jobs:
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_logs_writer') THEN
               CREATE ROLE project_logs_writer NOLOGIN;
             END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_access_runtime') THEN
+              CREATE ROLE project_access_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_jobs_runtime') THEN
+              CREATE ROLE project_jobs_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_notification_runtime') THEN
+              CREATE ROLE project_notification_runtime NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_telemetry_writer') THEN
+              CREATE ROLE project_telemetry_writer NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'project_telemetry_reader') THEN
+              CREATE ROLE project_telemetry_reader NOLOGIN;
+            END IF;
           END
           $$;
           GRANT CONNECT, CREATE ON DATABASE project TO project_migrator;
@@ -95,6 +119,44 @@ jobs:
 
       - name: Run typecheck
         run: bun run typecheck
+
+      - name: Check observability standard
+        run: bun run check:observability
+
+      - name: Run observability benchmark contract
+        run: >-
+          bun run observability:benchmark -- --warmup 10 --iterations 100 --groups 5
+          --baseline benchmarks/baselines/runtime-telemetry-core.json
+          --output /tmp/observability-benchmark.json
+          --markdown /tmp/observability-benchmark.md
+
+      - name: Upload observability benchmark artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-benchmark-${{ github.sha }}
+          path: |
+            /tmp/observability-benchmark.json
+            /tmp/observability-benchmark.md
+
+      - name: Ingest observability benchmark projection
+        if: ${{ env.OBSERVABILITY_INGESTION_URL != '' && env.OBSERVABILITY_INGESTION_KEY_ID != '' && env.OBSERVABILITY_INGESTION_SECRET != '' }}
+        run: bun run observability:benchmark:ingest -- --input /tmp/observability-benchmark.json
+
+      - name: Run full observability benchmark suite
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'release' }}
+        run: >-
+          bun run observability:benchmark:suite -- --full --require-staging --warmup 10 --iterations 100 --groups 5
+          --output-dir /tmp/observability-benchmark-suite
+
+      - name: Upload full observability benchmark artifacts
+        if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'release') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-benchmark-suite-${{ github.sha }}
+          if-no-files-found: ignore
+          path: |
+            /tmp/observability-benchmark-suite/*.json
+            /tmp/observability-benchmark-suite/*.md
 
       - name: Run lint
         run: bun run lint

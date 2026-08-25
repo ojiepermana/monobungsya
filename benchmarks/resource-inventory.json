@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "0014.1",
+  "seams": [
+    {
+      "resourceKind": "http.server",
+      "path": "packages/elysia/src/telemetry.plugin.ts"
+    },
+    {
+      "resourceKind": "http.client",
+      "path": "apps/gateway/erp/src/routes/proxy.route.ts"
+    },
+    {
+      "resourceKind": "http.client",
+      "path": "apps/mcp/src/services/erpApi.ts"
+    },
+    { "resourceKind": "db.query", "path": "packages/jobs/src/index.ts" },
+    {
+      "resourceKind": "db.query",
+      "path": "apps/services/jobs/src/main.ts"
+    },
+    {
+      "resourceKind": "nats.publish",
+      "path": "packages/messaging/src/index.ts"
+    },
+    {
+      "resourceKind": "nats.request",
+      "path": "packages/messaging/src/index.ts"
+    },
+    {
+      "resourceKind": "nats.consume",
+      "path": "packages/messaging/src/index.ts"
+    },
+    { "resourceKind": "job.enqueue", "path": "packages/jobs/src/index.ts" },
+    { "resourceKind": "job.execute", "path": "packages/jobs/src/index.ts" },
+    {
+      "resourceKind": "scheduler.tick",
+      "path": "packages/jobs/src/scheduler.ts"
+    },
+    {
+      "resourceKind": "smtp.send",
+      "path": "apps/services/notification/src/modules/notification/notification.service.ts"
+    },
+    {
+      "resourceKind": "smtp.send",
+      "path": "apps/services/auth/src/modules/auth/auth.mailer.ts"
+    },
+    {
+      "resourceKind": "fs.operation",
+      "path": "scripts/observability-profile.ts"
+    },
+    {
+      "resourceKind": "fs.operation",
+      "path": "apps/services/jobs/src/observability-evaluator.ts"
+    },
+    {
+      "resourceKind": "process.spawn",
+      "path": "scripts/observability-profile.ts"
+    },
+    {
+      "resourceKind": "business.operation",
+      "path": "apps/services/jobs/src/observability-evaluator.ts"
+    }
+  ]
+}

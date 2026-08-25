@@ -1,5 +1,6 @@
 import { CronExpressionParser } from 'cron-parser';
 import type { DatabaseClient } from '#project/database';
+import type { Telemetry } from '#project/telemetry';
 import { enqueueJob, type JobRegistry } from './index';
 
 export interface JobScheduleRow {
@@ -18,6 +19,7 @@ export interface SchedulerOptions {
   catchUpLimit?: number;
   leaseMs?: number;
   onEvent?: (event: SchedulerEvent) => void;
+  telemetry?: Telemetry;
 }
 
 export interface SchedulerEvent {
@@ -38,6 +40,7 @@ export class DurableJobScheduler {
   private readonly catchUpLimit: number;
   private readonly leaseMs: number;
   private readonly onEvent?: (event: SchedulerEvent) => void;
+  private readonly telemetry?: Telemetry;
 
   constructor(
     private readonly database: DatabaseClient,
@@ -52,9 +55,24 @@ export class DurableJobScheduler {
     );
     this.leaseMs = positiveInteger(options.leaseMs ?? 30_000, 'schedule lease');
     this.onEvent = options.onEvent;
+    this.telemetry = options.telemetry;
   }
 
   async synchronize(now = new Date()): Promise<void> {
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        {
+          resourceKind: 'scheduler.tick',
+          resourceName: 'jobs.schedules.synchronize',
+          operation: 'synchronize',
+        },
+        () => this.synchronizeInternal(now),
+      );
+    }
+    return this.synchronizeInternal(now);
+  }
+
+  private async synchronizeInternal(now: Date): Promise<void> {
     const schedules = this.registry.getScheduledContracts();
     const codes: string[] = [];
 
@@ -85,6 +103,20 @@ export class DurableJobScheduler {
   }
 
   async runOnce(now = new Date()): Promise<number> {
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        {
+          resourceKind: 'scheduler.tick',
+          resourceName: 'jobs.schedules.run_once',
+          operation: 'run_once',
+        },
+        () => this.runOnceInternal(now),
+      );
+    }
+    return this.runOnceInternal(now);
+  }
+
+  private async runOnceInternal(now: Date): Promise<number> {
     const rows = (await this.database`
       SELECT * FROM jobs.claim_due_schedules(
         ${this.schedulerId},
@@ -131,17 +163,27 @@ export class DurableJobScheduler {
       for (const plannedRunAt of emitted) {
         const payload = {};
         this.registry.assertPayload(contract.type, contract.version, payload);
-        await enqueueJob(this.database, this.registry, {
-          type: contract.type,
-          version: contract.version,
-          payload,
-          sourceService: contract.sourceService,
-          targetService: contract.targetService,
-          idempotencyKey: `schedule:${schedule.code}:${plannedRunAt.toISOString()}`,
-          runAt: plannedRunAt,
-          maxAttempts: contract.maxAttempts,
-          scheduleCode: schedule.code,
-        });
+        await enqueueJob(
+          this.database,
+          this.registry,
+          {
+            type: contract.type,
+            version: contract.version,
+            payload,
+            sourceService: contract.sourceService,
+            targetService: contract.targetService,
+            idempotencyKey: `schedule:${schedule.code}:${plannedRunAt.toISOString()}`,
+            correlationId:
+              `schedule:${schedule.code}:${plannedRunAt.toISOString()}`.slice(
+                0,
+                100,
+              ),
+            runAt: plannedRunAt,
+            maxAttempts: contract.maxAttempts,
+            scheduleCode: schedule.code,
+          },
+          this.telemetry,
+        );
       }
 
       const nextRunAt = nextOccurrence(

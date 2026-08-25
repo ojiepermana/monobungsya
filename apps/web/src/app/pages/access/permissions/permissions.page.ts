@@ -88,7 +88,7 @@ const EMPTY_META: PermissionListMeta = {
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
-          <h1 class="truncate text-lg font-semibold text-foreground">Permissions</h1>
+          <h1 class="truncate text-lg font-semibold text-foreground">Permission Catalog</h1>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <PageFilterToggle

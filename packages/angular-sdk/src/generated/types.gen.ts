@@ -1356,6 +1356,367 @@ export type GetApiV1LogsApplicationLogsResponses = {
 
 export type GetApiV1LogsApplicationLogsResponse = GetApiV1LogsApplicationLogsResponses[keyof GetApiV1LogsApplicationLogsResponses];
 
+export type GetApiV1ObservabilityTracesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        from?: string;
+        to?: string;
+        service?: string;
+        resourceKind?: string;
+        resourceName?: string;
+        status?: 'ok' | 'error' | 'unset';
+        correlationId?: string;
+        requestId?: string;
+        runId?: string;
+        cursor?: string;
+    };
+    url: '/api/v1/observability/traces';
+};
+
+export type GetApiV1ObservabilityTracesResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            traceId: string;
+            serviceName: string;
+            resourceName: string;
+            status: 'ok' | 'error' | 'unset';
+            startedAt: string;
+            finishedAt: string;
+            durationMs: number;
+            spanCount: string | number;
+            samplingReason: string;
+            complete: boolean;
+            correlationId: string | unknown;
+            requestId: string | unknown;
+            runId: string | unknown;
+        }>;
+        nextCursor: string | unknown;
+        completeness: 'complete' | 'partial';
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityTracesResponse = GetApiV1ObservabilityTracesResponses[keyof GetApiV1ObservabilityTracesResponses];
+
+export type GetApiV1ObservabilityTracesByTraceIdData = {
+    body?: never;
+    path: {
+        traceId: string;
+    };
+    query?: never;
+    url: '/api/v1/observability/traces/{traceId}';
+};
+
+export type GetApiV1ObservabilityTracesByTraceIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        traceId: string;
+        spans: Array<{
+            traceId: string;
+            spanId: string;
+            parentSpanId: string | unknown;
+            serviceName: string;
+            serviceInstanceId: string;
+            resourceKind: string;
+            resourceName: string;
+            operation: string;
+            status: 'ok' | 'error' | 'unset';
+            samplingReason: string;
+            attributes: unknown;
+            errorType: string | unknown;
+            startedAt: string;
+            finishedAt: string;
+            durationMs: number;
+            orphan: boolean;
+        }>;
+        orphanRoots: Array<string>;
+        completeness: 'complete' | 'partial';
+        samplingReasons: Array<string>;
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityTracesByTraceIdResponse = GetApiV1ObservabilityTracesByTraceIdResponses[keyof GetApiV1ObservabilityTracesByTraceIdResponses];
+
+export type GetApiV1ObservabilityMetricsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        from?: string;
+        to?: string;
+        metric?: string;
+        service?: string;
+        resourceKind?: string;
+        resourceName?: string;
+        group?: string;
+        statistic?: 'count' | 'sum' | 'min' | 'max';
+        step?: string;
+    };
+    url: '/api/v1/observability/metrics';
+};
+
+export type GetApiV1ObservabilityMetricsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            bucketStart: string;
+            value: number;
+            count: string | number;
+            serviceName: string;
+            resourceKind: string;
+            resourceName: string;
+            metricName: string;
+            unit: string;
+            labels: unknown;
+        }>;
+        statistic: 'count' | 'sum' | 'min' | 'max';
+        stepSeconds: string | number;
+        coverage: {
+            expectedBuckets: string | number;
+            storedBuckets: string | number;
+            missingBuckets: string | number;
+            storageStatus: 'available' | 'blind_spot';
+        };
+    };
+};
+
+export type GetApiV1ObservabilityMetricsResponse = GetApiV1ObservabilityMetricsResponses[keyof GetApiV1ObservabilityMetricsResponses];
+
+export type GetApiV1ObservabilityBenchmarksRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        scenarioId?: string;
+        status?: string;
+        sourceCommitSha?: string;
+        bunVersion?: string;
+        cursor?: string;
+    };
+    url: '/api/v1/observability/benchmarks/runs';
+};
+
+export type GetApiV1ObservabilityBenchmarksRunsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            runId: string;
+            scenarioId: string;
+            scenarioVersion: string;
+            status: string;
+            sourceCommitSha: string;
+            fixtureVersion: string;
+            environment: string;
+            bunVersion: string;
+            completeness: string;
+            startedAt: string;
+            finishedAt: string | unknown;
+            createdAt: string;
+            comparisonStatus: string | unknown;
+        }>;
+        nextCursor: string | unknown;
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityBenchmarksRunsResponse = GetApiV1ObservabilityBenchmarksRunsResponses[keyof GetApiV1ObservabilityBenchmarksRunsResponses];
+
+export type GetApiV1ObservabilityBenchmarksRunsByRunIdData = {
+    body?: never;
+    path: {
+        runId: string;
+    };
+    query?: never;
+    url: '/api/v1/observability/benchmarks/runs/{runId}';
+};
+
+export type GetApiV1ObservabilityBenchmarksRunsByRunIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        runId: string;
+        scenarioId: string;
+        scenarioVersion: string;
+        status: string;
+        sourceCommitSha: string;
+        fixtureVersion: string;
+        environment: string;
+        bunVersion: string;
+        completeness: string;
+        startedAt: string;
+        finishedAt: string | unknown;
+        createdAt: string;
+        comparisonStatus: string | unknown;
+        sourceBranch: string | unknown;
+        sourceChecksum: string;
+        runnerProfile: unknown;
+        instrumentationSchemaVersion: string;
+        thresholdPolicyVersion: string;
+        artifactUri: string | unknown;
+        traceUri: string | unknown;
+        artifactChecksum: string | unknown;
+        comparisons: Array<{
+            comparisonId: string;
+            resourceKind: string;
+            resourceName: string;
+            metricKey: string;
+            statistic: string;
+            unit: string;
+            baselineValue: number | unknown;
+            candidateValue: number;
+            absoluteDelta: number | unknown;
+            relativeDeltaPercent: number | unknown;
+            absoluteThreshold: number | unknown;
+            relativeThreshold: number | unknown;
+            decision: 'pass' | 'fail' | 'not_comparable';
+            evidenceUri: string | unknown;
+        }>;
+    };
+};
+
+export type GetApiV1ObservabilityBenchmarksRunsByRunIdResponse = GetApiV1ObservabilityBenchmarksRunsByRunIdResponses[keyof GetApiV1ObservabilityBenchmarksRunsByRunIdResponses];
+
+export type GetApiV1ObservabilityBenchmarksBaselinesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        scenarioId?: string;
+        scenarioVersion?: string;
+        fixtureVersion?: string;
+        environment?: string;
+    };
+    url: '/api/v1/observability/benchmarks/baselines';
+};
+
+export type GetApiV1ObservabilityBenchmarksBaselinesResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            baselineId: string;
+            scenarioId: string;
+            scenarioVersion: string;
+            approvedRunId: string;
+            fixtureVersion: string;
+            environment: string;
+            instrumentationSchemaVersion: string;
+            thresholdPolicyVersion: string;
+            approvalCommitSha: string;
+            active: boolean;
+            promotedAt: string;
+        }>;
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityBenchmarksBaselinesResponse = GetApiV1ObservabilityBenchmarksBaselinesResponses[keyof GetApiV1ObservabilityBenchmarksBaselinesResponses];
+
+export type GetApiV1ObservabilityAlertsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: 'pending' | 'firing' | 'resolved' | 'unknown';
+        severity?: 'warning' | 'critical';
+        service?: string;
+        ruleId?: string;
+        seriesFingerprint?: string;
+        cursor?: string;
+    };
+    url: '/api/v1/observability/alerts';
+};
+
+export type GetApiV1ObservabilityAlertsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            ruleId: string;
+            ruleVersion: string;
+            seriesFingerprint: string;
+            serviceName: string;
+            resourceKind: string;
+            resourceName: string;
+            status: 'pending' | 'firing' | 'resolved' | 'unknown';
+            consecutiveBreachWindows: string | number;
+            consecutiveHealthyWindows: string | number;
+            transitionSequence: string | number;
+            firstBreachedAt: string | unknown;
+            lastEvaluatedAt: string;
+            evidenceBucket: string | unknown;
+            lastNotifiedAt: string | unknown;
+            resolvedAt: string | unknown;
+            title?: string;
+            severity?: 'warning' | 'critical';
+            metric?: string;
+            threshold?: number;
+            windowSeconds?: string | number;
+            ruleChecksum?: string;
+        }>;
+        nextCursor: string | unknown;
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityAlertsResponse = GetApiV1ObservabilityAlertsResponses[keyof GetApiV1ObservabilityAlertsResponses];
+
+export type GetApiV1ObservabilityAlertsByRuleIdData = {
+    body?: never;
+    path: {
+        ruleId: string;
+    };
+    query?: {
+        seriesFingerprint?: string;
+    };
+    url: '/api/v1/observability/alerts/{ruleId}';
+};
+
+export type GetApiV1ObservabilityAlertsByRuleIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            ruleId: string;
+            ruleVersion: string;
+            seriesFingerprint: string;
+            serviceName: string;
+            resourceKind: string;
+            resourceName: string;
+            status: 'pending' | 'firing' | 'resolved' | 'unknown';
+            consecutiveBreachWindows: string | number;
+            consecutiveHealthyWindows: string | number;
+            transitionSequence: string | number;
+            firstBreachedAt: string | unknown;
+            lastEvaluatedAt: string;
+            evidenceBucket: string | unknown;
+            lastNotifiedAt: string | unknown;
+            resolvedAt: string | unknown;
+            title?: string;
+            severity?: 'warning' | 'critical';
+            metric?: string;
+            threshold?: number;
+            windowSeconds?: string | number;
+            ruleChecksum?: string;
+        }>;
+        nextCursor: string | unknown;
+        storageStatus: 'available' | 'blind_spot';
+    };
+};
+
+export type GetApiV1ObservabilityAlertsByRuleIdResponse = GetApiV1ObservabilityAlertsByRuleIdResponses[keyof GetApiV1ObservabilityAlertsByRuleIdResponses];
+
 export type GetApiV1AccessPermissionsData = {
     body?: never;
     path?: never;
