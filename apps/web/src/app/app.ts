@@ -125,7 +125,7 @@ export class App {
     name: 'PT MONOBUNGSYA',
     icon: APP_BRAND_ICON,
     title: 'PT MONOBUNGSYA',
-    subtitle: '',
+    subtitle: 'Enterprise Operations',
   };
 
   protected readonly appBrandIcon = APP_BRAND_ICON;

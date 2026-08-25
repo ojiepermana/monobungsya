@@ -125,6 +125,44 @@ pageheader p {
   }
 }
 
+app-root NavigationHeader,
+app-root NavigationFooter {
+  --section-border-opacity: 0.75;
+  background: color-mix(in srgb, var(--background) 94%, var(--primary) 6%);
+}
+
+app-root NavigationHeaderTitle,
+app-root NavigationFooterTitle {
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+app-root NavigationHeaderTitle {
+  flex: 1 1 auto;
+}
+
+app-root NavigationHeaderTitle .nav-text,
+app-root NavigationFooterTitle .nav-text {
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+app-root NavigationHeaderTitle .nav-subtitle,
+app-root NavigationFooterTitle .nav-subtitle {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+html[theme-space='compact'] app-root NavigationHeaderTitle .nav-subtitle,
+html[theme-space='compact'] app-root NavigationFooterTitle .nav-subtitle {
+  display: none;
+}
+
 app-root NavigationHeader button[aria-label="Collapse navigation"],
 app-root NavigationHeader button[aria-label="Expand navigation"] {
   display: none;
@@ -135,6 +173,33 @@ app-root NavigationFooter NavigationFooterInitial {
   display: none;
 }
 
-app-root NavigationHeader ThemeSettings > button {
-  margin-left: auto;
+app-root NavigationSidebar,
+app-root NavigationDockbar,
+app-root NavigationFlyout {
+  position: relative;
+}
+
+app-root NavigationFooter:has(ThemeSettings) {
+  position: static !important;
+}
+
+app-root NavigationFooter ThemeSettings > Drawer {
+  display: contents;
+}
+
+app-root NavigationSidebar NavigationHeader > div > div,
+app-root NavigationDockbar NavigationHeader > div > div,
+app-root NavigationFlyout NavigationHeader > div > div {
+  padding-right: calc(var(--spacing-base) * 14);
+}
+
+app-root NavigationSidebar ThemeSettings > button,
+app-root NavigationDockbar ThemeSettings > button,
+app-root NavigationFlyout ThemeSettings > button {
+  position: absolute;
+  top: calc(var(--layout-topbar-height) / 2);
+  right: calc(var(--spacing-base) * 3);
+  z-index: 20;
+  margin-left: 0;
+  transform: translateY(-50%);
 }
