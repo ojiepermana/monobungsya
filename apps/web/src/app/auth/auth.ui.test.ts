@@ -62,6 +62,31 @@ describe('auth UI', () => {
     expect(fixture.nativeElement.textContent).toContain('Masuk ke Monobungsya');
   });
 
+  it('keeps the email input and concise submit action in one row', async () => {
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        { provide: PasskeyService, useValue: passkeyStub() },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="email"]');
+    const submit = fixture.nativeElement.querySelector(
+      'button[type="submit"]',
+    );
+
+    expect(input.parentElement).toBe(submit.parentElement);
+    expect(fixture.nativeElement.querySelector('#login-help')).toBeNull();
+    expect(submit.textContent).toContain('Kirim');
+    expect(submit.textContent).not.toContain('Kirim magic link');
+  });
+
   it('covers AC-7: shows a soft passkey cancellation and keeps magic link available', async () => {
     const signIn = vi.fn(() => Promise.reject(new PasskeyCancelled()));
     const messageFrom = vi.fn((_error: unknown, fallback: string) =>

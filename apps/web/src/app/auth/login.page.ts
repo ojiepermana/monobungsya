@@ -105,8 +105,9 @@ type LoginState =
               }
 
               <form class="space-y-5" (submit)="send($event)" novalidate>
-                <label class="grid gap-2 text-sm font-medium" for="login-email">
-                  Email
+                <div class="grid gap-2">
+                  <label class="text-sm font-medium" for="login-email">Email</label>
+                  <div class="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2">
                   <input
                     id="login-email"
                     Input
@@ -116,12 +117,16 @@ type LoginState =
                     placeholder="nama@monobungsya.id"
                     [value]="email()"
                     [attr.aria-invalid]="state() === 'invalid'"
-                    [attr.aria-describedby]="state() === 'invalid' || state() === 'rate-limited' || state() === 'service-error' ? 'login-help login-error' : 'login-help'"
+                    [attr.aria-describedby]="state() === 'invalid' || state() === 'rate-limited' || state() === 'service-error' ? 'login-error' : null"
                     required
                     (input)="updateEmail($event)"
                   />
-                </label>
-                <p id="login-help" class="text-xs leading-5 text-muted-foreground">Gunakan email kantor atau email yang sudah terdaftar.</p>
+                    <button Button size="xs" type="submit" class="h-full gap-1.5 whitespace-nowrap px-3" [disabled]="state() === 'submitting'">
+                      <Icon name="mail" [size]="14" aria-hidden="true" />
+                      {{ state() === 'submitting' ? 'Membuat link...' : 'Kirim' }}
+                    </button>
+                  </div>
+                </div>
 
                 @if (state() === 'invalid') {
                   <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">Enter a valid work email address.</p>
@@ -131,10 +136,6 @@ type LoginState =
                   <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">The sign in service is unavailable. Try again shortly.</p>
                 }
 
-                <button Button size="xs" type="submit" class="w-full gap-1.5" [disabled]="state() === 'submitting'">
-                  <Icon name="mail" [size]="14" aria-hidden="true" />
-                  {{ state() === 'submitting' ? 'Membuat link...' : 'Kirim magic link' }}
-                </button>
               </form>
             }
 
