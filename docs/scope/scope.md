@@ -23,6 +23,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | done        |
 | 12  | Bun observability and benchmarking standard | Foundation | done        |
+| 13  | Permission group grant templates    | Foundation | planned     |
 
 ## Foundations
 
@@ -229,6 +230,23 @@ Extend the log subsystem with one typed telemetry contract for every Bun backend
 
 Spec [0014](../specs/0014-bun-observability-benchmarking/index.md)
 
+### 13. Permission group grant templates · planned
+
+Name a set of permissions once as a group, then apply it to one user or to many at once. A group is a template: applying it copies its permissions into direct grants, so the authorization path, the gateway permission cache, and the signed identity header stay exactly as they are.
+**Done when:** An operator can create, edit, switch off, soft delete, and restore a group, attach and detach its permissions, apply it to one user from that user's page and to many users from the group page, every apply lands as ordinary grants with one audit row per affected user, a group that is off or empty cannot be applied, and no query on the authorization path reads the group tables.
+
+- [x] Design it (spec): `/architect permission group grant templates`
+- [ ] Build it: `/develop permission group grant templates`
+  - [ ] Thin thread: migration `0037`, the eleven catalog permissions, `packages/acl` constants, group create and list from service through gateway to a rebuilt group page (AC-1, AC-2, AC-12, AC-15)
+  - [ ] Group contents and lifecycle: attach and detach, update with status, the detail route and page, soft delete and restore with their guards, the appliable filter, audit writes (AC-3, AC-4, AC-5, AC-6, AC-10, AC-13)
+  - [ ] Apply to one user from the user detail access panel, with the eligibility guard, the invalidation event, and one audit row per user (AC-7, AC-9, AC-14)
+  - [ ] Bulk apply from the group page: per user transactions, the fifty id cap, and a picker reading the existing users endpoint (AC-8, AC-11, AC-13)
+  - [ ] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, repository validation gate (AC-16)
+- [ ] Verify it: `/check verify permission group grant templates`
+- [ ] Test it: `/test permission group grant templates`
+
+Spec [0015](../specs/0015-permission-group-template/index.md) · code in `packages/database`, `packages/acl`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
+
 ## Domain
 
 ### 7. User lifecycle management · done
@@ -259,7 +277,9 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Resend invitation action for failed or expired invitation emails · reason: Users can request a magic link themselves in the current flow · from spec 0007
 - Manager level read access to the user pages · reason: The current permission model only defines the admin management surface · from spec 0007
 - Scoped permission variants (`:own`, `:scoped`) plus downstream ownership rules · reason: No self service ownership surface exists yet · from spec 0008
-- Permission grouping (bundles) · reason: Defer until per user granting becomes operationally painful · from spec 0008
+- Permission group assignment, where a group keeps granting through an `access.group_user` table and later edits reach every member · reason: Feature 13 answers grouping in template form only; the assignment form changes the effective permission lookup and is deferred until template drift becomes the real pain · from spec 0008, narrowed by spec 0015
+- Reconciliation view showing users missing permissions their applied group has since gained · reason: The cheapest partial cure for template drift, but it needs apply history read from the audit log and blocks nothing today · from spec 0015
+- Revoke by group, so taking a set of access back costs as little as giving it · reason: Apply is additive by design in the template model; revoking stays per permission until this is designed · from spec 0015
 - Orphan grant sweep · reason: Only needed if user hard deletion is introduced · from spec 0008
 - Remember this device for 30 days (skip the TOTP step in a trusted browser) · reason: Trusted device behavior is outside the current 2FA contract · from spec 0009
 - Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
