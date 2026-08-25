@@ -82,13 +82,25 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'access/permissions',
-    title: 'MONOBUNGSYA · Permission Catalog',
+    path: 'permission/catalog',
+    title: 'MONOBUNGSYA · Permissions',
     canActivate: [authGuard, permissionGuard(PERMISSIONS.accessPermissionList)],
     loadComponent: () =>
       import('../pages/access/permissions/permissions.page').then(
         (m) => m.PermissionsPage,
       ),
+  },
+  {
+    path: 'access/catalog',
+    redirectTo: 'permission/catalog',
+    pathMatch: 'full',
+  },
+  {
+    path: 'permission/group',
+    title: 'MONOBUNGSYA · Group',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessPermissionList)],
+    loadComponent: () =>
+      import('../pages/access/groups/groups.page').then((m) => m.GroupsPage),
   },
   {
     path: 'notifications',
@@ -114,6 +126,21 @@ export const routes: Routes = [
       import('../pages/operations/jobs/job-detail.page').then(
         (m) => m.JobDetailPage,
       ),
+  },
+  {
+    path: 'access/permissions',
+    redirectTo: 'permission/catalog',
+    pathMatch: 'full',
+  },
+  {
+    path: 'access/permission',
+    redirectTo: 'permission/catalog',
+    pathMatch: 'full',
+  },
+  {
+    path: 'access/group',
+    redirectTo: 'permission/group',
+    pathMatch: 'full',
   },
   {
     // The old settings path kept as a redirect, so a bookmark still lands.

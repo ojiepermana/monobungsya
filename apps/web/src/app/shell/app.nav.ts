@@ -87,6 +87,26 @@ export function appNavigationFor(
     );
   }
 
+  const accessItems: NavigationItem[] = [];
+  if (hasResolvedPermission(permissions, PERMISSIONS.accessPermissionList)) {
+    accessItems.push(
+      {
+        id: 'permissions',
+        type: 'item',
+        title: 'Catalog',
+        icon: 'list_alt',
+        link: '/permission/catalog',
+      },
+      {
+        id: 'groups',
+        type: 'item',
+        title: 'Group',
+        icon: 'group',
+        link: '/permission/group',
+      },
+    );
+  }
+
   const group = (
     title: string,
     children: readonly NavigationItem[],
@@ -101,27 +121,8 @@ export function appNavigationFor(
     group('Workspace', notificationItems),
     ...(operationItems.length > 0 ? [group('Operations', operationItems)] : []),
     ...(userItems.length > 0 ? [group('Users', userItems)] : []),
-    ...(settingsItems.length > 0
-      ? [
-          group('Settings', [
-            ...settingsItems,
-            ...(hasResolvedPermission(
-              permissions,
-              PERMISSIONS.accessPermissionList,
-            )
-              ? [
-                  {
-                    id: 'permission-catalog',
-                    type: 'item' as const,
-                    title: 'Permission Catalog',
-                    icon: 'key',
-                    link: '/access/permissions',
-                  },
-                ]
-              : []),
-          ]),
-        ]
-      : []),
+    ...(settingsItems.length > 0 ? [group('Settings', settingsItems)] : []),
+    ...(accessItems.length > 0 ? [group('Permission', accessItems)] : []),
     ...(logItems.length > 0 ? [group('Logs', logItems)] : []),
   ];
 }

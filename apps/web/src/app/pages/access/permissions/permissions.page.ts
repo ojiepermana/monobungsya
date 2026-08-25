@@ -88,7 +88,7 @@ const EMPTY_META: PermissionListMeta = {
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-6">
         <div class="flex min-w-0 items-center gap-3">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
-          <h1 class="truncate text-lg font-semibold text-foreground">Permission Catalog</h1>
+          <h1 class="truncate text-lg font-semibold text-foreground">Permissions</h1>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <PageFilterToggle
@@ -125,7 +125,7 @@ const EMPTY_META: PermissionListMeta = {
           <p class="border border-border bg-card p-5 text-sm text-muted-foreground">No permissions found.</p>
         } @else {
           <Table class="min-w-full bg-card">
-            <caption TableCaption class="sr-only">Permission catalog</caption>
+            <caption TableCaption class="sr-only">Permissions</caption>
             <thead TableHeader class="text-xs uppercase text-muted-foreground">
               <tr TableRow>
                 <th TableHead scope="col">Permission</th>
