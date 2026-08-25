@@ -77,14 +77,39 @@ describe('auth UI', () => {
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input[type="email"]');
-    const submit = fixture.nativeElement.querySelector(
-      'button[type="submit"]',
-    );
+    const submit = fixture.nativeElement.querySelector('button[type="submit"]');
 
     expect(input.parentElement).toBe(submit.parentElement);
     expect(fixture.nativeElement.querySelector('#login-help')).toBeNull();
     expect(submit.textContent).toContain('Kirim');
     expect(submit.textContent).not.toContain('Kirim magic link');
+
+    expect(fixture.nativeElement.textContent).toContain('atau login dengan');
+    const providerButtons = [
+      ...fixture.nativeElement.querySelectorAll(
+        'button[aria-label^="Login dengan"]',
+      ),
+    ];
+    expect(
+      providerButtons.map((button) => button.getAttribute('aria-label')),
+    ).toEqual([
+      'Login dengan Google',
+      'Login dengan Microsoft',
+      'Login dengan Apple',
+    ]);
+    expect(
+      providerButtons.every((button) =>
+        button.querySelector('svg path')?.getAttribute('d'),
+      ),
+    ).toBe(true);
+    expect(
+      providerButtons.every((button) =>
+        button
+          .querySelector('svg')
+          ?.getAttribute('viewBox')
+          ?.startsWith('0 0 '),
+      ),
+    ).toBe(true);
   });
 
   it('covers AC-7: shows a soft passkey cancellation and keeps magic link available', async () => {

@@ -1,6 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  faApple,
+  faGoogle,
+  faMicrosoft,
+} from '@fortawesome/free-brands-svg-icons';
+import {
   AlertComponent,
   AlertDescriptionComponent,
   AlertTitleComponent,
@@ -25,6 +30,12 @@ import { GatewayRequestError } from '../../api/generated-client';
 import { TauriService } from '../desktop/tauri.service';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
+
+const SOCIAL_PROVIDERS = [
+  { label: 'Google', icon: faGoogle },
+  { label: 'Microsoft', icon: faMicrosoft },
+  { label: 'Apple', icon: faApple },
+] as const;
 
 type LoginState =
   | 'idle'
@@ -108,19 +119,19 @@ type LoginState =
                 <div class="grid gap-2">
                   <label class="text-sm font-medium" for="login-email">Email</label>
                   <div class="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2">
-                  <input
-                    id="login-email"
-                    Input
-                    type="email"
-                    name="email"
-                    autocomplete="email"
-                    placeholder="nama@monobungsya.id"
-                    [value]="email()"
-                    [attr.aria-invalid]="state() === 'invalid'"
-                    [attr.aria-describedby]="state() === 'invalid' || state() === 'rate-limited' || state() === 'service-error' ? 'login-error' : null"
-                    required
-                    (input)="updateEmail($event)"
-                  />
+                    <input
+                      id="login-email"
+                      Input
+                      type="email"
+                      name="email"
+                      autocomplete="email"
+                      placeholder="nama@monobungsya.id"
+                      [value]="email()"
+                      [attr.aria-invalid]="state() === 'invalid'"
+                      [attr.aria-describedby]="state() === 'invalid' || state() === 'rate-limited' || state() === 'service-error' ? 'login-error' : null"
+                      required
+                      (input)="updateEmail($event)"
+                    />
                     <button Button size="xs" type="submit" class="h-full gap-1.5 whitespace-nowrap px-3" [disabled]="state() === 'submitting'">
                       <Icon name="mail" [size]="14" aria-hidden="true" />
                       {{ state() === 'submitting' ? 'Membuat link...' : 'Kirim' }}
@@ -135,6 +146,22 @@ type LoginState =
                 } @else if (state() === 'service-error') {
                   <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">The sign in service is unavailable. Try again shortly.</p>
                 }
+
+                <div class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+                  <span class="h-px flex-1 bg-border"></span>
+                  atau login dengan
+                  <span class="h-px flex-1 bg-border"></span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  @for (provider of socialProviders; track provider.label) {
+                    <button Button size="xs" type="button" class="w-full min-w-0 gap-1.5 px-2" [attr.aria-label]="'Login dengan ' + provider.label">
+                      <svg class="size-4 shrink-0" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
+                        <path [attr.d]="provider.icon.icon[4]"></path>
+                      </svg>
+                      {{ provider.label }}
+                    </button>
+                  }
+                </div>
 
               </form>
             }
@@ -164,6 +191,7 @@ export class LoginPage {
   protected readonly state = signal<LoginState>('idle');
   protected readonly passkeyLoading = signal(false);
   protected readonly passkeyMessage = signal<string | null>(null);
+  protected readonly socialProviders = SOCIAL_PROVIDERS;
 
   updateEmail(event: Event): void {
     this.email.set((event.target as HTMLInputElement).value);

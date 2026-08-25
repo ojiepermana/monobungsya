@@ -14,6 +14,7 @@
         "@angular/router": "^22.1.3",
         "@elysiajs/cors": "latest",
         "@elysiajs/openapi": "latest",
+        "@fortawesome/free-brands-svg-icons": "^7.3.1",
         "@modelcontextprotocol/sdk": "latest",
         "@ojiepermana/angular": "^22.1.6",
         "@ojiepermana/angular-theme": "^22.1.6",
@@ -225,6 +226,10 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
     "@exodus/bytes": ["@exodus/bytes@1.15.1", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-S6mL0yNB/Abt9Ei4tq8gDhcczc4S3+vQ4ra7vxnAf+YHC02srtqxKKZghx2Dq6p0e66THKwR6r8N6P95wEty7Q=="],
+
+    "@fortawesome/fontawesome-common-types": ["@fortawesome/fontawesome-common-types@7.3.1", "", {}, "sha512-k0C0sdHmZtAo6dRDtd1Z/qcpyHbL0CKsjV8seMY/21xGhY5Wsv0XRmiI/xEEH4y2c9b1+jvgNs/3EqhV27yUEA=="],
+
+    "@fortawesome/free-brands-svg-icons": ["@fortawesome/free-brands-svg-icons@7.3.1", "", { "dependencies": { "@fortawesome/fontawesome-common-types": "7.3.1" } }, "sha512-8eiNzycuFhy3mZsi5EVO8JpO3H8l7/kSCl4Gk4iUew9hJuzYFqAAD6kqgeEup3+YZ9hL+5cjjorGzrRLkYuURg=="],
 
     "@harperfast/extended-iterable": ["@harperfast/extended-iterable@1.0.3", "", {}, "sha512-sSAYhQca3rDWtQUHSAPeO7axFIUJOI6hn1gjRC5APVE1a90tuyT8f5WIgRsFhhWA7htNkju2veB9eWL6YHi/Lw=="],
 
