@@ -12,8 +12,8 @@ export function appNavigationFor(
     {
       id: 'logs-overview',
       type: 'item',
-      title: 'Log Overview',
-      icon: 'summarize',
+      title: 'Dashboard',
+      icon: 'dashboard',
       link: '/',
       exactMatch: true,
     },

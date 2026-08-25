@@ -65,13 +65,13 @@ type TotpVerifyResult = { authenticated: true; redirectTo: string };
             @if (error(); as message) { <Alert variant="destructive" class="mb-4"><AlertTitle>Verifikasi gagal</AlertTitle><AlertDescription>{{ message }}</AlertDescription></Alert> }
             @if (enrolling && enrollment(); as setup) {
               <div class="grid gap-4">
-                <div class="flex justify-center rounded border border-border bg-white p-4"><qrcode [qrdata]="setup.otpauthUri" [width]="220" [margin]="1" elementType="img" alt="QR code untuk authenticator" ariaLabel="QR code untuk authenticator" /></div>
-                <div><p class="text-xs text-muted-foreground">Secret manual</p><code class="mt-1 block break-all rounded bg-muted p-3 text-sm">{{ setup.secret }}</code></div>
+                <div class="flex justify-center rounded-base border border-border bg-white p-4"><qrcode [qrdata]="setup.otpauthUri" [width]="220" [margin]="1" elementType="img" alt="QR code untuk authenticator" ariaLabel="QR code untuk authenticator" /></div>
+                <div><p class="text-xs text-muted-foreground">Secret manual</p><code class="mt-1 block break-all rounded-base bg-muted p-3 text-sm">{{ setup.secret }}</code></div>
               </div>
             }
             @if (recoveryCodes(); as codes) {
               <Alert class="mb-4"><AlertTitle>Simpan recovery codes</AlertTitle><AlertDescription>Setiap code hanya bisa dipakai sekali. Ini satu satunya tampilan code tersebut.</AlertDescription></Alert>
-              <div class="grid grid-cols-2 gap-2 rounded border border-border bg-muted p-4 font-mono text-sm">@for (code of codes; track code) { <span>{{ code }}</span> }</div>
+              <div class="grid grid-cols-2 gap-2 rounded-base border border-border bg-muted p-4 font-mono text-sm">@for (code of codes; track code) { <span>{{ code }}</span> }</div>
               <a Button size="xs" routerLink="/" class="mt-5 w-full">Lanjutkan</a>
             } @else {
               <form class="grid gap-4" (submit)="submit($event)">

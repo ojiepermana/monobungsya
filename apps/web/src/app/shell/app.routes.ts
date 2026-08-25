@@ -49,10 +49,12 @@ export const routes: Routes = [
   },
   {
     path: '',
-    title: 'MONOBUNGSYA · Logs',
+    title: 'MONOBUNGSYA · Dashboard',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('../pages/logs/overview/logs.page').then((m) => m.LogsPage),
+      import('../pages/logs/overview/dashboard.page').then(
+        (m) => m.DashboardPage,
+      ),
   },
   {
     path: 'setting/passkeys',

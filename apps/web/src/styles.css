@@ -94,7 +94,7 @@ pageheader p {
   [Button],
   [AlertDialogCancel],
   [AlertDialogAction] {
-    border-radius: var(--radius-xs) !important;
+    border-radius: var(--radius-base) !important;
   }
 
   PageFilterToggle button {
