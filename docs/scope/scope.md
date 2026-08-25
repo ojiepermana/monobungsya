@@ -23,7 +23,8 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | done        |
 | 12  | Bun observability and benchmarking standard | Foundation | done        |
-| 13  | Permission group grant templates    | Foundation | planned     |
+| 13  | Permission group grant templates    | Foundation | in-progress |
+| 14  | Observability pages per signal      | Foundation | in-progress |
 
 ## Foundations
 
@@ -230,7 +231,7 @@ Extend the log subsystem with one typed telemetry contract for every Bun backend
 
 Spec [0014](../specs/0014-bun-observability-benchmarking/index.md)
 
-### 13. Permission group grant templates · planned
+### 13. Permission group grant templates · in-progress
 
 Name a set of permissions once as a group, then apply it to one user or to many at once. A group is a template: applying it copies its permissions into direct grants, so the authorization path, the gateway permission cache, and the signed identity header stay exactly as they are.
 **Done when:** An operator can create, edit, switch off, soft delete, and restore a group, attach and detach its permissions, apply it to one user from that user's page and to many users from the group page, every apply lands as ordinary grants with one audit row per affected user, a group that is off or empty cannot be applied, and no query on the authorization path reads the group tables.
@@ -246,6 +247,23 @@ Name a set of permissions once as a group, then apply it to one user or to many 
 - [ ] Test it: `/test permission group grant templates`
 
 Spec [0015](../specs/0015-permission-group-template/index.md) · code in `packages/database`, `packages/acl`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
+
+### 14. Observability pages per signal · in-progress
+
+Split the single tabbed `/observability` page into six standalone pages on the same header, filter, and footer scaffold the logs pages use, and retire the one shared `observability:telemetry:read` permission in favour of one permission per signal.
+**Done when:** Every signal has its own address with its own permission gate, trace and benchmark and alert details are linkable routes, the list endpoints page both ways through `prevCursor` and fill their filter dropdowns from an `options` block, missing metric buckets never render as zero, and a session holding only one signal permission sees and reaches only that signal.
+
+- [x] Design it (spec): `/architect observability pages per signal`
+- [ ] Build it: `/develop observability pages per signal`
+  - [ ] Thin thread: migration `0038` copying then retiring the old grant, `packages/acl` constants, per signal gates across the gateway and the logs service, `anyPermissionGuard`, and the Traces page end to end with URL state and a cursor footer (AC-1, AC-2, AC-4, AC-11, AC-12, AC-18)
+  - [ ] The four remaining list pages plus migration `0039`, two way cursors, baseline pagination, and the `options` blocks (AC-3, AC-5, AC-6, AC-8, AC-9, AC-10, AC-13)
+  - [ ] Three detail routes, including the time scaled trace waterfall with orphan and partial handling (AC-7, AC-14)
+  - [ ] Overview with four permission gated cards and the metric line chart that breaks its line over missing buckets (AC-15, AC-16, AC-17)
+  - [ ] Cleanup and proof: old page removed, client regenerated, e2e widened to nine routes, AXE sweep (AC-19, AC-20)
+- [ ] Verify it: `/check verify observability pages per signal`
+- [ ] Test it: `/test observability pages per signal`
+
+Spec [0016](../specs/0016-observability-per-signal-pages/index.md) · code in `packages/database`, `packages/acl`, `apps/services/logs`, `apps/gateway/erp`, and `apps/web`
 
 ## Domain
 
@@ -285,3 +303,6 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
 - Access and jobs Dockerfiles plus CI image matrix coverage · reason: Runtime code is available, but deployment images have not been implemented · from spec 0001
 - Revisit OpenTelemetry integration · reason: Wait for official Bun support or evidence that maintaining the internal telemetry stack costs more than operating a Collector · from spec 0014
+- Supporting index for the global `benchmarks/runs` order, since the existing index leads with `scenario_id` and cannot serve an unfiltered `created_at DESC` listing · reason: Measure on real data before adding an index that has to be maintained · from spec 0016
+- Shared list page scaffold component, so the header, filter, and footer shell stops being duplicated across the observability and logs pages · reason: Nine pages of duplication is tolerable; a tenth is the signal to extract it · from spec 0016
+- Time series comparison in the metric chart, across metrics or across two time ranges · reason: The chart deliberately draws one line per `group` value; comparison is its own feature and deserves its own spec · from spec 0016
