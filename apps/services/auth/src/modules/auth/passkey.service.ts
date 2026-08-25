@@ -21,6 +21,7 @@ import {
 } from '#project/errors';
 import type { Logger } from '#project/logger';
 import { createSecret, hashSecret } from './auth.crypto';
+import type { AuthSecurityContext } from './auth.notifications';
 import type { AuthRepository } from './auth.repository';
 import type { SessionIdentity } from './auth.types';
 import { defaultPasskeyLabel, normalizeAaguid } from './passkey.authenticators';
@@ -136,6 +137,7 @@ export class PasskeyService {
     userId: string,
     response: RegistrationResponseJSON,
     label?: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<PasskeySummary> {
     const requestedLabel = label?.trim();
 
@@ -158,6 +160,7 @@ export class PasskeyService {
       challenge,
       maxCredentials: MAX_PASSKEYS_PER_USER,
       check: () => this.checkAttestation(response, challenge, requestedLabel),
+      securityContext,
     });
 
     switch (outcome.status) {
@@ -211,6 +214,7 @@ export class PasskeyService {
   async verifyLogin(
     response: AuthenticationResponseJSON,
     ipAddress: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<PasskeyLoginResult> {
     await this.guardRate(ipAddress);
 
@@ -227,6 +231,7 @@ export class PasskeyService {
       sessionTokenHash: hashSecret(sessionToken),
       check: (credential) =>
         this.checkAssertion(response, challenge, credential),
+      securityContext,
     });
 
     switch (outcome.status) {
@@ -283,6 +288,7 @@ export class PasskeyService {
     userId: string,
     passkeyId: string,
     label: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<PasskeySummary> {
     const trimmed = label.trim();
 
@@ -296,6 +302,7 @@ export class PasskeyService {
       userId,
       passkeyId,
       trimmed,
+      securityContext,
     );
 
     if (!updated) {
@@ -305,8 +312,16 @@ export class PasskeyService {
     return updated;
   }
 
-  async deletePasskey(userId: string, passkeyId: string): Promise<void> {
-    const deleted = await this.repository.deleteCredential(userId, passkeyId);
+  async deletePasskey(
+    userId: string,
+    passkeyId: string,
+    securityContext?: AuthSecurityContext,
+  ): Promise<void> {
+    const deleted = await this.repository.deleteCredential(
+      userId,
+      passkeyId,
+      securityContext,
+    );
 
     if (!deleted) {
       throw new NotFoundError('Passkey not found');

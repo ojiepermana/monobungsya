@@ -1,5 +1,6 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
 import { createSecret, hashSecret } from './auth.crypto';
+import type { AuthSecurityContext } from './auth.notifications';
 import type {
   AuthRepositoryDependencies,
   AuthUser,
@@ -49,9 +50,11 @@ export interface CleanupResult {
 
 export class AuthRepository {
   private readonly database: DatabaseClient | undefined;
+  private readonly notificationSink: AuthRepositoryDependencies['notificationSink'];
 
   constructor(dependencies?: AuthRepositoryDependencies) {
     this.database = dependencies?.database;
+    this.notificationSink = dependencies?.notificationSink;
   }
 
   getModuleStatus(): AuthModuleStatus {
@@ -151,6 +154,7 @@ export class AuthRepository {
   async consumeMagicToken(
     tokenHash: string,
     sessionTokenHash: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<FirstFactorResult | null> {
     const database = this.requireDatabase();
 
@@ -196,6 +200,8 @@ export class AuthRepository {
         userRow,
         sessionTokenHash,
         'magic_link',
+        this.notificationSink,
+        securityContext,
       );
     });
   }
@@ -291,13 +297,27 @@ export class AuthRepository {
     };
   }
 
-  async revokeSession(sessionTokenHash: string): Promise<void> {
+  async revokeSession(
+    sessionTokenHash: string,
+    securityContext?: AuthSecurityContext,
+  ): Promise<void> {
     const database = this.requireDatabase();
-    await database`
-      UPDATE "auth"."sessions"
-      SET revoked_at = COALESCE(revoked_at, now()), updated_at = now()
-      WHERE session_token_hash = ${sessionTokenHash}
-    `;
+    await withTransaction(database, async (transaction) => {
+      const [row] = await transaction`
+        UPDATE "auth"."sessions"
+        SET revoked_at = COALESCE(revoked_at, now()), updated_at = now()
+        WHERE session_token_hash = ${sessionTokenHash}
+        RETURNING user_id
+      `;
+      if (row && securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId: String(row.user_id),
+          type: 'security.session_revoked',
+          payload: {},
+          context: securityContext,
+        });
+      }
+    });
   }
 
   async cleanup(): Promise<CleanupResult> {
@@ -463,6 +483,8 @@ export async function completeFirstFactor(
   userRow: Record<string, unknown>,
   sessionTokenHash: string,
   method: 'magic_link' | 'passkey',
+  notificationSink?: AuthRepositoryDependencies['notificationSink'],
+  securityContext?: AuthSecurityContext,
 ): Promise<FirstFactorResult> {
   const user = mapUser(userRow);
   const totpEnabled = userRow.confirmed_at !== null;
@@ -489,6 +511,15 @@ export async function completeFirstFactor(
 
   if (!session) {
     throw new Error(`Unable to create session after ${method} authentication`);
+  }
+
+  if (securityContext) {
+    await notificationSink?.enqueue(transaction, {
+      userId: user.id,
+      type: 'security.sign_in',
+      payload: {},
+      context: securityContext,
+    });
   }
 
   return { status: 'authenticated', user, session };

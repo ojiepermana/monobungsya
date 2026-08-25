@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '#project/database';
+import { jobFailureNotificationContract } from './contracts';
 
 export const JOB_PAYLOAD_LIMIT_BYTES = 64 * 1024;
 export const DEFAULT_WORKER_CONCURRENCY = 5;
@@ -106,6 +107,7 @@ export interface JobFailure {
 }
 
 export interface JobRuntime {
+  enqueue?(input: EnqueueJobInput): Promise<JobRecord>;
   claim(
     workerId: string,
     targetService: string,
@@ -512,8 +514,9 @@ export class DurableJobWorker {
     }, this.heartbeatMs);
     heartbeatTimer.unref();
 
+    let contract: JobContract<never> | undefined;
     try {
-      const contract = this.registry.get(job.type, job.version);
+      contract = this.registry.get(job.type, job.version);
       if (!contract) {
         const failure = {
           code: 'unknown_job_definition',
@@ -541,6 +544,7 @@ export class DurableJobWorker {
           try {
             await this.runtime.fail(job, this.workerId, failure);
             this.emit({ name: 'job.failed', job, failure });
+            await this.notifyTerminalFailure(job, contract, failure);
           } catch (persistenceError) {
             this.emit({
               name: 'job.worker_error',
@@ -576,6 +580,7 @@ export class DurableJobWorker {
       try {
         await this.runtime.fail(job, this.workerId, failure);
         this.emit({ name: 'job.failed', job, failure });
+        await this.notifyTerminalFailure(job, contract, failure);
       } catch (persistenceError) {
         this.emit({ name: 'job.worker_error', job, error: persistenceError });
       }
@@ -598,6 +603,37 @@ export class DurableJobWorker {
       this.schedulePoll(this.pollIntervalMs);
     }, delayMs);
     this.pollTimer.unref();
+  }
+
+  private async notifyTerminalFailure(
+    job: JobRecord,
+    contract: JobContract<never> | undefined,
+    failure: JobFailure,
+  ): Promise<void> {
+    const terminal =
+      !failure.retryable || job.attempt_count >= job.max_attempts;
+    if (!terminal || contract?.terminalFailureNotification !== true) return;
+    if (!this.runtime.enqueue) return;
+
+    const payload = {
+      jobId: job.id,
+      jobType: job.type,
+      attemptCount: job.attempt_count,
+      failedAt: new Date().toISOString(),
+    };
+    await this.runtime.enqueue({
+      type: jobFailureNotificationContract.type,
+      version: jobFailureNotificationContract.version,
+      payload,
+      sourceService: jobFailureNotificationContract.sourceService,
+      targetService: jobFailureNotificationContract.targetService,
+      idempotencyKey: jobFailureNotificationContract.domainIdempotencyKey(
+        payload,
+        job,
+      ),
+      correlationId: job.correlation_id,
+      actorUserId: null,
+    });
   }
 
   private async shutdown(): Promise<void> {
@@ -886,11 +922,24 @@ function timeout(delayMs: number): Promise<void> {
 export type {
   AuthCleanupExpiredSecurityDataPayload,
   AuthSendUserInvitationPayload,
+  JobFailureNotificationPayload,
+  NotificationCreatePayload,
+  NotificationEmailDeliveryPayload,
+  NotificationRecipientCapabilitySyncPayload,
+  NotificationRecipientSyncPayload,
 } from './contracts';
 export {
   AUTH_JOB_CONTRACTS,
+  accessNotificationCreateContract,
+  accessNotificationRecipientCapabilitySyncContract,
   authCleanupExpiredSecurityDataContract,
+  authNotificationCreateContract,
   authSendUserInvitationContract,
+  jobFailureNotificationContract,
+  NOTIFICATION_JOB_CONTRACTS,
+  notificationCreateContract,
+  notificationEmailDeliveryContract,
+  notificationRecipientSyncContract,
 } from './contracts';
 export {
   DurableJobScheduler,

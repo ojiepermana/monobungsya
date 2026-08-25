@@ -1,4 +1,9 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
+import {
+  accessNotificationCreateContract,
+  accessNotificationRecipientCapabilitySyncContract,
+  JobRegistry,
+} from '#project/jobs';
 import { ActivityLog } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
@@ -10,6 +15,11 @@ const database = env.ENABLE_INFRASTRUCTURE
 const logDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.LOG_DATABASE_URL)
   : undefined;
+const jobs = env.DURABLE_JOBS_ENABLED ? new JobRegistry() : undefined;
+if (jobs) {
+  jobs.registerContract(accessNotificationCreateContract);
+  jobs.registerContract(accessNotificationRecipientCapabilitySyncContract);
+}
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
 });
@@ -22,7 +32,12 @@ const messaging = env.ENABLE_INFRASTRUCTURE
     })
   : undefined;
 
-const app = createApp(env, { database, messaging });
+const app = createApp(env, {
+  database,
+  messaging,
+  jobs,
+  durableJobsEnabled: env.DURABLE_JOBS_ENABLED,
+});
 const server = app.listen(env.PORT);
 
 console.log(

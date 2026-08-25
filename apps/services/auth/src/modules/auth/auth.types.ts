@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '#project/database';
+import type { AuthNotificationSink } from './auth.notifications';
 
 export type SessionObservationState = 'authenticated' | 'anonymous' | 'invalid';
 export type SessionObservationReason =
@@ -50,7 +51,13 @@ export interface AuthMailer {
 
 export interface AuthRepositoryDependencies {
   database: DatabaseClient;
+  notificationSink?: AuthNotificationSink;
 }
+
+export type {
+  AuthNotificationSink,
+  AuthSecurityContext,
+} from './auth.notifications';
 
 export type MfaChallengePurpose = 'login' | 'enroll';
 

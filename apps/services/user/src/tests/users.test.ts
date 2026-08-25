@@ -2,7 +2,11 @@ import { describe, expect, it, spyOn } from 'bun:test';
 import { loadEnv } from '#project/config';
 import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
-import { authSendUserInvitationContract, JobRegistry } from '#project/jobs';
+import {
+  authSendUserInvitationContract,
+  JobRegistry,
+  notificationRecipientSyncContract,
+} from '#project/jobs';
 import { ActivityLog, Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { createApp } from '../app';
@@ -915,6 +919,36 @@ describe('UsersService invitation fallback (spec docs/specs/0007-user-management
       expect(created.id).toBe(NEW_USER_ID);
       expect(enqueueQueries[0]).toContain('jobs.enqueue_job');
       expect(enqueueQueries[0]).toContain('user-invitation:');
+    } finally {
+      writeAuditSpy.mockRestore();
+    }
+  });
+
+  it('AC-6 enqueues recipient projection synchronization with the invitation', async () => {
+    const writeAuditSpy = spyOn(ActivityLog, 'writeAudit').mockResolvedValue(
+      undefined as never,
+    );
+    try {
+      const { database, enqueueQueries } = createDurableFakeDatabase([
+        [],
+        [dbRow({ ...CREATE_USER_BODY })],
+        [ACTOR_ROW],
+      ]);
+      const jobs = new JobRegistry();
+      jobs.registerContract(authSendUserInvitationContract);
+      jobs.registerContract(notificationRecipientSyncContract);
+      const service = new UsersService('user', {
+        database,
+        jobs,
+        durableJobsEnabled: true,
+      });
+
+      await service.create(CREATE_USER_BODY, ACTOR, CORRELATION);
+
+      expect(enqueueQueries).toHaveLength(2);
+      expect(
+        enqueueQueries.every((query) => query.includes('jobs.enqueue_job')),
+      ).toBe(true);
     } finally {
       writeAuditSpy.mockRestore();
     }

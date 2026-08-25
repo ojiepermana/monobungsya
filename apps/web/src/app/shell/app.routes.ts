@@ -89,6 +89,31 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'notifications',
+    title: 'MONOBUNGSYA · Notifikasi',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('../pages/notifications/notifications.page').then(
+        (m) => m.NotificationsPage,
+      ),
+  },
+  {
+    path: 'operations/jobs',
+    title: 'MONOBUNGSYA · Durable Jobs',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.jobsJobList)],
+    loadComponent: () =>
+      import('../pages/operations/jobs/jobs.page').then((m) => m.JobsPage),
+  },
+  {
+    path: 'operations/jobs/:id',
+    title: 'MONOBUNGSYA · Job Detail',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.jobsJobRead)],
+    loadComponent: () =>
+      import('../pages/operations/jobs/job-detail.page').then(
+        (m) => m.JobDetailPage,
+      ),
+  },
+  {
     // The old settings path kept as a redirect, so a bookmark still lands.
     path: 'setting/users',
     redirectTo: 'users',

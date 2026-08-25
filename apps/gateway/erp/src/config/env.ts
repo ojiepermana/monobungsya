@@ -9,6 +9,7 @@ export type GatewayEnvironment = AppEnvironment & {
     logs: string;
     access: string;
     jobs: string;
+    notification: string;
   };
   GATEWAY_PERMISSION_CACHE_TTL_MS: number;
   GATEWAY_PERMISSION_CACHE_MAX_ENTRIES: number;
@@ -33,6 +34,7 @@ export function loadGatewayEnv(
       logs: source.LOGS_SERVICE_URL ?? 'http://localhost:3103',
       access: source.ACCESS_SERVICE_URL ?? 'http://localhost:3104',
       jobs: source.JOBS_SERVICE_URL ?? 'http://localhost:3105',
+      notification: source.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3106',
     },
     GATEWAY_PERMISSION_CACHE_TTL_MS: parseNumber(
       source.GATEWAY_PERMISSION_CACHE_TTL_MS,

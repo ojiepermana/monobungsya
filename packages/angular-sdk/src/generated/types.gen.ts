@@ -1027,6 +1027,165 @@ export type PostApiV1JobsByIdRetryResponses = {
 
 export type PostApiV1JobsByIdRetryResponse = PostApiV1JobsByIdRetryResponses[keyof PostApiV1JobsByIdRetryResponses];
 
+export type GetApiV1NotificationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: string;
+        category?: string;
+        unreadOnly?: string;
+    };
+    url: '/api/v1/notifications';
+};
+
+export type GetApiV1NotificationsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            category: string;
+            severity: string;
+            type: string;
+            title: string;
+            body: string;
+            metadata: {
+                [key: string]: unknown;
+            };
+            actionRoute: string | unknown;
+            readAt: string | unknown;
+            createdAt: string;
+        }>;
+        meta: {
+            page: string | number;
+            perPage: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            page: string | number;
+            category: string;
+            unreadOnly: boolean;
+        };
+        options: {
+            categories: Array<string>;
+        };
+    };
+};
+
+export type GetApiV1NotificationsResponse = GetApiV1NotificationsResponses[keyof GetApiV1NotificationsResponses];
+
+export type GetApiV1NotificationsUnreadCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/notifications/unread-count';
+};
+
+export type GetApiV1NotificationsUnreadCountResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        total: string | number;
+        categories: {
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type GetApiV1NotificationsUnreadCountResponse = GetApiV1NotificationsUnreadCountResponses[keyof GetApiV1NotificationsUnreadCountResponses];
+
+export type PatchApiV1NotificationsByIdReadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notifications/{id}/read';
+};
+
+export type PatchApiV1NotificationsByIdReadResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        category: string;
+        severity: string;
+        type: string;
+        title: string;
+        body: string;
+        metadata: {
+            [key: string]: unknown;
+        };
+        actionRoute: string | unknown;
+        readAt: string | unknown;
+        createdAt: string;
+    };
+};
+
+export type PatchApiV1NotificationsByIdReadResponse = PatchApiV1NotificationsByIdReadResponses[keyof PatchApiV1NotificationsByIdReadResponses];
+
+export type PostApiV1NotificationsReadAllData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/notifications/read-all';
+};
+
+export type GetApiV1NotificationsPreferencesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/notifications/preferences';
+};
+
+export type GetApiV1NotificationsPreferencesResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        categories: Array<{
+            category: string;
+            channels: Array<{
+                channel: string;
+                enabled: boolean;
+                mandatory: boolean;
+            }>;
+        }>;
+    };
+};
+
+export type GetApiV1NotificationsPreferencesResponse = GetApiV1NotificationsPreferencesResponses[keyof GetApiV1NotificationsPreferencesResponses];
+
+export type PatchApiV1NotificationsPreferencesByCategoryByChannelData = {
+    body: {
+        enabled: boolean;
+    };
+    path: {
+        category: string;
+        channel: 'in_app' | 'email';
+    };
+    query?: never;
+    url: '/api/v1/notifications/preferences/{category}/{channel}';
+};
+
+export type PatchApiV1NotificationsPreferencesByCategoryByChannelResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        category: string;
+        channel: string;
+        enabled: boolean;
+        mandatory: boolean;
+    };
+};
+
+export type PatchApiV1NotificationsPreferencesByCategoryByChannelResponse = PatchApiV1NotificationsPreferencesByCategoryByChannelResponses[keyof PatchApiV1NotificationsPreferencesByCategoryByChannelResponses];
+
 export type GetApiV1LogsAuditTrailsData = {
     body?: never;
     path?: never;

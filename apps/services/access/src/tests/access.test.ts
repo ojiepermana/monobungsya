@@ -1,6 +1,11 @@
 import { describe, expect, it, spyOn } from 'bun:test';
 import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
+import {
+  accessNotificationCreateContract,
+  accessNotificationRecipientCapabilitySyncContract,
+  JobRegistry,
+} from '#project/jobs';
 import { ActivityLog } from '#project/logger';
 import { createApp } from '../app';
 import { loadAccessEnv } from '../config/env';
@@ -397,6 +402,92 @@ describe('access service', () => {
       updateDescription.mockRestore();
       findPermission.mockRestore();
       audit.mockRestore();
+    }
+  });
+
+  it('AC-4 and AC-6 enqueue access notifications and capability sync after durable validation', async () => {
+    const permission = {
+      id: '0198f8a0-0000-7000-8000-0000000000b3',
+      name: 'jobs:job:read',
+      code: 'JOBS_JOB_READ',
+      namespace: 'jobs',
+      resource: 'job',
+      action: 'read',
+      scope: null,
+      description: 'Read jobs',
+      grantCount: 0,
+      createdAt: '2026-08-24T00:00:00.000Z',
+      updatedAt: '2026-08-24T00:00:00.000Z',
+    };
+    const enqueueValues: unknown[][] = [];
+    const database = (async (
+      strings: TemplateStringsArray,
+      ...values: unknown[]
+    ) => {
+      if (strings.raw.join('?').includes('jobs.enqueue_job'))
+        enqueueValues.push(values);
+      return [{ id: '0198f8a0-0000-7000-8000-0000000000b4' }];
+    }) as unknown as DatabaseClient;
+    const findPermissions = spyOn(
+      AccessRepository.prototype,
+      'findPermissionsByIds',
+    ).mockResolvedValue([permission]);
+    const existingGrants = spyOn(
+      AccessRepository.prototype,
+      'existingGrantPermissionIds',
+    ).mockResolvedValue([]);
+    const insertGrant = spyOn(
+      AccessRepository.prototype,
+      'insertGrant',
+    ).mockResolvedValue('0198f8a0-0000-7000-8000-0000000000b5');
+    const lookupPermissions = spyOn(
+      AccessRepository.prototype,
+      'lookupPermissions',
+    ).mockResolvedValue(['jobs:job:read']);
+    const transaction = spyOn(
+      AccessRepository.prototype,
+      'transaction',
+    ).mockImplementation(async (operation) =>
+      operation(new AccessRepository(database), database),
+    );
+    const audit = spyOn(ActivityLog, 'writeAudit').mockResolvedValue(
+      undefined as never,
+    );
+    const jobs = new JobRegistry();
+    jobs.registerContract(accessNotificationCreateContract);
+    jobs.registerContract(accessNotificationRecipientCapabilitySyncContract);
+
+    try {
+      const service = new AccessService({
+        database,
+        jobs,
+        durableJobsEnabled: true,
+      });
+
+      const result = await service.grantPermissions(
+        USER_ID,
+        [permission.id],
+        { id: USER_ID, email: 'admin@local.app' },
+        { requestId: 'request-durable', ipAddress: null, userAgent: null },
+      );
+
+      expect(result.granted).toEqual([permission.id]);
+      expect(enqueueValues.map((values) => values[0])).toEqual([
+        accessNotificationCreateContract.type,
+        accessNotificationRecipientCapabilitySyncContract.type,
+      ]);
+      expect(enqueueValues[1]?.[2]).toEqual({
+        userId: USER_ID,
+        canReadJobs: true,
+      });
+      expect(lookupPermissions).toHaveBeenCalledWith(USER_ID);
+    } finally {
+      audit.mockRestore();
+      transaction.mockRestore();
+      lookupPermissions.mockRestore();
+      insertGrant.mockRestore();
+      existingGrants.mockRestore();
+      findPermissions.mockRestore();
     }
   });
 });

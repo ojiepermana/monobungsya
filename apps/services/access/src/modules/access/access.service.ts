@@ -10,6 +10,12 @@ import {
   NotFoundError,
   ValidationError,
 } from '#project/errors';
+import {
+  accessNotificationCreateContract,
+  accessNotificationRecipientCapabilitySyncContract,
+  enqueueJob,
+  type JobRegistry,
+} from '#project/jobs';
 import { ActivityLog } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { PermissionLookupCache } from './access.cache';
@@ -27,11 +33,15 @@ export interface AccessServiceOptions {
   messaging?: Publisher;
   cacheTtlMs?: number;
   cacheMaxEntries?: number;
+  jobs?: JobRegistry;
+  durableJobsEnabled?: boolean;
 }
 
 export class AccessService {
   private readonly repository: AccessRepository;
   private readonly cache: PermissionLookupCache;
+  private readonly jobs?: JobRegistry;
+  private readonly durableJobsEnabled: boolean;
 
   constructor(options: AccessServiceOptions = {}) {
     this.repository = new AccessRepository(options.database);
@@ -41,6 +51,8 @@ export class AccessService {
       options.cacheMaxEntries ?? 1_000,
     );
     this.messaging = options.messaging;
+    this.jobs = options.jobs;
+    this.durableJobsEnabled = options.durableJobsEnabled ?? false;
   }
 
   private readonly messaging?: Publisher;
@@ -152,45 +164,63 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<{ granted: string[]; skipped: string[] }> {
-    const result = await this.repository.transaction(async (repository) => {
-      const uniqueIds = [...new Set(permissionIds)];
-      const duplicateIds = permissionIds.filter(
-        (id, index) => permissionIds.indexOf(id) !== index,
-      );
-      const permissions = await repository.findPermissionsByIds(uniqueIds);
-      if (permissions.length !== uniqueIds.length) {
-        const known = new Set(permissions.map((permission) => permission.id));
-        const missing = uniqueIds.find((id) => !known.has(id));
-        throw new NotFoundError(`Permission ${missing ?? 'unknown'} not found`);
-      }
-      const existing = new Set(
-        await repository.existingGrantPermissionIds(userId, uniqueIds),
-      );
-      const granted: string[] = [];
-      const skipped = [...duplicateIds];
-
-      for (const permission of permissions) {
-        if (existing.has(permission.id)) {
-          skipped.push(permission.id);
-          continue;
+    const result = await this.repository.transaction(
+      async (repository, transaction) => {
+        const uniqueIds = [...new Set(permissionIds)];
+        const duplicateIds = permissionIds.filter(
+          (id, index) => permissionIds.indexOf(id) !== index,
+        );
+        const permissions = await repository.findPermissionsByIds(uniqueIds);
+        if (permissions.length !== uniqueIds.length) {
+          const known = new Set(permissions.map((permission) => permission.id));
+          const missing = uniqueIds.find((id) => !known.has(id));
+          throw new NotFoundError(
+            `Permission ${missing ?? 'unknown'} not found`,
+          );
         }
-        const inserted = await repository.insertGrant(userId, permission.id);
-        if (!inserted) {
-          skipped.push(permission.id);
-          continue;
-        }
-        granted.push(permission.id);
-        await this.audit('grant', permission, actor, correlation, {
-          entityType: 'permission_user',
-          entityId: inserted,
-          entityLabel: `${userId} · ${permission.name}`,
-          metadata: { userId, permissionId: permission.id },
-          changeSummary: `granted ${permission.name} to ${userId}`,
-        });
-      }
+        const existing = new Set(
+          await repository.existingGrantPermissionIds(userId, uniqueIds),
+        );
+        const granted: string[] = [];
+        const skipped = [...duplicateIds];
 
-      return { granted, skipped };
-    });
+        for (const permission of permissions) {
+          if (existing.has(permission.id)) {
+            skipped.push(permission.id);
+            continue;
+          }
+          const inserted = await repository.insertGrant(userId, permission.id);
+          if (!inserted) {
+            skipped.push(permission.id);
+            continue;
+          }
+          granted.push(permission.id);
+          await this.audit('grant', permission, actor, correlation, {
+            entityType: 'permission_user',
+            entityId: inserted,
+            entityLabel: `${userId} · ${permission.name}`,
+            metadata: { userId, permissionId: permission.id },
+            changeSummary: `granted ${permission.name} to ${userId}`,
+          });
+          await this.enqueueNotification(
+            transaction,
+            userId,
+            'grant',
+            permission.name,
+            actor,
+            correlation,
+          );
+        }
+
+        await this.enqueueRecipientCapabilitySync(
+          transaction,
+          repository,
+          userId,
+        );
+
+        return { granted, skipped };
+      },
+    );
     if (result.granted.length > 0) {
       this.publish({ userId });
     }
@@ -220,7 +250,7 @@ export class AccessService {
     actor: AccessActor,
     correlation: AccessCorrelation,
   ): Promise<void> {
-    await this.repository.transaction(async (repository) => {
+    await this.repository.transaction(async (repository, transaction) => {
       const permission = await repository.permissionForGrant(permissionId);
       if (!permission) throw new NotFoundError('Permission not found');
       if (userId === actor.id && permission.namespace === 'access') {
@@ -238,6 +268,19 @@ export class AccessService {
         metadata: { userId, permissionId },
         changeSummary: `revoked ${permission.name} from ${userId}`,
       });
+      await this.enqueueNotification(
+        transaction,
+        userId,
+        'revoke',
+        permission.name,
+        actor,
+        correlation,
+      );
+      await this.enqueueRecipientCapabilitySync(
+        transaction,
+        repository,
+        userId,
+      );
     });
     this.publish({ userId });
   }
@@ -288,6 +331,62 @@ export class AccessService {
     } satisfies AccessPermissionChangedEvent);
     if (payload.userId) this.cache.invalidate(payload.userId);
     else this.cache.invalidate();
+  }
+
+  private async enqueueNotification(
+    transaction: DatabaseClient | undefined,
+    userId: string,
+    action: 'grant' | 'revoke',
+    permissionName: string,
+    actor: AccessActor,
+    correlation: AccessCorrelation,
+  ): Promise<void> {
+    if (!this.durableJobsEnabled || !this.jobs || !transaction) return;
+    const occurredAt = new Date().toISOString();
+    await enqueueJob(transaction, this.jobs, {
+      type: accessNotificationCreateContract.type,
+      version: accessNotificationCreateContract.version,
+      payload: {
+        userId,
+        type: 'access.permission_changed',
+        version: 1,
+        payload: {
+          action: action === 'grant' ? 'diberikan' : 'dicabut',
+          permissionName,
+        },
+        occurredAt,
+        correlationId: correlation.requestId,
+      },
+      sourceService: accessNotificationCreateContract.sourceService,
+      targetService: accessNotificationCreateContract.targetService,
+      idempotencyKey: `permission:${userId}:${action}:${permissionName}:${correlation.requestId ?? occurredAt}`,
+      actorUserId: actor.id,
+      correlationId: correlation.requestId,
+    });
+  }
+
+  private async enqueueRecipientCapabilitySync(
+    transaction: DatabaseClient | undefined,
+    repository: AccessRepository,
+    userId: string,
+  ): Promise<void> {
+    if (!this.durableJobsEnabled || !this.jobs || !transaction) return;
+    const permissions = await repository.lookupPermissions(userId);
+    const canReadJobs = permissions.some(
+      (permission) =>
+        permission === 'jobs:job:read' || permission === 'jobs:job:manage',
+    );
+    await enqueueJob(transaction, this.jobs, {
+      type: accessNotificationRecipientCapabilitySyncContract.type,
+      version: accessNotificationRecipientCapabilitySyncContract.version,
+      payload: { userId, canReadJobs },
+      sourceService:
+        accessNotificationRecipientCapabilitySyncContract.sourceService,
+      targetService:
+        accessNotificationRecipientCapabilitySyncContract.targetService,
+      idempotencyKey: `recipient-capability:${userId}:${canReadJobs}`,
+      actorUserId: null,
+    });
   }
 }
 

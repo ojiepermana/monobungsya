@@ -6,6 +6,7 @@ export const DATABASE_SCOPES = {
   user: 'user',
   logs: 'logs',
   jobs: 'jobs',
+  notification: 'notification',
 } as const;
 
 export type DatabaseScope = keyof typeof DATABASE_SCOPES;

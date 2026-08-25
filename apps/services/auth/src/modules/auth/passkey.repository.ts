@@ -1,4 +1,5 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
+import type { AuthSecurityContext } from './auth.notifications';
 import {
   completeFirstFactor,
   incrementRateLimit,
@@ -51,6 +52,7 @@ export interface RegisterCredentialInput {
   maxCredentials: number;
   /** Runs the attestation check inside the challenge transaction. */
   check: () => Promise<AttestationCheck>;
+  securityContext?: AuthSecurityContext;
 }
 
 export interface AuthenticateInput {
@@ -59,13 +61,16 @@ export interface AuthenticateInput {
   sessionTokenHash: string;
   /** Runs the assertion check inside the challenge transaction. */
   check: (credential: StoredCredential) => Promise<AssertionCheck>;
+  securityContext?: AuthSecurityContext;
 }
 
 export class PasskeyRepository {
   private readonly database: DatabaseClient | undefined;
+  private readonly notificationSink: AuthRepositoryDependencies['notificationSink'];
 
   constructor(dependencies?: AuthRepositoryDependencies) {
     this.database = dependencies?.database;
+    this.notificationSink = dependencies?.notificationSink;
   }
 
   async findActiveUser(userId: string): Promise<AuthUser | null> {
@@ -226,6 +231,15 @@ export class PasskeyRepository {
         return { status: 'duplicate' as const };
       }
 
+      if (input.securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId: input.userId,
+          type: 'security.passkey_changed',
+          payload: { action: 'ditambahkan', label: credential.label },
+          context: input.securityContext,
+        });
+      }
+
       return { status: 'created' as const, credential: mapSummary(inserted) };
     });
   }
@@ -326,6 +340,8 @@ export class PasskeyRepository {
         userRow,
         input.sessionTokenHash,
         'passkey',
+        this.notificationSink,
+        input.securityContext,
       );
 
       if (firstFactor.status === 'mfa_required') {
@@ -344,32 +360,52 @@ export class PasskeyRepository {
     userId: string,
     credentialDatabaseId: string,
     label: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<PasskeySummary | null> {
     const database = this.requireDatabase();
-    const [row] = await database`
-      UPDATE "auth"."passkey_credentials"
-      SET label = ${label}, updated_at = now()
-      WHERE id = ${credentialDatabaseId}
-        AND user_id = ${userId}
-      RETURNING id, label, created_at, last_used_at, backup_state
-    `;
-
-    return row ? mapSummary(row) : null;
+    return withTransaction(database, async (transaction) => {
+      const [row] = await transaction`
+        UPDATE "auth"."passkey_credentials"
+        SET label = ${label}, updated_at = now()
+        WHERE id = ${credentialDatabaseId}
+          AND user_id = ${userId}
+        RETURNING id, label, created_at, last_used_at, backup_state
+      `;
+      if (row && securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId,
+          type: 'security.passkey_changed',
+          payload: { action: 'diberi nama', label },
+          context: securityContext,
+        });
+      }
+      return row ? mapSummary(row) : null;
+    });
   }
 
   async deleteCredential(
     userId: string,
     credentialDatabaseId: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<PasskeySummary | null> {
     const database = this.requireDatabase();
-    const [row] = await database`
-      DELETE FROM "auth"."passkey_credentials"
-      WHERE id = ${credentialDatabaseId}
-        AND user_id = ${userId}
-      RETURNING id, label, created_at, last_used_at, backup_state
-    `;
-
-    return row ? mapSummary(row) : null;
+    return withTransaction(database, async (transaction) => {
+      const [row] = await transaction`
+        DELETE FROM "auth"."passkey_credentials"
+        WHERE id = ${credentialDatabaseId}
+          AND user_id = ${userId}
+        RETURNING id, label, created_at, last_used_at, backup_state
+      `;
+      if (row && securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId,
+          type: 'security.passkey_changed',
+          payload: { action: 'dihapus', label: String(row.label) },
+          context: securityContext,
+        });
+      }
+      return row ? mapSummary(row) : null;
+    });
   }
 
   async allowAttempt(ipHash: string): Promise<boolean> {

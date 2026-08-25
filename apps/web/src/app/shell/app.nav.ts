@@ -29,6 +29,26 @@ export function appNavigationFor(
     },
   ];
 
+  const notificationItems: NavigationItem[] = [
+    {
+      id: 'notifications',
+      type: 'item',
+      title: 'Notifikasi',
+      icon: 'notifications',
+      link: '/notifications',
+    },
+  ];
+  const operationItems: NavigationItem[] = [];
+  if (hasResolvedPermission(permissions, PERMISSIONS.jobsJobList)) {
+    operationItems.push({
+      id: 'jobs',
+      type: 'item',
+      title: 'Durable Jobs',
+      icon: 'sync',
+      link: '/operations/jobs',
+    });
+  }
+
   const userItems: NavigationItem[] = [];
   if (hasResolvedPermission(permissions, PERMISSIONS.userUserList)) {
     userItems.push({
@@ -78,6 +98,8 @@ export function appNavigationFor(
 
   return [
     group('Overview', overviewItems),
+    group('Workspace', notificationItems),
+    ...(operationItems.length > 0 ? [group('Operations', operationItems)] : []),
     ...(userItems.length > 0 ? [group('Users', userItems)] : []),
     ...(settingsItems.length > 0
       ? [

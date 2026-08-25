@@ -8,7 +8,12 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterOutlet,
+} from '@angular/router';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { THEME_SETTINGS_ADAPTER } from '@ojiepermana/angular/theme/component/settings';
 import { LayoutLoadingComponent } from '@ojiepermana/angular/theme/layout';
@@ -22,6 +27,7 @@ import { ShellComponent, ShellService } from '@ojiepermana/angular/theme/shell';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from './auth/auth.service';
 import { TauriService } from './desktop/tauri.service';
+import { ApiService, type NotificationRecord } from './services/api.service';
 import { APP_BRAND_ICON, appNavigationFor } from './shell/app.nav';
 import { UiLabelLocalizationService } from './shell/ui-label-localization.service';
 
@@ -30,6 +36,7 @@ import { UiLabelLocalizationService } from './shell/ui-label-localization.servic
   host: { class: 'contents' },
   imports: [
     RouterOutlet,
+    RouterLink,
     LayoutWrapperDefault,
     LayoutLoadingComponent,
     ShellComponent,
@@ -43,6 +50,28 @@ import { UiLabelLocalizationService } from './shell/ui-label-localization.servic
       <span shellBarTitle class="inline-flex items-center gap-2">
         <Icon [name]="appBrandIcon" [size]="16" aria-hidden="true" />
         <span>Monobungsya</span>
+        @if (auth.sessionState() === 'authenticated') {
+          <span class="relative ml-3">
+            <button type="button" class="inline-flex min-h-9 items-center gap-1 border border-border px-2 text-xs text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-label="Buka notifikasi" (click)="toggleNotifications()">
+              <Icon name="notifications" [size]="16" aria-hidden="true" />
+              @if (unreadCount() > 0) { <span class="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground">{{ unreadCount() }}</span> }
+            </button>
+            @if (bellOpen()) {
+              <div class="absolute left-0 top-11 z-50 grid w-80 gap-2 border border-border bg-card p-3 text-left shadow-lg">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-sm font-semibold text-foreground">Notifikasi terbaru</p>
+                  <a [routerLink]="['/notifications']" class="text-xs text-muted-foreground underline">Lihat semua</a>
+                </div>
+                @for (notification of latestNotifications(); track notification.id) {
+                  <a [routerLink]="['/notifications']" class="grid gap-1 border-t border-border pt-2 text-xs" (click)="bellOpen.set(false)">
+                    <span class="font-medium text-foreground">{{ notification.title }}</span>
+                    <span class="line-clamp-2 text-muted-foreground">{{ notification.body }}</span>
+                  </a>
+                } @empty { <p class="border-t border-border pt-2 text-xs text-muted-foreground">Belum ada notifikasi.</p> }
+              </div>
+            }
+          </span>
+        }
       </span>
       <LayoutLoading />
       <LayoutWrapperDefault
@@ -87,6 +116,10 @@ export class App {
   private readonly tauri = inject(TauriService);
   protected readonly layout = inject(LayoutService);
   protected readonly shell = inject(ShellService);
+  private readonly api = inject(ApiService);
+  protected readonly unreadCount = signal(0);
+  protected readonly latestNotifications = signal<NotificationRecord[]>([]);
+  protected readonly bellOpen = signal(false);
 
   protected readonly brand: BrandIdentity = {
     name: 'PT MONOBUNGSYA',
@@ -169,7 +202,15 @@ export class App {
 
       this.lastAuthenticatedLayoutType.set(this.layout.type());
     });
-    this.auth.loadCurrentUser().subscribe({ error: () => undefined });
+    this.auth.loadCurrentUser().subscribe({
+      next: () => this.loadNotifications(),
+      error: () => undefined,
+    });
+    const notificationTimer = setInterval(
+      () => this.loadNotifications(),
+      60_000,
+    );
+    this.destroyRef.onDestroy(() => clearInterval(notificationTimer));
     void this.tauri.listenForAuthDeepLinks((token) => {
       void this.router.navigate(['/verify'], { queryParams: { token } });
     });
@@ -215,5 +256,27 @@ export class App {
     this.auth.logout().subscribe({
       next: () => void this.router.navigateByUrl('/auth/login'),
     });
+  }
+
+  protected toggleNotifications(): void {
+    this.bellOpen.update((open) => !open);
+    if (this.bellOpen()) this.loadNotifications();
+  }
+
+  private loadNotifications(): void {
+    if (this.auth.sessionState() !== 'authenticated') return;
+    this.api.unreadNotificationCount().subscribe({
+      next: (response) => this.unreadCount.set(response.total),
+      error: () => undefined,
+    });
+    if (this.bellOpen()) {
+      this.api
+        .notifications({ page: 1, category: '', unreadOnly: false })
+        .subscribe({
+          next: (response) =>
+            this.latestNotifications.set(response.data.slice(0, 5)),
+          error: () => undefined,
+        });
+    }
   }
 }

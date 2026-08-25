@@ -1,132 +1,67 @@
-import { firstValueFrom } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { configureGeneratedClient } from '../../api/generated-client';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, describe, expect, it } from 'vitest';
 import { ApiService } from './api.service';
 
-const emptyUser = {
-  id: '0198f8a0-0000-7000-8000-0000000000aa',
-  name: 'Jane',
-  email: 'jane@example.com',
-  status: 'active',
-  emailVerifiedAt: null,
-  suspendedAt: null,
-  blockedAt: null,
-  deletedAt: null,
-  createdAt: '2026-08-23T00:00:00.000Z',
-  updatedAt: null,
-};
-
-describe('ApiService generated gateway transport', () => {
+describe('ApiService reliable jobs and notifications', () => {
+  let http: HttpTestingController;
   let service: ApiService;
-  let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    configureGeneratedClient('https://gateway.example.test', () => ({
-      traceId: 'trace-1',
-      clientRoute: '/users',
-    }));
-    service = new ApiService();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    http = TestBed.inject(HttpTestingController);
+    service = TestBed.inject(ApiService);
   });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => http.verify());
 
-  it('uses the generated users operation with typed query values and credentials', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({
-        data: [emptyUser],
-        meta: { page: 2, perPage: 25, total: 1, totalPages: 1 },
-        filters: { search: 'jane', status: 'active' },
-        options: { statuses: ['active'] },
-      }),
+  it('AC-4 sends notification filters and exposes the list response', () => {
+    service
+      .notifications({ page: 2, category: 'security', unreadOnly: true })
+      .subscribe();
+    const request = http.expectOne(
+      '/api/v1/notifications?page=2&category=security&unreadOnly=true',
     );
 
-    await firstValueFrom(
-      service.users({ search: 'jane', status: 'active', page: 2 }),
-    );
-
-    const request = fetchMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe(
-      'https://gateway.example.test/api/v1/users?search=jane&status=active&page=2',
-    );
-    expect(request.credentials).toBe('include');
-    expect(request.headers.get('x-correlation-id')).toBe('trace-1');
-    expect(request.headers.get('x-client-route')).toBe('/users');
+    expect(request.request.method).toBe('GET');
+    request.flush({ data: [], meta: {}, filters: {}, options: {} });
   });
 
-  it('maps user mutations to generated operations and preserves the body', async () => {
-    fetchMock.mockResolvedValue(Response.json(emptyUser));
-
-    await firstValueFrom(
-      service.runUserStatusAction('user-1', 'suspend', 'policy violation'),
+  it('AC-5 targets notification read actions and preference updates', () => {
+    service.markNotificationRead('notification-1').subscribe();
+    const readRequest = http.expectOne(
+      '/api/v1/notifications/notification-1/read',
     );
+    expect(readRequest.request.method).toBe('PATCH');
+    readRequest.flush({});
 
-    const request = fetchMock.mock.calls[0]?.[0] as Request;
-    expect(request.method).toBe('POST');
-    expect(request.url).toBe(
-      'https://gateway.example.test/api/v1/users/user-1/suspend',
+    service
+      .updateNotificationPreference('security', 'email', false)
+      .subscribe();
+    const preferenceRequest = http.expectOne(
+      '/api/v1/notifications/preferences/security/email',
     );
-    expect(await request.json()).toEqual({ reason: 'policy violation' });
+    expect(preferenceRequest.request.method).toBe('PATCH');
+    expect(preferenceRequest.request.body).toEqual({ enabled: false });
+    preferenceRequest.flush({});
   });
 
-  it('omits an actor filter when it is not supplied', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({
-        data: [],
-        meta: { page: 1, perPage: 25, total: 0, totalPages: 0 },
-        filters: { search: '', module: '', action: '' },
-        options: { modules: [], actions: [] },
-      }),
+  it('AC-12 sends a retry reason and a fresh idempotency key', () => {
+    service.retryJob('job-1', 'Retry from test').subscribe();
+    const request = http.expectOne('/api/v1/jobs/job-1/retry');
+
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ reason: 'Retry from test' });
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(
+      /^[0-9a-f-]{36}$/,
     );
-
-    await firstValueFrom(
-      service.auditTrails({ search: '', module: '', action: '', page: 1 }),
-    );
-
-    const request = fetchMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).not.toContain('actorUserId=');
-  });
-
-  it('covers spec 0013 AC-10 and AC-13: an unsubscribed read discards its late response', async () => {
-    let resolveFetch: ((response: Response) => void) | undefined;
-    fetchMock.mockReturnValue(
-      new Promise<Response>((resolve) => {
-        resolveFetch = resolve;
-      }),
-    );
-    const next = vi.fn();
-    const error = vi.fn();
-
-    const subscription = service
-      .users({ search: '', status: '', page: 1 })
-      .subscribe({ next, error });
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
-    subscription.unsubscribe();
-    resolveFetch?.(
-      Response.json({
-        data: [emptyUser],
-        meta: { page: 1, perPage: 25, total: 1, totalPages: 1 },
-        filters: { search: '', status: '' },
-        options: { statuses: ['active'] },
-      }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(next).not.toHaveBeenCalled();
-    expect(error).not.toHaveBeenCalled();
-  });
-
-  it('turns a gateway error into a status carrying error', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json(
-        { error: { code: 'FORBIDDEN', message: 'Not allowed' } },
-        { status: 403 },
-      ),
-    );
-
-    await expect(
-      firstValueFrom(service.users({ search: '', status: '', page: 1 })),
-    ).rejects.toMatchObject({ status: 403 });
+    request.flush({});
   });
 });

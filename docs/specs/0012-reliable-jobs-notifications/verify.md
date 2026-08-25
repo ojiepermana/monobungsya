@@ -1,6 +1,6 @@
 # Verification Plan
 
-**Status**: Planned
+**Status**: Verified (2026-08-25)
 
 **Parent**: [Reliable background jobs and notification center](./index.md)
 
@@ -56,3 +56,16 @@
 3. Retention cleanup removes only eligible terminal data in bounded batches.
 4. Graceful shutdown stops claims, keeps heartbeats during drain, and releases unfinished work after timeout.
 5. Staged invitation cutover completes without dual publish and can follow the documented one release rollback window.
+
+## Verification evidence
+
+The release verification completed on 2026-08-25 with the following evidence:
+
+- `bun run test`: 226 tests passed across 29 files.
+- `bun run test:web`: 116 tests passed across 20 files.
+- `bunx playwright test --project=chromium`: 28 tests passed, including setup and cleanup, with the jobs and notification services running against PostgreSQL.
+- `bun run typecheck`, `bun run lint`, `bun run openapi:validate`, `bun run openapi:generate`, `bun run verify:web:standard`, `bun run verify:web:a11y`, and `bun run check:dependencies` passed.
+- Production builds passed for web, gateway, auth, user, logs, access, jobs, notification, and MCP.
+- Local PostgreSQL migration audit confirmed jobs migration `0023` and notification migrations `0024`–`0025` applied. A clean temporary database migration up/down/up exercise passed, including the notification rollback pair.
+- Runtime role audit confirmed producer, worker, and notification privileges are scoped to their intended schemas and job functions. Cross-user notification reads and staff jobs access were denied in automated and browser checks.
+- Live auth verification produced completed `auth.notification.create` jobs for sign-in and session revocation with normalized browser, platform, and masked IP fields; no raw user agent or IP was persisted. E2E cleanup left no fixture users, projections, notifications, or delivery jobs.

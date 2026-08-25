@@ -2914,6 +2914,346 @@ paths:
                   updatedAt:
                     type: string
       operationId: postApiV1JobsByIdRetry
+  /api/v1/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List my notifications
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                  - filters
+                  - options
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - category
+                        - severity
+                        - type
+                        - title
+                        - body
+                        - metadata
+                        - actionRoute
+                        - readAt
+                        - createdAt
+                      properties:
+                        id:
+                          type: string
+                        category:
+                          type: string
+                        severity:
+                          type: string
+                        type:
+                          type: string
+                        title:
+                          type: string
+                        body:
+                          type: string
+                        metadata:
+                          type: object
+                          patternProperties:
+                            ^(.*)$: {}
+                        actionRoute:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        readAt:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        createdAt:
+                          type: string
+                  meta:
+                    type: object
+                    required:
+                      - page
+                      - perPage
+                      - total
+                      - totalPages
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      perPage:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      total:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      totalPages:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                  filters:
+                    type: object
+                    required:
+                      - page
+                      - category
+                      - unreadOnly
+                    properties:
+                      page:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+                      category:
+                        type: string
+                      unreadOnly:
+                        type: boolean
+                  options:
+                    type: object
+                    required:
+                      - categories
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          type: string
+      operationId: getApiV1Notifications
+  /api/v1/notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Read my unread notification count
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - total
+                  - categories
+                properties:
+                  total:
+                    anyOf:
+                      - format: integer
+                        default: 0
+                        type: string
+                      - type: integer
+                  categories:
+                    type: object
+                    patternProperties:
+                      ^(.*)$:
+                        anyOf:
+                          - format: integer
+                            default: 0
+                            type: string
+                          - type: integer
+      operationId: getApiV1NotificationsUnread-count
+  /api/v1/notifications/{id}/read:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark one notification read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - category
+                  - severity
+                  - type
+                  - title
+                  - body
+                  - metadata
+                  - actionRoute
+                  - readAt
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                  category:
+                    type: string
+                  severity:
+                    type: string
+                  type:
+                    type: string
+                  title:
+                    type: string
+                  body:
+                    type: string
+                  metadata:
+                    type: object
+                    patternProperties:
+                      ^(.*)$: {}
+                  actionRoute:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  readAt:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  createdAt:
+                    type: string
+      operationId: patchApiV1NotificationsByIdRead
+  /api/v1/notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      summary: Mark all notifications read
+      operationId: postApiV1NotificationsRead-all
+  /api/v1/notifications/preferences:
+    get:
+      tags:
+        - Notifications
+      summary: Read notification preferences
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - categories
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - category
+                        - channels
+                      properties:
+                        category:
+                          type: string
+                        channels:
+                          type: array
+                          items:
+                            type: object
+                            required:
+                              - channel
+                              - enabled
+                              - mandatory
+                            properties:
+                              channel:
+                                type: string
+                              enabled:
+                                type: boolean
+                              mandatory:
+                                type: boolean
+      operationId: getApiV1NotificationsPreferences
+  /api/v1/notifications/preferences/{category}/{channel}:
+    patch:
+      tags:
+        - Notifications
+      summary: Update a notification preference
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channel
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - in_app
+              - email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - category
+                  - channel
+                  - enabled
+                  - mandatory
+                properties:
+                  category:
+                    type: string
+                  channel:
+                    type: string
+                  enabled:
+                    type: boolean
+                  mandatory:
+                    type: boolean
+      operationId: patchApiV1NotificationsPreferencesByCategoryByChannel
   /api/v1/logs/audit-trails:
     get:
       tags:

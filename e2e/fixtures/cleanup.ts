@@ -13,6 +13,24 @@ await db`DELETE FROM logs.logging WHERE module = 'e2e'`;
 await db`DELETE FROM logs.audit_trails WHERE module = 'e2e'`;
 await db`DELETE FROM logs.access_logs WHERE guard = 'e2e'`;
 await db`
+  DELETE FROM jobs.job
+  WHERE actor_user_id IN (
+    SELECT id FROM "user"."users" WHERE email LIKE 'e2e-%@local.test'
+  )
+`;
+await db`
+  DELETE FROM notification.notification
+  WHERE user_id IN (
+    SELECT id FROM "user"."users" WHERE email LIKE 'e2e-%@local.test'
+  )
+`;
+await db`
+  DELETE FROM notification.recipient_projection
+  WHERE user_id IN (
+    SELECT id FROM "user"."users" WHERE email LIKE 'e2e-%@local.test'
+  )
+`;
+await db`
   DELETE FROM "access"."permission_user"
   WHERE user_id IN (
     SELECT id FROM "user"."users" WHERE email LIKE 'e2e-%@local.test'

@@ -61,6 +61,17 @@ import {
   auditTrailsResponse,
 } from '../../../../services/logs/src/modules/logs/logs.schema';
 import {
+  notificationIdParams,
+  notificationResponse,
+  notificationsQuery,
+  notificationsResponse,
+  preferenceBody,
+  preferenceParams,
+  preferenceResponse,
+  preferencesResponse,
+  unreadCountResponse,
+} from '../../../../services/notification/src/modules/notification/notification.schema';
+import {
   totpRequirementResponse,
   userResponse,
   usersListResponse,
@@ -1110,6 +1121,138 @@ export function createProxyRoute(
         body: jobRetryBody,
         response: { 200: jobResponse },
         detail: { tags: ['Jobs'], summary: 'Retry a failed durable job' },
+      },
+    )
+    .get(
+      '/api/v1/notifications',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          undefined,
+          [],
+          permissionCache,
+        ),
+      {
+        query: notificationsQuery,
+        response: { 200: notificationsResponse },
+        detail: { tags: ['Notifications'], summary: 'List my notifications' },
+      },
+    )
+    .get(
+      '/api/v1/notifications/unread-count',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          undefined,
+          [],
+          permissionCache,
+        ),
+      {
+        response: { 200: unreadCountResponse },
+        detail: {
+          tags: ['Notifications'],
+          summary: 'Read my unread notification count',
+        },
+      },
+    )
+    .patch(
+      '/api/v1/notifications/:id/read',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          undefined,
+          [],
+          permissionCache,
+        ),
+      {
+        params: notificationIdParams,
+        response: { 200: notificationResponse },
+        detail: {
+          tags: ['Notifications'],
+          summary: 'Mark one notification read',
+        },
+      },
+    )
+    .post(
+      '/api/v1/notifications/read-all',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          undefined,
+          [],
+          permissionCache,
+        ),
+      {
+        detail: {
+          tags: ['Notifications'],
+          summary: 'Mark all notifications read',
+        },
+      },
+    )
+    .get(
+      '/api/v1/notifications/preferences',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          undefined,
+          [],
+          permissionCache,
+        ),
+      {
+        response: { 200: preferencesResponse },
+        detail: {
+          tags: ['Notifications'],
+          summary: 'Read notification preferences',
+        },
+      },
+    )
+    .patch(
+      '/api/v1/notifications/preferences/:category/:channel',
+      ({ request, body }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.notification,
+          '/api/v1/notifications',
+          '/internal/notifications',
+          environment,
+          true,
+          body,
+          [],
+          permissionCache,
+        ),
+      {
+        params: preferenceParams,
+        body: preferenceBody,
+        response: { 200: preferenceResponse },
+        detail: {
+          tags: ['Notifications'],
+          summary: 'Update a notification preference',
+        },
       },
     )
     .get(

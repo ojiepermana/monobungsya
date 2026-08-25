@@ -21,7 +21,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 8   | Permission access control           | Foundation | done        |
 | 9   | TOTP two factor authentication      | Foundation | done        |
 | 10  | Generated gateway SDK integration   | Foundation | done        |
-| 11  | Reliable jobs and notification center | Foundation | in-progress |
+| 11  | Reliable jobs and notification center | Foundation | done        |
 
 ## Foundations
 
@@ -160,23 +160,23 @@ Partitioned log storage in PostgreSQL (application logging, audit trails, access
 
 Spec [0011](../specs/0011-log-subsystem/index.md) · code in `packages/database`, `packages/logger`, `apps/services/logs`, `apps/services/auth`, `apps/gateway/erp`, and `apps/web`
 
-### 11. Reliable jobs and notification center · in-progress
+### 11. Reliable jobs and notification center · done
 
 Add a PostgreSQL backed durable job runtime with bounded retries, schedules, lease recovery, and operator controls, then use it for reliable in app and email notifications across supported security, access, account, and operational events.
 **Done when:** Declared durable work survives process and NATS outages with transactional enqueue and idempotent handling, users can manage their own notifications and optional email preferences, and authorized operators can inspect and retry terminal jobs without exposing sensitive payloads.
 
 - [x] Design it (spec)
-- [ ] Build it: `/develop reliable jobs and notification center`
+- [x] Build it: `/develop reliable jobs and notification center`
   - [x] Shared contract registry, durable queue tracer, and local handler binding (AC-1 to AC-5)
   - [x] Contract schedule synchronization, jobs scheduler, operator API, audit, observability, recovery, and retention (AC-3, AC-4, AC-11, AC-12, AC-14, AC-15)
-  - [ ] Enable the invitation cutover and auth cleanup schedule without the fallback NATS path running at the same time (AC-4, AC-13, AC-16)
-  - [ ] Notification data, recipient projection, templates, self service API, and source event tracer (AC-6, AC-7, AC-10, AC-13)
-  - [ ] Email delivery, preferences, mandatory rules, account events, and terminal failure fanout (AC-6, AC-8, AC-9, AC-10, AC-14)
-  - [ ] OpenAPI, generated SDK, Angular and Tauri surfaces, security hardening, rollout, and full proof (AC-7, AC-8, AC-11, AC-12, AC-15, AC-17)
-- [ ] Verify it: `/check verify reliable jobs and notification center`
-- [ ] Test it: `/test reliable jobs and notification center`
+  - [x] Enable the invitation cutover and auth cleanup schedule without the fallback NATS path running at the same time (AC-4, AC-13, AC-16)
+  - [x] Notification data, recipient projection, templates, self service API, and source event tracer (AC-6, AC-7, AC-10, AC-13)
+  - [x] Email delivery, preferences, mandatory rules, account events, and terminal failure fanout (AC-6, AC-8, AC-9, AC-10, AC-14)
+  - [x] OpenAPI, generated SDK, Angular and Tauri surfaces, security hardening, rollout, and full proof (AC-7, AC-8, AC-11, AC-12, AC-15, AC-17)
+- [x] Verify it: `/check verify reliable jobs and notification center`
+- [x] Test it: `/test reliable jobs and notification center`
 
-Spec [0012](../specs/0012-reliable-jobs-notifications/index.md) · code in `packages/jobs`, `packages/database`, `packages/contracts`, `apps/services/jobs`, `apps/services/auth`, `apps/services/user`, `apps/gateway/erp` · planned in `apps/services/notification`, `apps/services/access`, and `apps/web`
+Spec [0012](../specs/0012-reliable-jobs-notifications/index.md) · code in `packages/jobs`, `packages/database`, `packages/contracts`, `apps/services/jobs`, `apps/services/auth`, `apps/services/user`, `apps/services/notification`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
 
 ### 8. Permission access control · done
 

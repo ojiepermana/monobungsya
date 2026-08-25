@@ -221,6 +221,7 @@ function jobRecord(overrides: Partial<JobRecord> = {}): JobRecord {
 
 function createWorkerRuntime(job: JobRecord) {
   const events: string[] = [];
+  const enqueued: unknown[] = [];
   const runtime = {
     claim: async () => {
       if (events.includes('claimed')) return [];
@@ -244,11 +245,18 @@ function createWorkerRuntime(job: JobRecord) {
       events.push('released');
       return true;
     },
+    enqueue: async (input: unknown) => {
+      enqueued.push(input);
+      return job;
+    },
   };
-  return { events, runtime };
+  return { enqueued, events, runtime };
 }
 
-function createWorkerRegistry(handler: (signal: AbortSignal) => Promise<void>) {
+function createWorkerRegistry(
+  handler: (signal: AbortSignal) => Promise<void>,
+  terminalFailureNotification = false,
+) {
   const registry = new JobRegistry();
   registry.register({
     type: 'auth.cleanup',
@@ -262,6 +270,7 @@ function createWorkerRegistry(handler: (signal: AbortSignal) => Promise<void>) {
     handler: async (_payload, context) => handler(context.signal),
     domainIdempotencyKey: (payload) => payload.userId,
     operatorPayloadKeys: ['userId'],
+    terminalFailureNotification,
   });
   return registry;
 }
@@ -332,6 +341,34 @@ describe('durable job worker lifecycle', () => {
       message: 'job handler failed',
       retryable: true,
     });
+  });
+
+  test('enqueues a redacted notification for an eligible terminal failure', async () => {
+    const job = jobRecord({ max_attempts: 1 });
+    const { enqueued, runtime } = createWorkerRuntime(job);
+    const worker = new DurableJobWorker(
+      runtime,
+      createWorkerRegistry(async () => {
+        throw new Error('provider token secret leaked');
+      }, true),
+      { workerId: 'worker-1', targetService: 'auth' },
+    );
+
+    await worker.runOnce();
+    await worker.stop();
+
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]).toMatchObject({
+      type: 'jobs.notify_job_failure',
+      targetService: 'notification',
+      payload: {
+        jobId: job.id,
+        jobType: job.type,
+        attemptCount: 1,
+      },
+      idempotencyKey: `job-failure:${job.id}`,
+    });
+    expect(JSON.stringify(enqueued[0])).not.toContain('secret');
   });
 
   test('releases active jobs after the shutdown timeout', async () => {

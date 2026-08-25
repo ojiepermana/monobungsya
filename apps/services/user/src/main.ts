@@ -1,5 +1,10 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
-import { authSendUserInvitationContract, JobRegistry } from '#project/jobs';
+import {
+  authSendUserInvitationContract,
+  JobRegistry,
+  notificationCreateContract,
+  notificationRecipientSyncContract,
+} from '#project/jobs';
 import { ActivityLog } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
@@ -14,6 +19,8 @@ const logDatabase = env.ENABLE_INFRASTRUCTURE
 const jobs = env.DURABLE_JOBS_ENABLED ? new JobRegistry() : undefined;
 if (jobs) {
   jobs.registerContract(authSendUserInvitationContract);
+  jobs.registerContract(notificationCreateContract);
+  jobs.registerContract(notificationRecipientSyncContract);
 }
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,

@@ -1,4 +1,5 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
+import { authNotificationCreateContract, JobRegistry } from '#project/jobs';
 import { ActivityLog, Logger } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
 import { createApp } from './app';
@@ -6,11 +7,17 @@ import { env } from './config/env';
 import { startAuthJobWorker } from './jobs/workers/auth-cleanup.worker';
 import { subscribeUserInvited } from './modules/auth/auth.events';
 import { SmtpAuthMailer } from './modules/auth/auth.mailer';
+import { DurableAuthNotificationSink } from './modules/auth/auth.notifications';
 import { AuthRepository } from './modules/auth/auth.repository';
 import { AuthService } from './modules/auth/auth.service';
 
 const database = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.DATABASE_URL)
+  : undefined;
+const jobs = env.DURABLE_JOBS_ENABLED ? new JobRegistry() : undefined;
+if (jobs) jobs.registerContract(authNotificationCreateContract);
+const notificationSink = jobs
+  ? new DurableAuthNotificationSink(jobs)
   : undefined;
 const logDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.LOG_DATABASE_URL)
@@ -43,7 +50,9 @@ const mailer = env.ENABLE_INFRASTRUCTURE
       webAppUrl: env.WEB_APP_URL,
     })
   : undefined;
-const authRepository = new AuthRepository(database ? { database } : undefined);
+const authRepository = new AuthRepository(
+  database ? { database, notificationSink } : undefined,
+);
 const authService = new AuthService(
   env.serviceName,
   authRepository,
@@ -54,6 +63,7 @@ const app = createApp(
   env,
   {
     database,
+    notificationSink,
     mailer,
     webAppUrl: env.WEB_APP_URL,
     cookieName: env.AUTH_SESSION_COOKIE_NAME,
@@ -66,6 +76,7 @@ const app = createApp(
   {
     rpId: env.WEBAUTHN_RP_ID,
     rpName: env.WEBAUTHN_RP_NAME,
+    notificationSink,
   },
 );
 const stopCleanupWorker =

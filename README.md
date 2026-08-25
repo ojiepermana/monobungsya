@@ -154,10 +154,11 @@ PostgreSQL 18 menjadi prasyarat. Semua primary key application table memakai `uu
 | user      | `user`      |
 | logs      | `logs`      |
 | jobs      | `jobs`      |
+| notification | `notification` |
 
 Gunakan `DATABASE_MIGRATION_URL` untuk role migration. `DATABASE_RESET_ALLOWED=true` hanya boleh dipakai pada development atau test.
 
-Role PostgreSQL dibuat oleh DBA atau infrastructure automation, bukan oleh migration runner. Nama role canonical adalah `project_migrator`, `project_auth_runtime`, `project_user_runtime`, dan `project_logs_writer`. Password serta atribut login harus disimpan di secret manager. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
+Role PostgreSQL dibuat oleh DBA atau infrastructure automation, bukan oleh migration runner. Nama role canonical adalah `project_migrator`, `project_auth_runtime`, `project_access_runtime`, `project_user_runtime`, `project_logs_writer`, `project_jobs_runtime`, dan `project_notification_runtime`. Role `project_auth_runtime`, `project_access_runtime`, `project_user_runtime`, dan `project_notification_runtime` hanya mendapat akses data pada schema pemiliknya. `project_jobs_runtime` hanya mendapat fungsi queue dan akses operator yang didefinisikan migration jobs. Password serta atribut login harus disimpan di secret manager, dan semua role harus dibuat sebelum migration grants dijalankan. Auth email links use `PUBLIC_API_URL`, then redirect to `WEB_APP_URL` after verification.
 
 ```bash
 bun run db:migrate

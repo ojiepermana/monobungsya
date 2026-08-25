@@ -5,6 +5,7 @@ import {
   ValidationError,
 } from '#project/errors';
 import { createSecret, hashSecret, normalizeEmail } from './auth.crypto';
+import type { AuthSecurityContext } from './auth.notifications';
 import { AuthRepository } from './auth.repository';
 import type {
   AuthMailer,
@@ -136,7 +137,10 @@ export class AuthService {
     return true;
   }
 
-  async verifyMagicLink(token: string): Promise<MagicLinkVerification> {
+  async verifyMagicLink(
+    token: string,
+    securityContext?: AuthSecurityContext,
+  ): Promise<MagicLinkVerification> {
     if (!token || token.length < 20 || token.length > 512) {
       throw new UnauthorizedError('Magic link is invalid or expired');
     }
@@ -145,6 +149,7 @@ export class AuthService {
     const session = await this.repository.consumeMagicToken(
       hashSecret(token),
       hashSecret(sessionToken),
+      securityContext,
     );
 
     if (!session) {
@@ -216,9 +221,15 @@ export class AuthService {
     };
   }
 
-  async logout(sessionToken: string | undefined): Promise<void> {
+  async logout(
+    sessionToken: string | undefined,
+    securityContext?: AuthSecurityContext,
+  ): Promise<void> {
     if (sessionToken) {
-      await this.repository.revokeSession(hashSecret(sessionToken));
+      await this.repository.revokeSession(
+        hashSecret(sessionToken),
+        securityContext,
+      );
     }
   }
 }

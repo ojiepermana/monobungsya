@@ -17,6 +17,7 @@ describe('application navigation authorization', () => {
       ),
     ).toEqual([
       'logs-overview',
+      'notifications',
       'users',
       'passkeys',
       'permission-catalog',

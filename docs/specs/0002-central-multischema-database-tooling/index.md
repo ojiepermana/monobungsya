@@ -174,9 +174,9 @@ All mutating commands take a PostgreSQL advisory lock on the target database thr
 
 The migration role from `DATABASE_MIGRATION_URL` may create and alter the allowlisted application schemas, metadata tables, indexes, and explicit grants. It is the role used by migration, seed, down, and reset commands. Runtime roles from `DATABASE_URL` are separate and cannot perform DDL.
 
-The provisioning contract uses these fixed role names: `project_migrator`, `project_auth_runtime`, `project_user_runtime`, and `project_logs_writer`. DBA or infrastructure automation creates these roles and manages their credentials outside the repository. Migration `0007_database_grants` only applies grants and never creates roles, passwords, or login attributes.
+The provisioning contract uses these fixed role names: `project_migrator`, `project_auth_runtime`, `project_access_runtime`, `project_user_runtime`, `project_logs_writer`, `project_jobs_runtime`, and `project_notification_runtime`. DBA or infrastructure automation creates these roles and manages their credentials outside the repository. Migration grants only apply privileges and never create roles, passwords, or login attributes. All roles must exist before the migration set is applied.
 
-Each service runtime role receives usage and data privileges only on its owned schema. The logs scope grants `project_logs_writer` select and insert access to the three logging tables. No service runtime role receives unrestricted read or write access to another service schema. Grants are explicit in migration SQL or the controlled provisioning step and are not inferred from folder names. Default privileges for objects created by `project_migrator` must preserve the same scope grants for future tables.
+Each service runtime role receives usage and data privileges only on its owned schema. The logs scope grants `project_logs_writer` select and insert access to the three logging tables. The jobs and notification roles receive only their queue worker or notification service grants. No service runtime role receives unrestricted read or write access to another service schema. Grants are explicit in migration SQL or the controlled provisioning step and are not inferred from folder names. Default privileges for objects created by `project_migrator` must preserve the same scope grants for future tables.
 
 ### Enforcement
 

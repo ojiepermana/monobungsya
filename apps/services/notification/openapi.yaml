@@ -1,0 +1,56 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: User notification center and delivery API.
+  version: 0.1.0
+tags:
+  - name: Health
+    description: Notification health checks
+  - name: Notifications
+    description: User notification center
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check notification liveness
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    const: ok
+                    type: string
+                  service:
+                    type: string
+      operationId: getHealth
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Check notification readiness
+      responses:
+        "200":
+          description: Response for status 200
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                      - starting
+      operationId: getReady
+components:
+  schemas: {}

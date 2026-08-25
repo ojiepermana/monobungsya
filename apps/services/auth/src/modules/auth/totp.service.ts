@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from '#project/errors';
 import { hashSecret } from './auth.crypto';
+import type { AuthSecurityContext } from './auth.notifications';
 import type {
   AuthUser,
   SessionRecord,
@@ -95,6 +96,7 @@ export class TotpService {
     code: string,
     challengeTokenHash?: string,
     sessionTokenHash?: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<TotpConfirmResult> {
     this.requireConfigured();
     const credential = await this.repository.getCredential(userId);
@@ -116,6 +118,7 @@ export class TotpService {
       recoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
       challengeTokenHash,
       sessionTokenHash,
+      securityContext,
     });
 
     if (!outcome) {
@@ -131,6 +134,7 @@ export class TotpService {
     recoveryCode: string | undefined,
     ipAddress: string,
     sessionTokenHash: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<{ user: AuthUser; session: SessionRecord }> {
     this.requireConfigured();
     const challengeTokenHash = challengeToken ? hashSecret(challengeToken) : '';
@@ -161,6 +165,7 @@ export class TotpService {
       tokenHash: challengeTokenHash,
       sessionTokenHash,
       check: (credential) => this.factorCheck(credential, code, recoveryCode),
+      securityContext,
     });
 
     if (outcome.status !== 'authenticated') {
@@ -174,10 +179,13 @@ export class TotpService {
     userId: string,
     code: string | undefined,
     recoveryCode: string | undefined,
+    securityContext?: AuthSecurityContext,
   ): Promise<void> {
     this.requireConfigured();
-    const disabled = await this.repository.disable(userId, (credential) =>
-      this.factorCheck(credential, code, recoveryCode),
+    const disabled = await this.repository.disable(
+      userId,
+      (credential) => this.factorCheck(credential, code, recoveryCode),
+      securityContext,
     );
 
     if (!disabled) {
@@ -188,6 +196,7 @@ export class TotpService {
   async regenerateRecoveryCodes(
     userId: string,
     code: string,
+    securityContext?: AuthSecurityContext,
   ): Promise<string[]> {
     this.requireConfigured();
     const recoveryCodes = Array.from({ length: 10 }, () =>
@@ -197,6 +206,7 @@ export class TotpService {
       userId,
       (credential) => this.totpCheck(credential, code),
       recoveryCodes.map(hashRecoveryCode),
+      securityContext,
     );
 
     if (!regenerated) {
@@ -223,8 +233,11 @@ export class TotpService {
     return this.repository.getStatus(userId);
   }
 
-  async adminReset(userId: string): Promise<void> {
-    const reset = await this.repository.reset(userId);
+  async adminReset(
+    userId: string,
+    securityContext?: AuthSecurityContext,
+  ): Promise<void> {
+    const reset = await this.repository.reset(userId, securityContext);
     if (!reset) throw new NotFoundError('User not found');
   }
 

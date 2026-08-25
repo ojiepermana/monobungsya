@@ -5,6 +5,7 @@ import {
   DurableJobRuntime,
   DurableJobWorker,
   JobRegistry,
+  jobFailureNotificationContract,
 } from '#project/jobs';
 import type { Logger } from '#project/logger';
 import type { AuthRepository } from '../../modules/auth/auth.repository';
@@ -19,6 +20,7 @@ export function startAuthJobWorker(
   const registry = new JobRegistry();
   registry.registerContract(authSendUserInvitationContract);
   registry.registerContract(authCleanupExpiredSecurityDataContract);
+  registry.registerContract(jobFailureNotificationContract);
   registry.bind(authSendUserInvitationContract, async (payload) => {
     const sent = await service.sendInvitation(payload.userId);
     if (!sent) {

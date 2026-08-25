@@ -6,6 +6,8 @@ import { createApp as createAccessApp } from '../apps/services/access/src/app';
 import { loadAccessEnv } from '../apps/services/access/src/config/env';
 import { createApp as createAuthApp } from '../apps/services/auth/src/app';
 import { createApp as createLogsApp } from '../apps/services/logs/src/app';
+import { createApp as createNotificationApp } from '../apps/services/notification/src/app';
+import { loadNotificationEnv } from '../apps/services/notification/src/config/env';
 import { createApp as createUserApp } from '../apps/services/user/src/app';
 
 type SpecTarget = {
@@ -48,6 +50,12 @@ const targets: SpecTarget[] = [
     name: 'access',
     output: 'apps/services/access/openapi.yaml',
     createApp: () => createAccessApp(loadAccessEnv({ NODE_ENV: 'test' })),
+  },
+  {
+    name: 'notification',
+    output: 'apps/services/notification/openapi.yaml',
+    createApp: () =>
+      createNotificationApp(loadNotificationEnv({ NODE_ENV: 'test' })),
   },
 ];
 

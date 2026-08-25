@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-23
 
-**Status**: Proposed
+**Status**: Implemented
 
 **Parent**: [Reliable background jobs and notification center](./index.md)
 

@@ -14,11 +14,14 @@ export class AccessRepository {
   constructor(private readonly database?: DatabaseClient) {}
 
   async transaction<T>(
-    operation: (repository: AccessRepository) => Promise<T>,
+    operation: (
+      repository: AccessRepository,
+      transaction?: DatabaseClient,
+    ) => Promise<T>,
   ): Promise<T> {
     const database = this.requireDatabase();
     return database.begin(async (transaction) =>
-      operation(new AccessRepository(transaction)),
+      operation(new AccessRepository(transaction), transaction),
     );
   }
 

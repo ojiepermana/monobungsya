@@ -8,6 +8,10 @@ import type { DatabaseClient } from '#project/database';
 import { ForbiddenError, UnauthorizedError } from '#project/errors';
 import { type ActivityActor, ActivityLog } from '#project/logger';
 import { createSecret, hashSecret } from './auth.crypto';
+import {
+  type AuthNotificationSink,
+  securityContextFromRequest,
+} from './auth.notifications';
 import { AuthRepository } from './auth.repository';
 import {
   authStatusResponse,
@@ -36,6 +40,7 @@ const MFA_COOKIE_NAME = 'mfa_challenge';
 
 export interface AuthRouteOptions {
   database?: DatabaseClient;
+  notificationSink?: AuthNotificationSink;
   mailer?: AuthMailer;
   webAppUrl?: string;
   cookieName?: string;
@@ -51,7 +56,10 @@ export function createAuthRoute(
   options: AuthRouteOptions = {},
 ) {
   const dependencies = options.database
-    ? { database: options.database }
+    ? {
+        database: options.database,
+        notificationSink: options.notificationSink,
+      }
     : undefined;
   const repository = new AuthRepository(dependencies);
   const totp = new TotpService(
@@ -124,7 +132,10 @@ export function createAuthRoute(
       '/internal/auth/verify',
       async ({ query, request }) => {
         try {
-          const result = await service.verifyMagicLink(query.token);
+          const result = await service.verifyMagicLink(
+            query.token,
+            securityContextFromRequest(request, 'magic_link'),
+          );
           if (result.status === 'mfa_required') {
             const headers = new Headers({
               Location: service.createMfaRedirect(result.purpose),
@@ -216,7 +227,10 @@ export function createAuthRoute(
           cookieName,
         );
         const session = await service.getSession(sessionToken);
-        await service.logout(sessionToken);
+        await service.logout(
+          sessionToken,
+          securityContextFromRequest(request, 'session_cookie'),
+        );
         recordAuthAccess({
           request,
           method: 'session_cookie',
@@ -275,6 +289,7 @@ export function createAuthRoute(
           body.code,
           challengeToken ? hashSecret(challengeToken) : undefined,
           sessionToken ? hashSecret(sessionToken) : undefined,
+          securityContextFromRequest(request, 'totp'),
         );
         await writeTotpAudit(request, 'totp_enable', actor, actor.id);
         const headers = new Headers();
@@ -318,6 +333,10 @@ export function createAuthRoute(
           body.recoveryCode,
           clientIp(request),
           hashSecret(sessionToken),
+          securityContextFromRequest(
+            request,
+            body.recoveryCode ? 'recovery_code' : 'totp',
+          ),
         );
         recordAuthAccess({
           request,
@@ -383,7 +402,12 @@ export function createAuthRoute(
           repository,
           cookieName,
         );
-        await totp.disable(actor.id, body.code, body.recoveryCode);
+        await totp.disable(
+          actor.id,
+          body.code,
+          body.recoveryCode,
+          securityContextFromRequest(request, 'totp'),
+        );
         await writeTotpAudit(request, 'totp_disable', actor, actor.id);
         return Response.json({ ok: true as const });
       },
@@ -404,6 +428,7 @@ export function createAuthRoute(
         const recoveryCodes = await totp.regenerateRecoveryCodes(
           actor.id,
           body.code,
+          securityContextFromRequest(request, 'totp'),
         );
         await writeTotpAudit(
           request,
@@ -439,7 +464,10 @@ export function createAuthRoute(
           signingSecret,
           clockSkewSeconds,
         );
-        await totp.adminReset(params.id);
+        await totp.adminReset(
+          params.id,
+          securityContextFromRequest(request, 'totp'),
+        );
         await writeTotpAudit(
           request,
           'totp_admin_reset',

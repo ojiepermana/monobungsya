@@ -1,4 +1,8 @@
 import { type DatabaseClient, withTransaction } from '#project/database';
+import type {
+  AuthNotificationSink,
+  AuthSecurityContext,
+} from './auth.notifications';
 import { incrementRateLimit, insertSession, mapUser } from './auth.repository';
 import type {
   AuthRepositoryDependencies,
@@ -26,9 +30,11 @@ export interface TotpRepositoryOptions extends AuthRepositoryDependencies {}
 
 export class TotpRepository {
   private readonly database: DatabaseClient | undefined;
+  private readonly notificationSink: AuthNotificationSink | undefined;
 
   constructor(dependencies?: TotpRepositoryOptions) {
     this.database = dependencies?.database;
+    this.notificationSink = dependencies?.notificationSink;
   }
 
   async findUser(userId: string): Promise<AuthUser | null> {
@@ -135,6 +141,7 @@ export class TotpRepository {
     recoveryCodeHashes: string[];
     challengeTokenHash?: string;
     sessionTokenHash?: string;
+    securityContext?: AuthSecurityContext;
   }): Promise<EnrollmentOutcome | null> {
     const database = this.requireDatabase();
 
@@ -196,6 +203,15 @@ export class TotpRepository {
         );
       }
 
+      if (input.securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId: input.userId,
+          type: 'security.totp_changed',
+          payload: { action: 'diaktifkan' },
+          context: input.securityContext,
+        });
+      }
+
       return { recoveryCodes: input.recoveryCodeHashes, session };
     });
   }
@@ -229,6 +245,7 @@ export class TotpRepository {
     tokenHash: string;
     sessionTokenHash: string;
     check: (credential: TotpCredentialRecord) => TotpCheck;
+    securityContext?: AuthSecurityContext;
   }): Promise<TotpChallengeOutcome> {
     const database = this.requireDatabase();
 
@@ -343,6 +360,17 @@ export class TotpRepository {
         return { status: 'invalid' as const };
       }
 
+      if (input.securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId: String(challenge.user_id),
+          type: 'security.sign_in',
+          payload: {
+            authMethod: checked.kind === 'recovery' ? 'recovery_code' : 'totp',
+          },
+          context: input.securityContext,
+        });
+      }
+
       return {
         status: 'authenticated' as const,
         user: mapUser(userRow),
@@ -354,14 +382,16 @@ export class TotpRepository {
   async disable(
     userId: string,
     check: (credential: TotpCredentialRecord) => TotpCheck,
+    securityContext?: AuthSecurityContext,
   ): Promise<boolean> {
-    return this.mutateCredential(userId, check, 'disable');
+    return this.mutateCredential(userId, check, 'disable', securityContext);
   }
 
   async regenerateRecoveryCodes(
     userId: string,
     check: (credential: TotpCredentialRecord) => TotpCheck,
     codeHashes: string[],
+    securityContext?: AuthSecurityContext,
   ): Promise<boolean> {
     const database = this.requireDatabase();
 
@@ -404,11 +434,22 @@ export class TotpRepository {
           VALUES (${userId}, ${codeHash})
         `;
       }
+      if (securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId,
+          type: 'security.totp_changed',
+          payload: { action: 'kode pemulihan diperbarui' },
+          context: securityContext,
+        });
+      }
       return true;
     });
   }
 
-  async reset(userId: string): Promise<boolean> {
+  async reset(
+    userId: string,
+    securityContext?: AuthSecurityContext,
+  ): Promise<boolean> {
     const database = this.requireDatabase();
 
     return withTransaction(database, async (transaction) => {
@@ -431,6 +472,14 @@ export class TotpRepository {
         SET revoked_at = COALESCE(revoked_at, now()), updated_at = now()
         WHERE user_id = ${userId}
       `;
+      if (securityContext) {
+        await this.notificationSink?.enqueue(transaction, {
+          userId,
+          type: 'security.totp_changed',
+          payload: { action: 'direset' },
+          context: securityContext,
+        });
+      }
       return true;
     });
   }
@@ -439,6 +488,7 @@ export class TotpRepository {
     userId: string,
     check: (credential: TotpCredentialRecord) => TotpCheck,
     action: 'disable',
+    securityContext?: AuthSecurityContext,
   ): Promise<boolean> {
     const database = this.requireDatabase();
 
@@ -490,6 +540,14 @@ export class TotpRepository {
         await transaction`
           DELETE FROM "auth"."totp_recovery_codes" WHERE user_id = ${userId}
         `;
+        if (securityContext) {
+          await this.notificationSink?.enqueue(transaction, {
+            userId,
+            type: 'security.totp_changed',
+            payload: { action: 'dinonaktifkan' },
+            context: securityContext,
+          });
+        }
       }
 
       return true;

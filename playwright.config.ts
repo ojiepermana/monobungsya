@@ -30,26 +30,44 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'PORT=3101 bun apps/services/auth/src/main.ts',
+      command:
+        'ENABLE_INFRASTRUCTURE=true DURABLE_JOBS_ENABLED=true DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia LOG_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia PORT=3101 bun apps/services/auth/src/main.ts',
       url: 'http://localhost:3101/health',
       reuseExistingServer: true,
       timeout: 30_000,
     },
     {
-      command: 'PORT=3102 bun apps/services/user/src/main.ts',
+      command:
+        'ENABLE_INFRASTRUCTURE=true DURABLE_JOBS_ENABLED=true DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia LOG_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia PORT=3102 bun apps/services/user/src/main.ts',
       url: 'http://localhost:3102/health',
       reuseExistingServer: true,
       timeout: 30_000,
     },
     {
-      command: 'PORT=3103 bun apps/services/logs/src/main.ts',
+      command:
+        'ENABLE_INFRASTRUCTURE=true DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia PORT=3103 bun apps/services/logs/src/main.ts',
       url: 'http://localhost:3103/health',
       reuseExistingServer: true,
       timeout: 30_000,
     },
     {
-      command: 'ACCESS_SERVICE_PORT=3104 bun apps/services/access/src/main.ts',
+      command:
+        'ENABLE_INFRASTRUCTURE=true DURABLE_JOBS_ENABLED=true DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia LOG_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia ACCESS_SERVICE_PORT=3104 bun apps/services/access/src/main.ts',
       url: 'http://localhost:3104/health',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+    {
+      command:
+        'ENABLE_INFRASTRUCTURE=true JOBS_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia LOG_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia JOBS_SERVICE_PORT=3105 bun apps/services/jobs/src/main.ts',
+      url: 'http://localhost:3105/health',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+    {
+      command:
+        'ENABLE_INFRASTRUCTURE=true DURABLE_JOBS_ENABLED=true NOTIFICATION_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia LOG_DATABASE_URL=postgres://postgres@127.0.0.1:5432/monobungsia NOTIFICATION_SERVICE_PORT=3106 bun apps/services/notification/src/main.ts',
+      url: 'http://localhost:3106/health',
       reuseExistingServer: true,
       timeout: 30_000,
     },

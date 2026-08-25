@@ -6,6 +6,10 @@ import { Elysia } from 'elysia';
 import type { DatabaseClient } from '#project/database';
 import { UnauthorizedError } from '#project/errors';
 import type { Logger } from '#project/logger';
+import {
+  type AuthNotificationSink,
+  securityContextFromRequest,
+} from './auth.notifications';
 import { AuthRepository } from './auth.repository';
 import {
   readCookie,
@@ -27,6 +31,7 @@ import { type PasskeyLoginResult, PasskeyService } from './passkey.service';
 
 export interface PasskeyRouteOptions {
   database?: DatabaseClient;
+  notificationSink?: AuthNotificationSink;
   webAppUrl?: string;
   cookieName?: string;
   cookieSecure?: boolean;
@@ -38,7 +43,10 @@ export interface PasskeyRouteOptions {
 export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
   const webAppUrl = options.webAppUrl ?? 'http://localhost:4200';
   const dependencies = options.database
-    ? { database: options.database }
+    ? {
+        database: options.database,
+        notificationSink: options.notificationSink,
+      }
     : undefined;
   const service = new PasskeyService(
     {
@@ -85,6 +93,7 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
             identity.id,
             body.response as unknown as RegistrationResponseJSON,
             body.label,
+            securityContextFromRequest(request, 'passkey'),
           ),
         );
       },
@@ -117,6 +126,7 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
           result = await service.verifyLogin(
             body.response as unknown as AuthenticationResponseJSON,
             clientIp(request),
+            securityContextFromRequest(request, 'passkey'),
           );
         } catch (error) {
           recordAuthAccess({
@@ -221,7 +231,12 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
         );
 
         return Response.json(
-          await service.renamePasskey(identity.id, params.id, body.label),
+          await service.renamePasskey(
+            identity.id,
+            params.id,
+            body.label,
+            securityContextFromRequest(request, 'passkey'),
+          ),
         );
       },
       {
@@ -240,7 +255,11 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
         const identity = await service.requireSession(
           readCookie(request.headers.get('cookie'), cookieName),
         );
-        await service.deletePasskey(identity.id, params.id);
+        await service.deletePasskey(
+          identity.id,
+          params.id,
+          securityContextFromRequest(request, 'passkey'),
+        );
 
         return new Response(null, { status: 204 });
       },

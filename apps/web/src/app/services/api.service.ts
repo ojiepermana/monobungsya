@@ -1,4 +1,5 @@
-import { Service } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Service } from '@angular/core';
 import { defer, type Observable } from 'rxjs';
 import * as sdk from '#project/angular-sdk';
 import { sdkRequest } from '../../api/generated-client';
@@ -216,12 +217,185 @@ export interface ApplicationLogsResponse {
   };
 }
 
+export type NotificationCategory =
+  | 'security'
+  | 'access'
+  | 'account'
+  | 'operational';
+export type NotificationChannel = 'in_app' | 'email';
+export interface NotificationRecord {
+  id: string;
+  category: NotificationCategory;
+  severity: string;
+  type: string;
+  title: string;
+  body: string;
+  metadata: Record<string, unknown>;
+  actionRoute: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+export interface NotificationsResponse {
+  data: NotificationRecord[];
+  meta: LogsMeta;
+  filters: { page: number; category: string; unreadOnly: boolean };
+  options: { categories: NotificationCategory[] };
+}
+export interface UnreadCountResponse {
+  total: number;
+  categories: Record<NotificationCategory, number>;
+}
+export interface NotificationPreference {
+  category: NotificationCategory;
+  channel: NotificationChannel;
+  enabled: boolean;
+  mandatory: boolean;
+}
+export interface NotificationPreferencesResponse {
+  categories: Array<{
+    category: NotificationCategory;
+    channels: NotificationPreference[];
+  }>;
+}
+export type JobStatus =
+  | 'queued'
+  | 'running'
+  | 'retry_wait'
+  | 'completed'
+  | 'failed';
+export interface JobRecord {
+  id: string;
+  type: string;
+  version: number;
+  sourceService: string;
+  targetService: string;
+  status: JobStatus;
+  priority: number;
+  runAt: string;
+  attemptCount: number;
+  maxAttempts: number;
+  lockedBy: string | null;
+  lockedAt: string | null;
+  leaseExpiresAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+  scheduleCode: string | null;
+  retryOfJobId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface JobsResponse {
+  data: JobRecord[];
+  meta: LogsMeta;
+  filters: {
+    page: number;
+    status: string;
+    type: string;
+    sourceService: string;
+    targetService: string;
+    from: string;
+    to: string;
+  };
+  options: {
+    statuses: JobStatus[];
+    types: string[];
+    sourceServices: string[];
+    targetServices: string[];
+  };
+}
+export interface JobDetail extends JobRecord {
+  payload: Record<string, unknown>;
+  attempts: Array<{
+    id: string;
+    attemptNumber: number;
+    workerId: string;
+    startedAt: string;
+    finishedAt: string | null;
+    outcome: string | null;
+    durationMs: number | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+  }>;
+}
+
 /** The gateway validates actorUserId as a uuid, so an empty value is omitted. */
 @Service()
 export class ApiService {
+  private readonly http = inject(HttpClient);
   health(): Observable<HealthResponse> {
     return defer(() =>
       sdkRequest<HealthResponse>(() => sdk.getHealth({ throwOnError: true })),
+    );
+  }
+
+  notifications(filters: {
+    page: number;
+    category: string;
+    unreadOnly: boolean;
+  }): Observable<NotificationsResponse> {
+    return this.http.get<NotificationsResponse>('/api/v1/notifications', {
+      params: {
+        page: filters.page,
+        category: filters.category,
+        unreadOnly: filters.unreadOnly,
+      },
+    });
+  }
+
+  unreadNotificationCount(): Observable<UnreadCountResponse> {
+    return this.http.get<UnreadCountResponse>(
+      '/api/v1/notifications/unread-count',
+    );
+  }
+
+  markNotificationRead(id: string): Observable<NotificationRecord> {
+    return this.http.patch<NotificationRecord>(
+      `/api/v1/notifications/${id}/read`,
+      {},
+    );
+  }
+
+  markAllNotificationsRead(): Observable<{ changed: number }> {
+    return this.http.post<{ changed: number }>(
+      '/api/v1/notifications/read-all',
+      {},
+    );
+  }
+
+  notificationPreferences(): Observable<NotificationPreferencesResponse> {
+    return this.http.get<NotificationPreferencesResponse>(
+      '/api/v1/notifications/preferences',
+    );
+  }
+
+  updateNotificationPreference(
+    category: NotificationCategory,
+    channel: NotificationChannel,
+    enabled: boolean,
+  ): Observable<NotificationPreference> {
+    return this.http.patch<NotificationPreference>(
+      `/api/v1/notifications/preferences/${category}/${channel}`,
+      { enabled },
+    );
+  }
+
+  jobs(filters: { page: number; status: string }): Observable<JobsResponse> {
+    return this.http.get<JobsResponse>('/api/v1/jobs', {
+      params: { page: filters.page, status: filters.status },
+    });
+  }
+
+  job(id: string): Observable<JobDetail> {
+    return this.http.get<JobDetail>(`/api/v1/jobs/${id}`);
+  }
+
+  retryJob(id: string, reason: string): Observable<JobRecord> {
+    return this.http.post<JobRecord>(
+      `/api/v1/jobs/${id}/retry`,
+      { reason },
+      { headers: { 'Idempotency-Key': crypto.randomUUID() } },
     );
   }
 

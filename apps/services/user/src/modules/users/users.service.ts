@@ -8,6 +8,8 @@ import {
   authSendUserInvitationContract,
   enqueueJob,
   type JobRegistry,
+  notificationCreateContract,
+  notificationRecipientSyncContract,
 } from '#project/jobs';
 import { ActivityLog, type Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
@@ -219,6 +221,28 @@ export class UsersService {
           actorUserId: actor.id,
           correlationId: correlation.requestId,
         });
+        if (
+          this.jobs.get(
+            notificationRecipientSyncContract.type,
+            notificationRecipientSyncContract.version,
+          )
+        ) {
+          await enqueueJob(transaction, this.jobs, {
+            type: notificationRecipientSyncContract.type,
+            version: notificationRecipientSyncContract.version,
+            payload: {
+              userId: user.id,
+              displayName: user.name,
+              email: user.email,
+              active: user.status !== 'deleted',
+            },
+            sourceService: notificationRecipientSyncContract.sourceService,
+            targetService: notificationRecipientSyncContract.targetService,
+            idempotencyKey: `recipient:${user.id}`,
+            actorUserId: actor.id,
+            correlationId: correlation.requestId,
+          });
+        }
       }
 
       return user;
@@ -271,6 +295,8 @@ export class UsersService {
         afterState: after,
         changeSummary: summarizeChange(before, after),
       });
+
+      await this.enqueueRecipientSync(transaction, after, actor, correlation);
 
       return after;
     });
@@ -342,6 +368,15 @@ export class UsersService {
         changeSummary: summarizeChange(before, after),
         reason,
       });
+
+      await this.enqueueRecipientSync(transaction, after, actor, correlation);
+      await this.enqueueAccountStatusNotification(
+        transaction,
+        after,
+        action,
+        actor,
+        correlation,
+      );
 
       return after;
     });
@@ -437,6 +472,71 @@ export class UsersService {
       requestId: input.correlation.requestId,
       ipAddress: input.correlation.ipAddress,
       userAgent: input.correlation.userAgent,
+    });
+  }
+
+  private async enqueueRecipientSync(
+    transaction: DatabaseClient,
+    user: UserRecord,
+    actor: UserActor,
+    correlation: RequestCorrelation,
+  ): Promise<void> {
+    if (
+      !this.durableJobsEnabled ||
+      !this.jobs?.get(
+        notificationRecipientSyncContract.type,
+        notificationRecipientSyncContract.version,
+      )
+    )
+      return;
+    await enqueueJob(transaction, this.jobs, {
+      type: notificationRecipientSyncContract.type,
+      version: notificationRecipientSyncContract.version,
+      payload: {
+        userId: user.id,
+        displayName: user.name,
+        email: user.email,
+        active: user.status !== 'deleted',
+      },
+      sourceService: notificationRecipientSyncContract.sourceService,
+      targetService: notificationRecipientSyncContract.targetService,
+      idempotencyKey: `recipient:${user.id}:${user.updatedAt ?? correlation.requestId ?? 'current'}`,
+      actorUserId: actor.id,
+      correlationId: correlation.requestId,
+    });
+  }
+
+  private async enqueueAccountStatusNotification(
+    transaction: DatabaseClient,
+    user: UserRecord,
+    action: UserStatusAction,
+    actor: UserActor,
+    correlation: RequestCorrelation,
+  ): Promise<void> {
+    if (
+      !this.durableJobsEnabled ||
+      !this.jobs?.get(
+        notificationCreateContract.type,
+        notificationCreateContract.version,
+      )
+    )
+      return;
+    await enqueueJob(transaction, this.jobs, {
+      type: notificationCreateContract.type,
+      version: notificationCreateContract.version,
+      payload: {
+        userId: user.id,
+        type: 'account.status_changed',
+        version: 1,
+        payload: { action, status: user.status },
+        occurredAt: user.updatedAt ?? new Date().toISOString(),
+        correlationId: correlation.requestId,
+      },
+      sourceService: notificationCreateContract.sourceService,
+      targetService: notificationCreateContract.targetService,
+      idempotencyKey: `account-status:${user.id}:${action}:${user.updatedAt ?? user.status}`,
+      actorUserId: actor.id,
+      correlationId: correlation.requestId,
     });
   }
 

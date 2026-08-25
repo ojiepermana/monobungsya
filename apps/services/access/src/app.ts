@@ -6,6 +6,7 @@ import {
   createOpenApiPlugin,
   requestIdPlugin,
 } from '#project/elysia';
+import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
 import { type AccessEnvironment, loadAccessEnv } from './config/env';
@@ -14,6 +15,8 @@ import { createAccessRoute } from './modules/access/access.route';
 export interface AccessAppOptions {
   database?: DatabaseClient;
   messaging?: Publisher;
+  jobs?: JobRegistry;
+  durableJobsEnabled?: boolean;
 }
 
 export function createApp(
@@ -60,6 +63,8 @@ export function createApp(
       createAccessRoute({
         database: options.database,
         messaging: options.messaging,
+        jobs: options.jobs,
+        durableJobsEnabled: options.durableJobsEnabled,
         cacheTtlMs: accessEnvironment.ACCESS_PERMISSION_CACHE_TTL_MS,
         cacheMaxEntries: accessEnvironment.ACCESS_PERMISSION_CACHE_MAX_ENTRIES,
         signingSecret: accessEnvironment.INTERNAL_AUTH_SIGNING_SECRET,

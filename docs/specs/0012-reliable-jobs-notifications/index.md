@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-23
 
-**Status**: In Progress
+**Status**: Accepted
 
 **Type**: Umbrella enhancement
 
@@ -159,11 +159,11 @@ Keep the old invitation event consumer disabled but available for one release ro
 
 1. [x] Create the `jobs` database schema, grants, stored functions, shared contract registry, producer view, target service handler binding, and `#project/jobs` package. Implement one transactional enqueue through claim, heartbeat, completion, retry, and lease recovery. Covers `AC-1` through `AC-5`.
 2. [x] Create the jobs service, contract schedule synchronization, recurring scheduler, cleanup, health and queue summary endpoints, structured telemetry, and operator list, detail, and retry routes. Covers `AC-3`, `AC-4`, `AC-11`, `AC-12`, `AC-14`, and `AC-15`.
-3. [ ] Move invitation delivery to `auth.send_user_invitation` without storing a raw token, remove the invitation dependency on best effort NATS, and replace the auth cleanup timer with `auth.cleanup_expired_security_data`. Covers `AC-4`, `AC-13`, and `AC-16`.
-4. [ ] Create the notification schema, service, recipient projection, typed templates, and one security event path from source mutation through in app persistence. Covers `AC-6`, `AC-7`, `AC-10`, and `AC-13`.
-5. [ ] Add email delivery jobs, effective preference checks, mandatory categories, account and access event producers, and terminal job failure fanout. Covers `AC-6`, `AC-8`, `AC-9`, and `AC-10`.
-6. [ ] Add OpenAPI contracts, generated Angular SDK, shell bell, notification page, preferences, jobs table, job detail, and retry reason dialog. Covers `AC-7`, `AC-8`, `AC-11`, and `AC-17`.
-7. [ ] Add integration, failure recovery, authorization, redaction, migration, retention, and load focused tests. Complete staged rollout checks and operational documentation. Covers all acceptance criteria.
+3. [x] Move invitation delivery to `auth.send_user_invitation` without storing a raw token, remove the invitation dependency on best effort NATS, and replace the auth cleanup timer with `auth.cleanup_expired_security_data`. Covers `AC-4`, `AC-13`, and `AC-16`.
+4. [x] Create the notification schema, service, recipient projection, typed templates, and one security event path from source mutation through in app persistence. Covers `AC-6`, `AC-7`, `AC-10`, and `AC-13`.
+5. [x] Add email delivery jobs, effective preference checks, mandatory categories, account and access event producers, and terminal job failure fanout. Covers `AC-6`, `AC-8`, `AC-9`, and `AC-10`.
+6. [x] Add OpenAPI contracts, generated Angular SDK, shell bell, notification page, preferences, jobs table, job detail, and retry reason dialog. Covers `AC-7`, `AC-8`, `AC-11`, and `AC-17`.
+7. [x] Add integration, failure recovery, authorization, redaction, migration, retention, and load focused tests. Complete staged rollout checks and operational documentation. Covers all acceptance criteria.
 
 ## Requirements
 
