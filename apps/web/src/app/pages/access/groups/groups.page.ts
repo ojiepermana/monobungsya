@@ -143,7 +143,7 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
             <p class="mt-1 text-sm text-muted-foreground">Create a group or adjust the filters to see available templates.</p>
           </div>
         } @else {
-          <Table class="min-w-full rounded-base bg-card">
+          <Table class="min-w-full rounded-base bg-card text-xs">
             <caption TableCaption class="sr-only">Permission groups</caption>
             <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
               <tr TableRow>

@@ -134,7 +134,7 @@ import {
             Belum ada passkey terdaftar.
           </p>
         } @else {
-          <Table class="min-w-full rounded-base bg-card">
+          <Table class="min-w-full rounded-base bg-card text-xs">
             <caption TableCaption class="sr-only">Daftar passkey</caption>
               <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
                 <tr TableRow>
