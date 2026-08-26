@@ -389,17 +389,17 @@ export const getApiV1LogsAccessLogs = <ThrowOnError extends boolean = false>(opt
 export const getApiV1LogsApplicationLogs = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1LogsApplicationLogsData, ThrowOnError>): RequestResult<GetApiV1LogsApplicationLogsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1LogsApplicationLogsResponses, unknown, ThrowOnError>({ url: '/api/v1/logs/application-logs', ...options });
 
 /**
- * List runtime traces (requires observability:telemetry:read)
+ * List runtime traces (requires observability:trace:read)
  */
 export const getApiV1ObservabilityTraces = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1ObservabilityTracesData, ThrowOnError>): RequestResult<GetApiV1ObservabilityTracesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1ObservabilityTracesResponses, unknown, ThrowOnError>({ url: '/api/v1/observability/traces', ...options });
 
 /**
- * Read a runtime trace (requires observability:telemetry:read)
+ * Read a runtime trace (requires observability:trace:read)
  */
 export const getApiV1ObservabilityTracesByTraceId = <ThrowOnError extends boolean = false>(options: Options<GetApiV1ObservabilityTracesByTraceIdData, ThrowOnError>): RequestResult<GetApiV1ObservabilityTracesByTraceIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1ObservabilityTracesByTraceIdResponses, unknown, ThrowOnError>({ url: '/api/v1/observability/traces/{traceId}', ...options });
 
 /**
- * Read runtime metrics (requires observability:telemetry:read)
+ * Read runtime metrics (requires observability:metric:read)
  */
 export const getApiV1ObservabilityMetrics = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1ObservabilityMetricsData, ThrowOnError>): RequestResult<GetApiV1ObservabilityMetricsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1ObservabilityMetricsResponses, unknown, ThrowOnError>({ url: '/api/v1/observability/metrics', ...options });
 
