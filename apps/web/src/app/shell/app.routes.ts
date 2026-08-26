@@ -1,5 +1,10 @@
 import type { Routes } from '@angular/router';
-import { authGuard, guestGuard, permissionGuard } from '../auth/auth.guard';
+import {
+  anyPermissionGuard,
+  authGuard,
+  guestGuard,
+  permissionGuard,
+} from '../auth/auth.guard';
 import { PERMISSIONS } from '../auth/permissions';
 
 export const routes: Routes = [
@@ -165,13 +170,115 @@ export const routes: Routes = [
   {
     path: 'observability',
     title: 'MONOBUNGSYA · Observability',
+    pathMatch: 'full',
     canActivate: [
       authGuard,
-      permissionGuard(PERMISSIONS.observabilityTelemetryRead),
+      anyPermissionGuard([
+        PERMISSIONS.observabilityTraceRead,
+        PERMISSIONS.observabilityMetricRead,
+        PERMISSIONS.observabilityBenchmarkRead,
+        PERMISSIONS.observabilityAlertRead,
+      ]),
     ],
     loadComponent: () =>
-      import('../pages/observability/observability.page').then(
-        (m) => m.ObservabilityPage,
+      import('../pages/observability/overview/overview.page').then(
+        (m) => m.ObservabilityOverviewPage,
+      ),
+  },
+  {
+    path: 'observability/traces',
+    title: 'MONOBUNGSYA · Traces',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityTraceRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/traces/traces.page').then(
+        (m) => m.ObservabilityTracesPage,
+      ),
+  },
+  {
+    path: 'observability/traces/:traceId',
+    title: 'MONOBUNGSYA · Trace detail',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityTraceRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/traces/trace-detail.page').then(
+        (m) => m.ObservabilityTraceDetailPage,
+      ),
+  },
+  {
+    path: 'observability/metrics',
+    title: 'MONOBUNGSYA · Metrics',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityMetricRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/metrics/metrics.page').then(
+        (m) => m.ObservabilityMetricsPage,
+      ),
+  },
+  {
+    path: 'observability/benchmarks',
+    title: 'MONOBUNGSYA · Benchmarks',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityBenchmarkRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/benchmarks/benchmarks.page').then(
+        (m) => m.ObservabilityBenchmarksPage,
+      ),
+  },
+  {
+    path: 'observability/benchmarks/:runId',
+    title: 'MONOBUNGSYA · Benchmark detail',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityBenchmarkRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/benchmarks/benchmark-detail.page').then(
+        (m) => m.ObservabilityBenchmarkDetailPage,
+      ),
+  },
+  {
+    path: 'observability/baselines',
+    title: 'MONOBUNGSYA · Baselines',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityBenchmarkRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/baselines/baselines.page').then(
+        (m) => m.ObservabilityBaselinesPage,
+      ),
+  },
+  {
+    path: 'observability/alerts',
+    title: 'MONOBUNGSYA · Alerts',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityAlertRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/alerts/alerts.page').then(
+        (m) => m.ObservabilityAlertsPage,
+      ),
+  },
+  {
+    path: 'observability/alerts/:ruleId',
+    title: 'MONOBUNGSYA · Alert detail',
+    canActivate: [
+      authGuard,
+      permissionGuard(PERMISSIONS.observabilityAlertRead),
+    ],
+    loadComponent: () =>
+      import('../pages/observability/alerts/alert-detail.page').then(
+        (m) => m.ObservabilityAlertDetailPage,
       ),
   },
   {
