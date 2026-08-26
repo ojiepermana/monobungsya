@@ -60,7 +60,7 @@ body:has([data-shell-root][data-shell-mode="desktop"]) {
 }
 
 table[class*="text-"] {
-  font-size: 0.875rem;
+  font-size: var(--font-size-xs, 0.75rem);
   font-weight: 400;
 }
 
@@ -89,7 +89,11 @@ table > :is(thead, tbody, tfoot) > tr > :last-child {
 }
 
 pagefooter p {
-  font-size: 0.875rem;
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+pagefooter p.text-sm {
+  font-size: var(--font-size-xs, 0.75rem);
 }
 
 pageheader,

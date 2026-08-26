@@ -112,7 +112,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
       } @else if (rows().length === 0) {
         <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada access log.</p>
       } @else {
-          <table class="min-w-full rounded-base bg-card text-left text-sm">
+          <table class="min-w-full rounded-base bg-card text-left text-xs">
             <thead class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
               <tr>
                 <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Time</th>
