@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { KnownPermissionName } from './index';
 import {
   hasAnyRequiredPermission,
   hasResolvedPermission,
@@ -72,5 +73,21 @@ describe('permission helpers', () => {
         (entry) => entry.name,
       ),
     ).toEqual(groupPermissions);
+  });
+
+  test('keeps signal observability permissions in the catalog (AC-2)', () => {
+    const signalPermissions: KnownPermissionName[] = [
+      PERMISSIONS.observabilityTraceRead,
+      PERMISSIONS.observabilityMetricRead,
+      PERMISSIONS.observabilityBenchmarkRead,
+      PERMISSIONS.observabilityAlertRead,
+    ];
+
+    expect(
+      PERMISSION_CATALOG.filter((entry) =>
+        signalPermissions.includes(entry.name),
+      ).map((entry) => entry.name),
+    ).toEqual(signalPermissions);
+    expect(PERMISSIONS).not.toHaveProperty('observabilityTelemetryRead');
   });
 });
