@@ -3,12 +3,14 @@ import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
+  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
+import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import type { JobsEnvironment } from './config/env';
 import { loadJobsEnv } from './config/env';
@@ -18,6 +20,7 @@ export interface JobsAppOptions {
   database?: DatabaseClient;
   registry?: JobRegistry;
   isReady?: () => boolean;
+  signalStore?: ObservabilitySignalStore;
   telemetry?: TelemetryRuntime;
 }
 
@@ -71,6 +74,13 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check jobs readiness' },
       },
+    )
+    .use(
+      createObservabilityStorageHealthRoute({
+        signalStore: options.signalStore,
+        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
     )
     .use(
       options.database

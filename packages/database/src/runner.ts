@@ -22,6 +22,11 @@ const SEED_SETS = ['reference', 'fixtures'] as const;
 const CSV_ROWS_PER_INSERT = 1000;
 const LOCK_KEY = 'project:database-tooling:v1';
 const LEGACY_SCHEMAS = ['users', 'log'] as const;
+const NON_UUIDV7_PRIMARY_KEY_CONTROL_TABLES = new Set([
+  'telemetry.signal_schema_migrations',
+  'telemetry.signal_schema_migration_history_legacy',
+  'telemetry.signal_migration_runs',
+]);
 const SEED_FILE_PATTERN =
   /^(?<number>\d{4})_(?<target>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)\.(?<extension>sql|csv)$/;
 const IDEMPOTENT_SQL_PATTERN = /ON\s+CONFLICT|DO\s+\$\$|WHERE\s+NOT\s+EXISTS/i;
@@ -59,6 +64,15 @@ export interface RunResult {
 
 export interface DownResult {
   rolledBack: string[];
+}
+
+export function hasCatalogPrimaryKeyException(
+  schemaName: string,
+  tableName: string,
+): boolean {
+  return NON_UUIDV7_PRIMARY_KEY_CONTROL_TABLES.has(
+    `${schemaName}.${tableName}`,
+  );
 }
 
 export interface SeedResetResult {
@@ -649,6 +663,15 @@ export class DatabaseRunner {
     `;
 
     for (const row of rows) {
+      if (
+        hasCatalogPrimaryKeyException(
+          String(row.schema_name),
+          String(row.table_name),
+        )
+      ) {
+        continue;
+      }
+
       if (
         !row.has_uuid_id ||
         !row.has_uuid_primary_key ||

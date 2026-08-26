@@ -10,10 +10,18 @@ import {
   observabilityAlertNotificationContract,
 } from '#project/jobs';
 import { ActivityLog, Logger } from '#project/logger';
+import {
+  createRuntimeClickHouseProbeReader,
+  createRuntimeClickHouseSignalReader,
+  createRuntimeObservabilitySignalStore,
+} from '#project/observability';
 import { TelemetryRuntime } from '#project/telemetry';
 import { createApp } from './app';
 import { env } from './config/env';
-import { ObservabilityAlertEvaluator } from './observability-evaluator';
+import {
+  CLICKHOUSE_AVAILABILITY_PROBE_INTERVAL_MS,
+  ObservabilityAlertEvaluator,
+} from './observability-evaluator';
 
 const database = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.JOBS_DATABASE_URL)
@@ -25,14 +33,31 @@ const telemetryDatabase =
   env.TELEMETRY_ENABLED && env.ENABLE_INFRASTRUCTURE
     ? createDatabaseClient(env.TELEMETRY_DATABASE_URL)
     : undefined;
+const observabilityDatabase = env.ENABLE_INFRASTRUCTURE
+  ? createDatabaseClient(env.OBSERVABILITY_DATABASE_URL)
+  : undefined;
+const signalStore = await createRuntimeObservabilitySignalStore({
+  environment: env,
+  logsDatabase: logDatabase,
+  telemetryDatabase,
+  controlDatabase: observabilityDatabase,
+});
+const usesClickHouseSignalStorage =
+  env.OBSERVABILITY_SIGNAL_WRITE_MODE !== 'postgres';
+const clickHouseProbeReader =
+  database && usesClickHouseSignalStorage
+    ? await createRuntimeClickHouseProbeReader(env)
+    : { reader: null, readiness: null };
+const clickHouseSignalReader = database
+  ? await createRuntimeClickHouseSignalReader(env, {
+      controlDatabase: observabilityDatabase,
+    })
+  : { reader: null, readiness: null };
 const telemetry = env.TELEMETRY_ENABLED
   ? new TelemetryRuntime({
       serviceName: env.serviceName,
       serviceInstanceId: env.serviceInstanceId,
-      database: telemetryDatabase,
-      queueCapacity: env.TELEMETRY_QUEUE_CAPACITY,
-      priorityCapacity: env.TELEMETRY_PRIORITY_CAPACITY,
-      batchSize: env.TELEMETRY_BATCH_SIZE,
+      signalStore,
       flushIntervalMs: env.TELEMETRY_FLUSH_INTERVAL_MS,
       slowThresholdMs: env.TELEMETRY_SLOW_THRESHOLD_MS,
       successSampleRate: env.TELEMETRY_SUCCESS_SAMPLE_RATE,
@@ -40,6 +65,7 @@ const telemetry = env.TELEMETRY_ENABLED
   : undefined;
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
+  signalStore,
 });
 
 const logger = new Logger(env.serviceName, env.LOG_LEVEL, {
@@ -75,6 +101,11 @@ const alertEvaluator = database
       registry,
       env.OBSERVABILITY_ALERT_RULES_PATH,
       telemetry,
+      {
+        readMode: env.OBSERVABILITY_SIGNAL_READ_MODE,
+        clickHouseReader: clickHouseSignalReader.reader,
+        clickHouseProbeReader: clickHouseProbeReader.reader,
+      },
     )
   : undefined;
 if (database && runtime && alertEvaluator) {
@@ -177,6 +208,27 @@ async function cleanupTick(): Promise<void> {
   }
 }
 
+let clickHouseProbeInFlight = false;
+async function clickHouseAvailabilityTick(): Promise<void> {
+  if (
+    !alertEvaluator ||
+    !usesClickHouseSignalStorage ||
+    clickHouseProbeInFlight
+  ) {
+    return;
+  }
+  clickHouseProbeInFlight = true;
+  try {
+    await alertEvaluator.probeClickHouse();
+  } catch {
+    logger.error('jobs.clickhouse.availability_probe_failed', {
+      code: 'observability_control_state_unavailable',
+    });
+  } finally {
+    clickHouseProbeInFlight = false;
+  }
+}
+
 if (scheduler) {
   try {
     await scheduler.synchronize();
@@ -194,13 +246,23 @@ const scheduleTimer = scheduler
 const cleanupTimer = database
   ? setInterval(() => void cleanupTick(), env.JOB_CLEANUP_INTERVAL_MS)
   : undefined;
+const clickHouseAvailabilityTimer =
+  alertEvaluator && usesClickHouseSignalStorage
+    ? setInterval(
+        () => void clickHouseAvailabilityTick(),
+        CLICKHOUSE_AVAILABILITY_PROBE_INTERVAL_MS,
+      )
+    : undefined;
 scheduleTimer?.unref();
 cleanupTimer?.unref();
+clickHouseAvailabilityTimer?.unref();
+if (clickHouseAvailabilityTimer) void clickHouseAvailabilityTick();
 
 const app = createApp(env, {
   database,
   registry,
   isReady: () => ready,
+  signalStore,
   telemetry,
 });
 const server = app.listen(env.JOBS_SERVICE_PORT);
@@ -215,12 +277,15 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   if (scheduleTimer) clearInterval(scheduleTimer);
   if (cleanupTimer) clearInterval(cleanupTimer);
+  if (clickHouseAvailabilityTimer) clearInterval(clickHouseAvailabilityTimer);
   await server.stop();
   await alertWorker?.stop();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   await telemetry?.shutdown(env.TELEMETRY_FLUSH_TIMEOUT_MS);
+  if (!telemetry) await signalStore?.shutdown(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (telemetryDatabase) await closeDatabaseClient(telemetryDatabase);
+  if (observabilityDatabase) await closeDatabaseClient(observabilityDatabase);
   if (database) await closeDatabaseClient(database);
 }
 
