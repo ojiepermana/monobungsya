@@ -56,7 +56,10 @@ await db`
     ('jobs:job:read', 'JOBS_JOB_READ', 'jobs', 'job', 'read', NULL, 'Read jobs'),
     ('jobs:job:retry', 'JOBS_JOB_RETRY', 'jobs', 'job', 'retry', NULL, 'Retry jobs'),
     ('jobs:job:manage', 'JOBS_JOB_MANAGE', 'jobs', 'job', 'manage', NULL, 'Manage jobs'),
-    ('observability:telemetry:read', 'OBSERVABILITY_TELEMETRY_READ', 'observability', 'telemetry', 'read', NULL, 'Read observability evidence')
+    ('observability:trace:read', 'OBSERVABILITY_TRACE_READ', 'observability', 'trace', 'read', NULL, 'Read runtime traces'),
+    ('observability:metric:read', 'OBSERVABILITY_METRIC_READ', 'observability', 'metric', 'read', NULL, 'Read runtime metrics'),
+    ('observability:benchmark:read', 'OBSERVABILITY_BENCHMARK_READ', 'observability', 'benchmark', 'read', NULL, 'Read benchmark evidence'),
+    ('observability:alert:read', 'OBSERVABILITY_ALERT_READ', 'observability', 'alert', 'read', NULL, 'Read runtime alerts')
   ON CONFLICT (code) DO UPDATE
   SET name = EXCLUDED.name,
       namespace = EXCLUDED.namespace,
@@ -94,7 +97,10 @@ await db`
     'jobs:job:read',
     'jobs:job:retry',
     'jobs:job:manage',
-    'observability:telemetry:read',
+    'observability:trace:read',
+    'observability:metric:read',
+    'observability:benchmark:read',
+    'observability:alert:read',
     'access:group:list',
     'access:group:read',
     'access:group:create',
