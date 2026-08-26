@@ -155,7 +155,9 @@ describe('observability read surface', () => {
   it('rejects metric estimates above the configured series limit', async () => {
     const database = {
       unsafe: async (text: string) =>
-        text.includes('series_count') ? [{ series_count: 2 }] : [],
+        text.includes('LIMIT 2')
+          ? [{ metric_name: 'one' }, { metric_name: 'two' }]
+          : [],
     } as unknown as DatabaseClient;
     const app = createApp(testEnv(), {
       telemetryDatabase: database,
@@ -166,6 +168,60 @@ describe('observability read surface', () => {
       new Request('http://localhost/internal/observability/metrics'),
     );
     expect(response.status).toBe(422);
+  });
+
+  it('aggregates stored minute buckets into the requested metric step', async () => {
+    const { database, queries } = fakeDatabase(({ text }) => {
+      if (text.includes('date_bin')) {
+        return [
+          {
+            bucket_start: '2026-08-25 00:00:00.000',
+            value: 12,
+            count: 3,
+            service_name: 'gateway',
+            resource_kind: 'http.server',
+            resource_name: 'request',
+            metric_name: 'telemetry.operation.count',
+            unit: 'count',
+            labels: '{}',
+          },
+        ];
+      }
+      if (text.includes('array_agg')) {
+        return [
+          {
+            metrics: ['telemetry.operation.count'],
+            services: ['gateway'],
+            resource_kinds: ['http.server'],
+          },
+        ];
+      }
+      if (text.includes('LIMIT 201')) {
+        return [{ metric_name: 'telemetry.operation.count' }];
+      }
+      return [];
+    });
+    const app = createApp(testEnv(), { telemetryDatabase: database });
+
+    const response = await app.handle(
+      new Request(
+        'http://localhost/internal/observability/metrics?from=2026-08-25T00:00:00Z&to=2026-08-25T00:05:00Z&step=300',
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: [{ bucketStart: '2026-08-25T00:00:00.000Z', value: 12 }],
+      stepSeconds: 300,
+      coverage: {
+        expectedBuckets: 1,
+        storedBuckets: 1,
+        missingBuckets: 0,
+      },
+    });
+    const dataQuery = queries.find((query) => query.text.includes('date_bin'));
+    expect(dataQuery?.text).toContain('bucket_width_seconds = $3');
+    expect(dataQuery?.params).toContain(60);
+    expect(dataQuery?.params).toContain(300);
   });
 
   it('keeps observability permission separate from the log permission', async () => {

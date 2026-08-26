@@ -589,7 +589,8 @@ export class ObservabilityRepository {
       };
     }
 
-    const params: unknown[] = [query.from, query.to, query.stepSeconds];
+    const rawBucketWidthSeconds = 60;
+    const params: unknown[] = [query.from, query.to, rawBucketWidthSeconds];
     const conditions = [
       'bucket_start >= $1',
       'bucket_start < $2',
@@ -632,13 +633,12 @@ export class ObservabilityRepository {
       ...(hasGroup('status') ? [statusGroup] : []),
     ];
     const estimateRows = (await this.readQuery(
-      `SELECT COUNT(*)::int AS series_count FROM (` +
-        `SELECT DISTINCT ${seriesDimensions.join(', ')} ` +
-        `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')}` +
-        `) AS metric_series`,
+      `SELECT DISTINCT ${seriesDimensions.join(', ')} ` +
+        `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')} ` +
+        `LIMIT ${this.maxSeries + 1}`,
       params,
     )) as Array<Record<string, unknown>>;
-    const estimatedSeries = Number(estimateRows[0]?.series_count ?? 0);
+    const estimatedSeries = estimateRows.length;
     if (estimatedSeries > this.maxSeries) {
       throw new ValidationError(
         `Metric query exceeds the ${this.maxSeries} series limit`,
@@ -650,6 +650,11 @@ export class ObservabilityRepository {
       min: 'min(min)',
       max: 'max(max)',
     }[query.statistic];
+    const stepParam = params.length + 1;
+    const dataParams = [...params, query.stepSeconds];
+    const bucketExpression =
+      `date_bin(make_interval(secs => $${stepParam}), bucket_start, ` +
+      `TIMESTAMP '1970-01-01')`;
     const serviceExpression = hasGroup('service') ? 'service_name' : `'*'`;
     const resourceKindExpression = hasGroup('resourceKind')
       ? 'resource_kind'
@@ -661,17 +666,20 @@ export class ObservabilityRepository {
       ? `jsonb_build_object('status', ${statusGroup})`
       : `(array_agg(labels ORDER BY series_fingerprint))[1]`;
     const rows = (await this.readQuery(
-      `SELECT bucket_start::text AS bucket_start, ${valueExpression} AS value, ` +
+      `SELECT ${bucketExpression}::text AS bucket_start, ${valueExpression} AS value, ` +
         `sum(count)::bigint AS count, ${serviceExpression} AS service_name, ` +
         `${resourceKindExpression} AS resource_kind, ${resourceNameExpression} AS resource_name, ` +
         `metric_name, max(unit) AS unit, ${labelsExpression} AS labels ` +
         `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')} ` +
-        `GROUP BY bucket_start, ${seriesDimensions.join(', ')} ` +
-        `ORDER BY bucket_start ASC, service_name, resource_name`,
-      params,
+        `GROUP BY ${bucketExpression}, ${seriesDimensions.join(', ')} ` +
+        `ORDER BY ${bucketExpression} ASC, service_name, resource_name`,
+      dataParams,
     )) as Array<Record<string, unknown>>;
+    const alignedFrom =
+      Math.floor(query.from.getTime() / (query.stepSeconds * 1000)) *
+      (query.stepSeconds * 1000);
     const expectedBuckets = Math.ceil(
-      (query.to.getTime() - query.from.getTime()) / (query.stepSeconds * 1000),
+      (query.to.getTime() - alignedFrom) / (query.stepSeconds * 1000),
     );
     const storedBuckets = new Set(rows.map((row) => String(row.bucket_start)))
       .size;
