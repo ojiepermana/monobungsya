@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RuntimeMetricsResponse } from '../../services/api.service';
 import {
+  formatMetricValue,
   isExpiredCursorError,
   isoFromLocalDateTime,
   loadErrorMessage,
@@ -51,6 +52,12 @@ const metrics: RuntimeMetricsResponse = {
 };
 
 describe('observability utilities', () => {
+  it('formats metric axis values compactly for chart readability', () => {
+    expect(formatMetricValue(500000000)).toBe('500 jt');
+    expect(formatMetricValue(1500000000)).toBe('1,5 M');
+    expect(formatMetricValue('not-a-number')).toBe('-');
+  });
+
   it('rejects time ranges beyond the 24 hour signal window', () => {
     expect(
       validateDayWindow({
@@ -69,7 +76,7 @@ describe('observability utilities', () => {
     ).toContain('valid');
   });
 
-  it('marks missing metric buckets as gaps instead of inventing a stored point', () => {
+  it('renders missing metric buckets at zero while preserving gap metadata', () => {
     const chart = metricChart(
       metrics,
       { from: '2026-08-25T00:00:00.000Z', to: '2026-08-25T00:03:00.000Z' },
@@ -80,8 +87,7 @@ describe('observability utilities', () => {
     expect(chart.gaps).toEqual([
       { start: 1, end: 2, left: expect.any(Number), width: expect.any(Number) },
     ]);
-    const missingPoint = chart.data[1] as { aggregate?: number } | undefined;
-    expect(missingPoint?.aggregate).toBeUndefined();
+    expect(chart.data[1]).toMatchObject({ aggregate: 0 });
   });
 
   it('aligns the chart grid to storage buckets when the window starts mid-minute', () => {

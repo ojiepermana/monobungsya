@@ -6,7 +6,7 @@ import {
   ChartContainer,
   ChartGrid,
 } from '@ojiepermana/angular/chart';
-import { LineChart } from '@ojiepermana/angular/chart/line';
+import { AreaChart } from '@ojiepermana/angular/chart/area';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
@@ -33,6 +33,7 @@ import {
   defaultTimeWindow,
   formatCount,
   formatDate,
+  formatMetricValue,
   inputValue,
   isoFromLocalDateTime,
   loadErrorMessage,
@@ -55,7 +56,7 @@ import {
     ChartGrid,
     IconComponent,
     InputComponent,
-    LineChart,
+    AreaChart,
     NativeSelectComponent,
     NativeSelectOptionDirective,
     PageComponent,
@@ -85,9 +86,9 @@ import {
       </PageFilter>
 
       <PageContent class="grid min-h-0 content-start gap-5 overflow-x-hidden overflow-y-auto px-3 py-5">
-        <section class="grid gap-2"><p class="text-sm text-muted-foreground">Coverage compares stored buckets with the buckets expected in the selected time window. Missing buckets mean telemetry was not stored, not that the value was zero.</p>@if (error()) {<p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground" role="alert">{{ error() }}</p>}@if (storageWarning()) {<p class="border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100" role="status">Telemetry storage is unavailable. This view is a blind spot, not a zero result.</p>}</section>
+        <section class="grid gap-2"><p class="text-sm text-muted-foreground">Coverage compares stored buckets with the buckets expected in the selected time window. Missing buckets are shown at zero in the chart and counted separately as missing coverage.</p>@if (error()) {<p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground" role="alert">{{ error() }}</p>}@if (storageWarning()) {<p class="border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100" role="status">Telemetry storage is unavailable. This view is a blind spot, not a zero result.</p>}</section>
         @if (loading()) {<p class="border border-border bg-muted p-5 text-sm text-muted-foreground" role="status">Loading metrics...</p>} @else {
-          <section class="grid gap-4 rounded-base border border-border bg-card p-5" aria-labelledby="metrics-chart-title"><div class="flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Coverage</p><h2 id="metrics-chart-title" class="mt-1 text-lg font-semibold text-foreground">Metric trend</h2></div><div class="flex flex-wrap gap-x-4 gap-y-1 text-sm"><span><strong>{{ formatCount(coverage().storedBuckets) }}</strong> stored</span><span><strong>{{ formatCount(coverage().expectedBuckets) }}</strong> expected</span><span><strong>{{ formatCount(coverage().missingBuckets) }}</strong> missing</span></div></div>@if (response()?.data?.length) {<div class="relative" role="group" aria-label="Metric trend with unavailable bucket gaps"><div class="relative h-80"><Chart [config]="chartConfig()" aspect="aspect-auto h-80" chartId="observability-metrics"><ChartLine [data]="chart().data" xKey="bucketStart" [showDots]="false"><svg:g ChartGrid></svg:g><svg:g ChartAxisY></svg:g></ChartLine></Chart>@for (gap of chart().gaps; track gap.start) {<div class="pointer-events-none absolute bottom-0 top-0 bg-muted/80" [style.left.%]="gap.left" [style.width.%]="gap.width" aria-hidden="true"></div>}</div><div class="relative h-7 border-t border-border text-xs text-muted-foreground" aria-hidden="true">@for (label of chart().axisLabels; track label.left) {<span class="absolute top-1 whitespace-nowrap" [class.left-0]="label.align === 'start'" [class.right-0]="label.align === 'end'" [style.left.%]="label.align === 'middle' ? label.left : null" [style.transform]="label.align === 'middle' ? 'translateX(-50%)' : null">{{ label.label }}</span>}</div></div><p class="text-xs text-muted-foreground">Gray bands mark data that was not stored during the selected window. The chart does not treat those buckets as zero.</p><div class="sr-only">{{ missingDescription() }}</div>} @else {<p class="border border-border bg-muted p-5 text-sm text-muted-foreground">No metric buckets are available for this window.</p>}</section>
+          <section class="grid gap-4 rounded-base border border-border bg-card p-5" aria-labelledby="metrics-chart-title"><div class="flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Coverage</p><h2 id="metrics-chart-title" class="mt-1 text-lg font-semibold text-foreground">Metric trend</h2></div><div class="flex flex-wrap gap-x-4 gap-y-1 text-sm"><span><strong>{{ formatCount(coverage().storedBuckets) }}</strong> stored</span><span><strong>{{ formatCount(coverage().expectedBuckets) }}</strong> expected</span><span><strong>{{ formatCount(coverage().missingBuckets) }}</strong> missing</span></div></div>@if (response()?.data?.length) {<div class="relative" role="group" aria-label="Metric trend with missing buckets rendered as zero"><div class="relative h-80"><Chart [config]="chartConfig()" aspect="aspect-auto h-80" chartId="observability-metrics"><ChartArea [data]="chart().data" xKey="bucketStart" [gradient]="true"><svg:g ChartGrid></svg:g><svg:g ChartAxisY [tickFormat]="formatMetricValue"></svg:g></ChartArea></Chart></div><div class="relative z-10 mt-1 h-7 border-t border-border bg-card pt-1 text-xs text-muted-foreground" aria-hidden="true"><div class="metric-axis-labels relative ml-12 h-full mr-2">@for (label of chart().axisLabels; track label.left) {<span class="absolute top-1 whitespace-nowrap" [class.left-0]="label.align === 'start'" [class.right-0]="label.align === 'end'" [style.left.%]="label.align === 'middle' ? label.left : null" [style.transform]="label.align === 'middle' ? 'translateX(-50%)' : null">{{ label.label }}</span>}</div></div></div><p class="text-xs text-muted-foreground">Missing buckets are drawn at zero so the area stays continuous. Coverage counters still identify how much telemetry was not stored.</p><div class="sr-only">{{ missingDescription() }}</div>} @else {<p class="border border-border bg-muted p-5 text-sm text-muted-foreground">No metric buckets are available for this window.</p>}</section>
           <section class="grid gap-3" aria-labelledby="metric-table-title"><div><h2 id="metric-table-title" class="text-base font-semibold text-foreground">Stored buckets</h2><p class="text-sm text-muted-foreground">Only buckets returned by the service are listed here.</p></div>@if (response()?.data?.length) {<div class="overflow-auto rounded-base border border-border bg-card"><table class="min-w-full text-left text-sm"><caption class="sr-only">Stored runtime metric buckets</caption><thead class="border-b border-border text-xs uppercase text-muted-foreground"><tr><th scope="col" class="px-4 py-3">Bucket</th><th scope="col" class="px-4 py-3">Metric</th><th scope="col" class="px-4 py-3">Resource</th><th scope="col" class="px-4 py-3">Value</th></tr></thead><tbody>@for (point of response()!.data; track point.bucketStart + point.metricName + point.serviceName) {<tr class="border-b border-border last:border-0"><td class="whitespace-nowrap px-4 py-3">{{ formatDate(point.bucketStart) }}</td><td class="px-4 py-3 font-mono text-xs">{{ point.metricName }}</td><td class="px-4 py-3"><p>{{ point.serviceName }}</p><p class="text-xs text-muted-foreground">{{ point.resourceName }}</p></td><td class="px-4 py-3 font-mono">{{ point.value }} {{ point.unit }}</td></tr>}</tbody></table></div>} @else {<p class="border border-border bg-muted p-5 text-sm text-muted-foreground">No stored buckets match the current filters.</p>}</section>
         }
       </PageContent>
@@ -149,7 +150,7 @@ export class ObservabilityMetricsPage {
     Object.fromEntries(
       this.chart().seriesKeys.map((key, index) => [
         key,
-        { label: key, color: `var(--chart-${(index % 5) + 1})` },
+        { label: key, color: `hsl(var(--chart-${(index % 5) + 1}))` },
       ]),
     ),
   );
@@ -262,11 +263,12 @@ export class ObservabilityMetricsPage {
   }
   protected formatDate = formatDate;
   protected formatCount = formatCount;
+  protected formatMetricValue = formatMetricValue;
   protected inputValue = inputValue;
   protected missingDescription(): string {
     const count = Number(this.coverage().missingBuckets);
     return count > 0
-      ? `${formatCount(count)} expected metric buckets are missing. They are shown as gaps and are not zero values.`
+      ? `${formatCount(count)} expected metric buckets are missing. They are drawn at zero in the chart and counted separately from stored values.`
       : 'All expected metric buckets are available.';
   }
 

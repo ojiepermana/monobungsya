@@ -59,8 +59,8 @@ body:has([data-shell-root][data-shell-mode="desktop"]) {
   pointer-events: auto;
 }
 
-table[class*="text-"] {
-  font-size: var(--font-size-xs, 0.75rem);
+table {
+  font-size: var(--font-size-xs, 0.75rem) !important;
   font-weight: 400;
 }
 
@@ -222,7 +222,7 @@ app-root NavigationFlyout ThemeSettings > button {
 
 @media (max-width: 767px) {
   [aria-label="Metric trend with unavailable bucket gaps"]
-    > div:nth-child(2)
+    .metric-axis-labels
     > span:nth-child(even) {
     display: none;
   }

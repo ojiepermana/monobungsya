@@ -91,6 +91,18 @@ export function formatCount(value: number | string | null | undefined): string {
   return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
 }
 
+export function formatMetricValue(
+  value: number | string | null | undefined,
+): string {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number)
+    ? new Intl.NumberFormat('id-ID', {
+        maximumFractionDigits: 1,
+        notation: 'compact',
+      }).format(number)
+    : '-';
+}
+
 export function inputValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLSelectElement).value;
 }
@@ -219,7 +231,7 @@ export function metricChart(
     };
     for (const key of seriesKeys) {
       const value = values.get(key)?.get(bucket);
-      if (value !== undefined) row[key] = value;
+      row[key] = value ?? 0;
     }
     return row;
   });
