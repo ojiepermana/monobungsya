@@ -203,3 +203,27 @@ app-root NavigationFlyout ThemeSettings > button {
   margin-left: 0;
   transform: translateY(-50%);
 }
+
+[aria-label="Metric trend with unavailable bucket gaps"] .chart-axis-y text {
+  transform: translateX(16px);
+}
+
+[data-chart="observability-metrics"] chartdatatable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 767px) {
+  [aria-label="Metric trend with unavailable bucket gaps"]
+    > div:nth-child(2)
+    > span:nth-child(even) {
+    display: none;
+  }
+
+  [aria-label="Metric trend with unavailable bucket gaps"] .chart-axis-y text {
+    font-size: 0.625rem !important;
+  }
+}

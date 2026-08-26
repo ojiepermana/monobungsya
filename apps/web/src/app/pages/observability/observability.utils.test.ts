@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { RuntimeMetricsResponse } from '../../services/api.service';
 import {
   isExpiredCursorError,
+  isoFromLocalDateTime,
   loadErrorMessage,
+  localDateTimeValue,
   metricChart,
   validateDayWindow,
   waterfallDepths,
@@ -82,6 +84,60 @@ describe('observability utilities', () => {
     expect(missingPoint?.aggregate).toBeUndefined();
   });
 
+  it('aligns the chart grid to storage buckets when the window starts mid-minute', () => {
+    const chart = metricChart(
+      metrics,
+      {
+        from: '2026-08-25T00:00:37.000Z',
+        to: '2026-08-25T00:03:37.000Z',
+      },
+      '',
+    );
+
+    expect(chart.data.map((row) => row.bucketStart)).toEqual([
+      '2026-08-25T00:00:00.000Z',
+      '2026-08-25T00:01:00.000Z',
+      '2026-08-25T00:02:00.000Z',
+      '2026-08-25T00:03:00.000Z',
+    ]);
+    expect(chart.data[0]).toMatchObject({ aggregate: 4 });
+    expect(chart.data[2]).toMatchObject({ aggregate: 8 });
+  });
+
+  it('keeps different metrics in the same bucket as separate series', () => {
+    const firstMetric = metrics.data.at(0);
+    if (!firstMetric) throw new Error('The metric fixture is empty');
+    const chart = metricChart(
+      {
+        ...metrics,
+        data: [
+          firstMetric,
+          {
+            ...firstMetric,
+            metricName: 'telemetry.errors.total',
+            value: 2,
+          },
+        ],
+      },
+      { from: '2026-08-25T00:00:00.000Z', to: '2026-08-25T00:01:00.000Z' },
+      '',
+    );
+
+    expect(chart.seriesKeys).toEqual([
+      'telemetry.operation.count',
+      'telemetry.errors.total',
+    ]);
+    expect(chart.data[0]).toMatchObject({
+      'telemetry.operation.count': 4,
+      'telemetry.errors.total': 2,
+    });
+  });
+
+  it('does not throw when a shared URL contains an invalid local date', () => {
+    expect(localDateTimeValue('not-a-date')).toBe('');
+    expect(isoFromLocalDateTime('not-a-date')).toBe('not-a-date');
+  });
+
   it('keeps orphan and cyclic spans at waterfall depth zero', () => {
     const depths = waterfallDepths([
       { spanId: 'root', parentSpanId: null, orphan: false },
@@ -105,6 +161,9 @@ describe('observability utilities', () => {
     expect(
       loadErrorMessage('observability:trace:read', { status: 401 }),
     ).toContain('Sign in again');
+    expect(
+      loadErrorMessage('observability:metric:read', { status: 422 }),
+    ).toContain('filters are invalid');
     expect(isExpiredCursorError({ status: 422 })).toBe(true);
     expect(isExpiredCursorError({ status: 403 })).toBe(false);
   });

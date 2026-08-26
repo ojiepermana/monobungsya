@@ -63,6 +63,12 @@ export interface MetricChartRow {
   [series: string]: string | number;
 }
 
+export interface MetricAxisLabel {
+  label: string;
+  left: number;
+  align: 'start' | 'middle' | 'end';
+}
+
 export interface MetricGapSegment {
   start: number;
   end: number;
@@ -90,11 +96,13 @@ export function inputValue(event: Event): string {
 }
 
 export function localDateTimeValue(value: string): string {
-  return new Date(value).toISOString().slice(0, 16);
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 16) : '';
 }
 
 export function isoFromLocalDateTime(value: string): string {
-  return new Date(value).toISOString();
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : value;
 }
 
 export function validateDayWindow(window: TimeWindow): string | null {
@@ -124,6 +132,9 @@ export function loadErrorMessage(permission: string, error: unknown): string {
   }
   if (status === 401) {
     return 'Your session is no longer authorized. Sign in again.';
+  }
+  if (status === 422) {
+    return 'These observability filters are invalid. Check the time range, metric, step, or group.';
   }
   return 'This signal could not be loaded. Check telemetry query health.';
 }
@@ -158,18 +169,40 @@ export function metricChart(
   response: RuntimeMetricsResponse,
   window: TimeWindow,
   group: RuntimeMetricGroup | '',
-): { data: MetricChartRow[]; seriesKeys: string[]; gaps: MetricGapSegment[] } {
+): {
+  data: MetricChartRow[];
+  seriesKeys: string[];
+  gaps: MetricGapSegment[];
+  axisLabels: MetricAxisLabel[];
+} {
   const stepMs = Number(response.stepSeconds) * 1000;
   const from = new Date(window.from).getTime();
   const to = new Date(window.to).getTime();
-  const expectedCount = Math.max(0, Math.ceil((to - from) / stepMs));
+  if (
+    !Number.isFinite(stepMs) ||
+    stepMs <= 0 ||
+    !Number.isFinite(from) ||
+    !Number.isFinite(to) ||
+    from >= to
+  ) {
+    return { data: [], seriesKeys: [], gaps: [], axisLabels: [] };
+  }
+  const alignedFrom = Math.floor(from / stepMs) * stepMs;
+  const expectedCount = Math.max(0, Math.ceil((to - alignedFrom) / stepMs));
   const bucketTimes = Array.from(
     { length: expectedCount },
-    (_, index) => from + index * stepMs,
+    (_, index) => alignedFrom + index * stepMs,
   );
   const values = new Map<string, Map<number, number>>();
+  const metricNames = new Set(response.data.map((point) => point.metricName));
   for (const point of response.data) {
-    const key = metricGroupValue(point, group);
+    const groupValue = metricGroupValue(point, group);
+    const key =
+      metricNames.size > 1 && groupValue !== 'aggregate'
+        ? `${point.metricName} · ${groupValue}`
+        : metricNames.size > 1
+          ? point.metricName
+          : groupValue;
     const bucket = new Date(point.bucketStart).getTime();
     const series = values.get(key) ?? new Map<number, number>();
     series.set(bucket, Number(point.value));
@@ -189,6 +222,34 @@ export function metricChart(
       if (value !== undefined) row[key] = value;
     }
     return row;
+  });
+  const labelCount = Math.min(5, data.length);
+  const axisLabels = Array.from({ length: labelCount }, (_, index) => {
+    const rowIndex =
+      labelCount === 1
+        ? 0
+        : Math.round((index * (data.length - 1)) / (labelCount - 1));
+    const bucket = bucketTimes[rowIndex] ?? alignedFrom;
+    const date = new Date(bucket);
+    const parts = new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      hour: '2-digit',
+      hour12: false,
+      minute: '2-digit',
+      month: 'short',
+    }).formatToParts(date);
+    const part = (type: string) =>
+      parts.find((item) => item.type === type)?.value ?? '';
+    const label =
+      to - alignedFrom <= 6 * 60 * 60 * 1000
+        ? `${part('hour')}:${part('minute')}`
+        : `${part('day')} ${part('month')} ${part('hour')}:${part('minute')}`;
+    return {
+      label,
+      left: (rowIndex / Math.max(data.length - 1, 1)) * 100,
+      align:
+        index === 0 ? 'start' : index === labelCount - 1 ? 'end' : 'middle',
+    } satisfies MetricAxisLabel;
   });
 
   const missingIndexes = bucketTimes.flatMap((bucket, index) => {
@@ -210,7 +271,7 @@ export function metricChart(
       });
     }
   }
-  return { data, seriesKeys, gaps };
+  return { data, seriesKeys, gaps, axisLabels };
 }
 
 export function waterfallDepths(
