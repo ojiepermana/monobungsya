@@ -158,8 +158,8 @@ app-root NavigationFooterTitle .nav-subtitle {
   text-transform: uppercase;
 }
 
-html[theme-space='compact'] app-root NavigationHeaderTitle .nav-subtitle,
-html[theme-space='compact'] app-root NavigationFooterTitle .nav-subtitle {
+html[theme-space="compact"] app-root NavigationHeaderTitle .nav-subtitle,
+html[theme-space="compact"] app-root NavigationFooterTitle .nav-subtitle {
   display: none;
 }
 

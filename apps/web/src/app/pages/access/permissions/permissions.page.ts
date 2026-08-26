@@ -128,7 +128,7 @@ const EMPTY_META: PermissionListMeta = {
             <caption TableCaption class="sr-only">Permissions</caption>
             <thead TableHeader class="text-sm uppercase text-muted-foreground">
               <tr TableRow>
-                <th TableHead scope="col">Namespace</th>
+                <th TableHead scope="col">Name</th>
                 <th TableHead scope="col">Description</th>
                 <th TableHead scope="col" class="text-right">Actions</th>
               </tr>
@@ -136,7 +136,7 @@ const EMPTY_META: PermissionListMeta = {
             <tbody TableBody>
               @for (permission of rows(); track permission.id) {
                 <tr TableRow class="align-top">
-                  <td TableCell>{{ permission.namespace }}:{{ permission.resource }}</td>
+                  <td TableCell>{{ permission.name }}</td>
                   <td TableCell class="text-muted-foreground">{{ permission.description }}</td>
                   <td TableCell>
                     <div class="flex justify-end gap-2">

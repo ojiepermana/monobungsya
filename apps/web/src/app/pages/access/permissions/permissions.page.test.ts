@@ -80,6 +80,9 @@ describe('PermissionsPage (spec docs/specs/0008-permission-acl, AC-14, AC-15)', 
     expect(root.getAttribute('data-page-variant')).toBe('stacked');
     expect(root.querySelector('pagefilter')).not.toBeNull();
     expect(root.textContent).toContain('Permission Catalog');
+    expect(root.textContent).toContain('Name');
+    expect(root.textContent).toContain(permission.name);
+    expect(root.textContent).not.toContain('Namespace');
     expect(root.textContent).toContain('Create permission');
     expect(root.textContent).toContain('Edit');
     expect(root.textContent).toContain('Delete');
