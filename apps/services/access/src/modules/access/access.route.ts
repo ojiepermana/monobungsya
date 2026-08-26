@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { PERMISSIONS } from '#project/acl';
 import { createAuthIdentityPlugin } from '../../shared/plugins/auth-identity.plugin';
 import { accessCorrelation, actorFromIdentity } from './access.route.helpers';
@@ -8,6 +8,19 @@ import {
   grantMutationResponse,
   grantParams,
   grantsResponse,
+  groupApplyBody,
+  groupApplyResponse,
+  groupAttachBody,
+  groupBulkApplyResponse,
+  groupCreateBody,
+  groupIdParams,
+  groupListQuery,
+  groupListResponse,
+  groupMutationResponse,
+  groupPermissionsResponse,
+  groupResponse,
+  groupUpdateBody,
+  groupUserParams,
   lookupResponse,
   permissionCreateBody,
   permissionIdParams,
@@ -16,6 +29,7 @@ import {
   permissionLookupQuery,
   permissionResponse,
   permissionUpdateBody,
+  userApplyGroupBody,
   userIdParams,
 } from './access.schema';
 import type { AccessServiceOptions } from './access.service';
@@ -130,6 +144,170 @@ export function createAccessRoute(
       },
     )
     .get(
+      '/api/v1/access/groups',
+      ({ query, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupList);
+        return service.listGroups(query);
+      },
+      {
+        query: groupListQuery,
+        response: { 200: groupListResponse },
+        detail: { tags: ['Access'], summary: 'List permission groups' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups',
+      ({ body, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupCreate);
+        return service.createGroup(
+          body,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        body: groupCreateBody,
+        response: { 200: groupResponse },
+        detail: { tags: ['Access'], summary: 'Create a permission group' },
+      },
+    )
+    .get(
+      '/api/v1/access/groups/:id',
+      ({ params, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupRead);
+        return service.getGroup(params.id);
+      },
+      {
+        params: groupIdParams,
+        response: { 200: groupResponse },
+        detail: { tags: ['Access'], summary: 'Read a permission group' },
+      },
+    )
+    .put(
+      '/api/v1/access/groups/:id',
+      ({ params, body, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupUpdate);
+        return service.updateGroup(
+          params.id,
+          body,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        params: groupIdParams,
+        body: groupUpdateBody,
+        response: { 200: groupResponse },
+        detail: { tags: ['Access'], summary: 'Update a permission group' },
+      },
+    )
+    .delete(
+      '/api/v1/access/groups/:id',
+      async ({ params, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupDelete);
+        await service.deleteGroup(
+          params.id,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+        return new Response(null, { status: 204 });
+      },
+      {
+        params: groupIdParams,
+        detail: { tags: ['Access'], summary: 'Soft delete a permission group' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/restore',
+      ({ params, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessGroupRestore);
+        return service.restoreGroup(
+          params.id,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        params: groupIdParams,
+        response: { 200: groupResponse },
+        detail: { tags: ['Access'], summary: 'Restore a permission group' },
+      },
+    )
+    .get(
+      '/api/v1/access/groups/:id/permissions',
+      ({ params, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessPermissionGroupList);
+        return service.listGroupPermissions(params.id);
+      },
+      {
+        params: groupIdParams,
+        response: { 200: groupPermissionsResponse },
+        detail: { tags: ['Access'], summary: 'List group permissions' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/permissions',
+      ({ params, body, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessPermissionGroupCreate);
+        return service.attachGroupPermissions(
+          params.id,
+          body.permissionIds,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        params: groupIdParams,
+        body: groupAttachBody,
+        response: { 200: groupMutationResponse },
+        detail: { tags: ['Access'], summary: 'Attach permissions to a group' },
+      },
+    )
+    .delete(
+      '/api/v1/access/groups/:id/permissions/:permissionId',
+      async ({ params, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessPermissionGroupDelete);
+        await service.detachGroupPermission(
+          params.id,
+          params.permissionId,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+        return new Response(null, { status: 204 });
+      },
+      {
+        params: t.Object({
+          id: t.String({ format: 'uuid' }),
+          permissionId: t.String({ format: 'uuid' }),
+        }),
+        detail: {
+          tags: ['Access'],
+          summary: 'Detach a permission from a group',
+        },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/apply',
+      ({ params, body, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessPermissionUserCreate);
+        return service.applyGroupToUsers(
+          params.id,
+          body.userIds,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        params: groupIdParams,
+        body: groupApplyBody,
+        response: { 200: groupBulkApplyResponse },
+        detail: {
+          tags: ['Access'],
+          summary: 'Apply a permission group to users',
+        },
+      },
+    )
+    .get(
       '/api/v1/access/users/:userId/permissions',
       ({ params, requirePermissions }) => {
         requirePermissions(PERMISSIONS.accessPermissionUserList);
@@ -139,6 +317,27 @@ export function createAccessRoute(
         params: userIdParams,
         response: { 200: grantsResponse },
         detail: { tags: ['Access'], summary: 'List a user permissions' },
+      },
+    )
+    .post(
+      '/api/v1/access/users/:userId/permissions/apply-group',
+      ({ params, body, identity, request, requirePermissions }) => {
+        requirePermissions(PERMISSIONS.accessPermissionUserCreate);
+        return service.applyGroupToUser(
+          params.userId,
+          body.groupId,
+          actorFromIdentity(identity),
+          accessCorrelation(request),
+        );
+      },
+      {
+        params: groupUserParams,
+        body: userApplyGroupBody,
+        response: { 200: groupApplyResponse },
+        detail: {
+          tags: ['Access'],
+          summary: 'Apply a permission group to a user',
+        },
       },
     )
     .post(

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessPermissionsByIdResponses, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1AuthPasskeysByIdResponses, DeleteApiV1UsersByIdData, DeleteApiV1UsersByIdResponses, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsByIdResponses, GetApiV1AccessPermissionsData, GetApiV1AccessPermissionsResponses, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1AccessUsersByUserIdPermissionsResponses, GetApiV1Auth2FaStatusData, GetApiV1Auth2FaStatusResponses, GetApiV1AuthAdminUsersById2FaData, GetApiV1AuthAdminUsersById2FaResponses, GetApiV1AuthPasskeysData, GetApiV1AuthPasskeysResponses, GetApiV1AuthSessionData, GetApiV1AuthSessionResponses, GetApiV1AuthStatusData, GetApiV1AuthStatusResponses, GetApiV1AuthVerifyData, GetApiV1JobsByIdData, GetApiV1JobsByIdResponses, GetApiV1JobsData, GetApiV1JobsResponses, GetApiV1JobsSummaryData, GetApiV1JobsSummaryResponses, GetApiV1LogsAccessLogsData, GetApiV1LogsAccessLogsResponses, GetApiV1LogsApplicationLogsData, GetApiV1LogsApplicationLogsResponses, GetApiV1LogsAuditTrailsData, GetApiV1LogsAuditTrailsResponses, GetApiV1NotificationsData, GetApiV1NotificationsPreferencesData, GetApiV1NotificationsPreferencesResponses, GetApiV1NotificationsResponses, GetApiV1NotificationsUnreadCountData, GetApiV1NotificationsUnreadCountResponses, GetApiV1ObservabilityAlertsByRuleIdData, GetApiV1ObservabilityAlertsByRuleIdResponses, GetApiV1ObservabilityAlertsData, GetApiV1ObservabilityAlertsResponses, GetApiV1ObservabilityBenchmarksBaselinesData, GetApiV1ObservabilityBenchmarksBaselinesResponses, GetApiV1ObservabilityBenchmarksRunsByRunIdData, GetApiV1ObservabilityBenchmarksRunsByRunIdResponses, GetApiV1ObservabilityBenchmarksRunsData, GetApiV1ObservabilityBenchmarksRunsResponses, GetApiV1ObservabilityMetricsData, GetApiV1ObservabilityMetricsResponses, GetApiV1ObservabilityTracesByTraceIdData, GetApiV1ObservabilityTracesByTraceIdResponses, GetApiV1ObservabilityTracesData, GetApiV1ObservabilityTracesResponses, GetApiV1UsersByIdData, GetApiV1UsersByIdResponses, GetApiV1UsersData, GetApiV1UsersResponses, GetApiV1UsersStatusData, GetApiV1UsersStatusResponses, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1AuthPasskeysByIdResponses, PatchApiV1NotificationsByIdReadData, PatchApiV1NotificationsByIdReadResponses, PatchApiV1NotificationsPreferencesByCategoryByChannelData, PatchApiV1NotificationsPreferencesByCategoryByChannelResponses, PatchApiV1UsersByIdData, PatchApiV1UsersByIdResponses, PostApiV1AccessPermissionsData, PostApiV1AccessPermissionsResponses, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsCopyResponses, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1AccessUsersByUserIdPermissionsResponses, PostApiV1Auth2FaDisableData, PostApiV1Auth2FaDisableResponses, PostApiV1Auth2FaEnrollConfirmData, PostApiV1Auth2FaEnrollConfirmResponses, PostApiV1Auth2FaEnrollData, PostApiV1Auth2FaEnrollResponses, PostApiV1Auth2FaRecoveryCodesData, PostApiV1Auth2FaRecoveryCodesResponses, PostApiV1Auth2FaVerifyData, PostApiV1Auth2FaVerifyResponses, PostApiV1AuthAdminUsersById2FaResetData, PostApiV1AuthAdminUsersById2FaResetResponses, PostApiV1AuthLogoutData, PostApiV1AuthLogoutResponses, PostApiV1AuthMagicLinkData, PostApiV1AuthMagicLinkResponses, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginOptionsResponses, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyLoginVerifyResponses, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterOptionsResponses, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1AuthPasskeyRegisterVerifyResponses, PostApiV1JobsByIdRetryData, PostApiV1JobsByIdRetryResponses, PostApiV1NotificationsReadAllData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdBlockResponses, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdRestoreResponses, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdSuspendResponses, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnblockResponses, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersByIdUnsuspendResponses, PostApiV1UsersData, PostApiV1UsersResponses, PutApiV1AccessPermissionsByIdData, PutApiV1AccessPermissionsByIdResponses, PutApiV1UsersById2FaRequirementData, PutApiV1UsersById2FaRequirementResponses } from './types.gen';
+import type { DeleteApiV1AccessGroupsByIdData, DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdData, DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdResponses, DeleteApiV1AccessGroupsByIdResponses, DeleteApiV1AccessPermissionsByIdData, DeleteApiV1AccessPermissionsByIdResponses, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdData, DeleteApiV1AccessUsersByUserIdPermissionsByPermissionIdResponses, DeleteApiV1AuthPasskeysByIdData, DeleteApiV1AuthPasskeysByIdResponses, DeleteApiV1UsersByIdData, DeleteApiV1UsersByIdResponses, GetApiV1AccessGroupsByIdData, GetApiV1AccessGroupsByIdPermissionsData, GetApiV1AccessGroupsByIdPermissionsResponses, GetApiV1AccessGroupsByIdResponses, GetApiV1AccessGroupsData, GetApiV1AccessGroupsResponses, GetApiV1AccessPermissionsByIdData, GetApiV1AccessPermissionsByIdResponses, GetApiV1AccessPermissionsData, GetApiV1AccessPermissionsResponses, GetApiV1AccessUsersByUserIdPermissionsData, GetApiV1AccessUsersByUserIdPermissionsResponses, GetApiV1Auth2FaStatusData, GetApiV1Auth2FaStatusResponses, GetApiV1AuthAdminUsersById2FaData, GetApiV1AuthAdminUsersById2FaResponses, GetApiV1AuthPasskeysData, GetApiV1AuthPasskeysResponses, GetApiV1AuthSessionData, GetApiV1AuthSessionResponses, GetApiV1AuthStatusData, GetApiV1AuthStatusResponses, GetApiV1AuthVerifyData, GetApiV1JobsByIdData, GetApiV1JobsByIdResponses, GetApiV1JobsData, GetApiV1JobsResponses, GetApiV1JobsSummaryData, GetApiV1JobsSummaryResponses, GetApiV1LogsAccessLogsData, GetApiV1LogsAccessLogsResponses, GetApiV1LogsApplicationLogsData, GetApiV1LogsApplicationLogsResponses, GetApiV1LogsAuditTrailsData, GetApiV1LogsAuditTrailsResponses, GetApiV1NotificationsData, GetApiV1NotificationsPreferencesData, GetApiV1NotificationsPreferencesResponses, GetApiV1NotificationsResponses, GetApiV1NotificationsUnreadCountData, GetApiV1NotificationsUnreadCountResponses, GetApiV1ObservabilityAlertsByRuleIdData, GetApiV1ObservabilityAlertsByRuleIdResponses, GetApiV1ObservabilityAlertsData, GetApiV1ObservabilityAlertsResponses, GetApiV1ObservabilityBenchmarksBaselinesData, GetApiV1ObservabilityBenchmarksBaselinesResponses, GetApiV1ObservabilityBenchmarksRunsByRunIdData, GetApiV1ObservabilityBenchmarksRunsByRunIdResponses, GetApiV1ObservabilityBenchmarksRunsData, GetApiV1ObservabilityBenchmarksRunsResponses, GetApiV1ObservabilityMetricsData, GetApiV1ObservabilityMetricsResponses, GetApiV1ObservabilityTracesByTraceIdData, GetApiV1ObservabilityTracesByTraceIdResponses, GetApiV1ObservabilityTracesData, GetApiV1ObservabilityTracesResponses, GetApiV1UsersByIdData, GetApiV1UsersByIdResponses, GetApiV1UsersData, GetApiV1UsersResponses, GetApiV1UsersStatusData, GetApiV1UsersStatusResponses, GetHealthData, GetHealthResponses, PatchApiV1AuthPasskeysByIdData, PatchApiV1AuthPasskeysByIdResponses, PatchApiV1NotificationsByIdReadData, PatchApiV1NotificationsByIdReadResponses, PatchApiV1NotificationsPreferencesByCategoryByChannelData, PatchApiV1NotificationsPreferencesByCategoryByChannelResponses, PatchApiV1UsersByIdData, PatchApiV1UsersByIdResponses, PostApiV1AccessGroupsByIdApplyData, PostApiV1AccessGroupsByIdApplyResponses, PostApiV1AccessGroupsByIdPermissionsData, PostApiV1AccessGroupsByIdPermissionsResponses, PostApiV1AccessGroupsByIdRestoreData, PostApiV1AccessGroupsByIdRestoreResponses, PostApiV1AccessGroupsData, PostApiV1AccessGroupsResponses, PostApiV1AccessPermissionsData, PostApiV1AccessPermissionsResponses, PostApiV1AccessUsersByUserIdPermissionsApplyGroupData, PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses, PostApiV1AccessUsersByUserIdPermissionsCopyData, PostApiV1AccessUsersByUserIdPermissionsCopyResponses, PostApiV1AccessUsersByUserIdPermissionsData, PostApiV1AccessUsersByUserIdPermissionsResponses, PostApiV1Auth2FaDisableData, PostApiV1Auth2FaDisableResponses, PostApiV1Auth2FaEnrollConfirmData, PostApiV1Auth2FaEnrollConfirmResponses, PostApiV1Auth2FaEnrollData, PostApiV1Auth2FaEnrollResponses, PostApiV1Auth2FaRecoveryCodesData, PostApiV1Auth2FaRecoveryCodesResponses, PostApiV1Auth2FaVerifyData, PostApiV1Auth2FaVerifyResponses, PostApiV1AuthAdminUsersById2FaResetData, PostApiV1AuthAdminUsersById2FaResetResponses, PostApiV1AuthLogoutData, PostApiV1AuthLogoutResponses, PostApiV1AuthMagicLinkData, PostApiV1AuthMagicLinkResponses, PostApiV1AuthPasskeyLoginOptionsData, PostApiV1AuthPasskeyLoginOptionsResponses, PostApiV1AuthPasskeyLoginVerifyData, PostApiV1AuthPasskeyLoginVerifyResponses, PostApiV1AuthPasskeyRegisterOptionsData, PostApiV1AuthPasskeyRegisterOptionsResponses, PostApiV1AuthPasskeyRegisterVerifyData, PostApiV1AuthPasskeyRegisterVerifyResponses, PostApiV1JobsByIdRetryData, PostApiV1JobsByIdRetryResponses, PostApiV1NotificationsReadAllData, PostApiV1UsersByIdBlockData, PostApiV1UsersByIdBlockResponses, PostApiV1UsersByIdRestoreData, PostApiV1UsersByIdRestoreResponses, PostApiV1UsersByIdSuspendData, PostApiV1UsersByIdSuspendResponses, PostApiV1UsersByIdUnblockData, PostApiV1UsersByIdUnblockResponses, PostApiV1UsersByIdUnsuspendData, PostApiV1UsersByIdUnsuspendResponses, PostApiV1UsersData, PostApiV1UsersResponses, PutApiV1AccessGroupsByIdData, PutApiV1AccessGroupsByIdResponses, PutApiV1AccessPermissionsByIdData, PutApiV1AccessPermissionsByIdResponses, PutApiV1UsersById2FaRequirementData, PutApiV1UsersById2FaRequirementResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -468,6 +468,84 @@ export const putApiV1AccessPermissionsById = <ThrowOnError extends boolean = fal
 });
 
 /**
+ * List permission groups
+ */
+export const getApiV1AccessGroups = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1AccessGroupsData, ThrowOnError>): RequestResult<GetApiV1AccessGroupsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiV1AccessGroupsResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups', ...options });
+
+/**
+ * Create a permission group
+ */
+export const postApiV1AccessGroups = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessGroupsData, ThrowOnError>): RequestResult<PostApiV1AccessGroupsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessGroupsResponses, unknown, ThrowOnError>({
+    url: '/api/v1/access/groups',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Soft delete a permission group
+ */
+export const deleteApiV1AccessGroupsById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessGroupsByIdData, ThrowOnError>): RequestResult<DeleteApiV1AccessGroupsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1AccessGroupsByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups/{id}', ...options });
+
+/**
+ * Read a permission group
+ */
+export const getApiV1AccessGroupsById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessGroupsByIdData, ThrowOnError>): RequestResult<GetApiV1AccessGroupsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AccessGroupsByIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups/{id}', ...options });
+
+/**
+ * Update a permission group
+ */
+export const putApiV1AccessGroupsById = <ThrowOnError extends boolean = false>(options: Options<PutApiV1AccessGroupsByIdData, ThrowOnError>): RequestResult<PutApiV1AccessGroupsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutApiV1AccessGroupsByIdResponses, unknown, ThrowOnError>({
+    url: '/api/v1/access/groups/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Restore a permission group
+ */
+export const postApiV1AccessGroupsByIdRestore = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessGroupsByIdRestoreData, ThrowOnError>): RequestResult<PostApiV1AccessGroupsByIdRestoreResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessGroupsByIdRestoreResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups/{id}/restore', ...options });
+
+/**
+ * List group permissions
+ */
+export const getApiV1AccessGroupsByIdPermissions = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessGroupsByIdPermissionsData, ThrowOnError>): RequestResult<GetApiV1AccessGroupsByIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AccessGroupsByIdPermissionsResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups/{id}/permissions', ...options });
+
+/**
+ * Attach permissions to a group
+ */
+export const postApiV1AccessGroupsByIdPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessGroupsByIdPermissionsData, ThrowOnError>): RequestResult<PostApiV1AccessGroupsByIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessGroupsByIdPermissionsResponses, unknown, ThrowOnError>({
+    url: '/api/v1/access/groups/{id}/permissions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detach a permission from a group
+ */
+export const deleteApiV1AccessGroupsByIdPermissionsByPermissionId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdData, ThrowOnError>): RequestResult<DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdResponses, unknown, ThrowOnError>({ url: '/api/v1/access/groups/{id}/permissions/{permissionId}', ...options });
+
+/**
+ * Apply a permission group to users
+ */
+export const postApiV1AccessGroupsByIdApply = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessGroupsByIdApplyData, ThrowOnError>): RequestResult<PostApiV1AccessGroupsByIdApplyResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessGroupsByIdApplyResponses, unknown, ThrowOnError>({
+    url: '/api/v1/access/groups/{id}/apply',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List a user permissions
  */
 export const getApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<GetApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<GetApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError>({ url: '/api/v1/access/users/{userId}/permissions', ...options });
@@ -477,6 +555,18 @@ export const getApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends bool
  */
 export const postApiV1AccessUsersByUserIdPermissions = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsData, ThrowOnError>): RequestResult<PostApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessUsersByUserIdPermissionsResponses, unknown, ThrowOnError>({
     url: '/api/v1/access/users/{userId}/permissions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Apply a permission group to a user
+ */
+export const postApiV1AccessUsersByUserIdPermissionsApplyGroup = <ThrowOnError extends boolean = false>(options: Options<PostApiV1AccessUsersByUserIdPermissionsApplyGroupData, ThrowOnError>): RequestResult<PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses, unknown, ThrowOnError>({
+    url: '/api/v1/access/users/{userId}/permissions/apply-group',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -97,10 +97,19 @@ export const routes: Routes = [
   },
   {
     path: 'permission/group',
-    title: 'MONOBUNGSYA · Group',
-    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessPermissionList)],
+    title: 'MONOBUNGSYA · Permission Groups',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessGroupList)],
     loadComponent: () =>
       import('../pages/access/groups/groups.page').then((m) => m.GroupsPage),
+  },
+  {
+    path: 'permission/group/:id',
+    title: 'MONOBUNGSYA · Permission Group',
+    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessGroupRead)],
+    loadComponent: () =>
+      import('../pages/access/groups/group-detail.page').then(
+        (m) => m.GroupDetailPage,
+      ),
   },
   {
     path: 'notifications',

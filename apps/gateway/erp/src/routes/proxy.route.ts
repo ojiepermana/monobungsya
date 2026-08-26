@@ -28,8 +28,22 @@ import type { Telemetry } from '#project/telemetry';
 import {
   grantMutationResponse,
   grantsResponse,
+  groupApplyBody,
+  groupApplyResponse,
+  groupAttachBody,
+  groupBulkApplyResponse,
+  groupCreateBody,
+  groupIdParams,
+  groupListQuery,
+  groupListResponse,
+  groupMutationResponse,
+  groupPermissionsResponse,
+  groupResponse,
+  groupUpdateBody,
+  groupUserParams,
   permissionListResponse,
   permissionResponse,
+  userApplyGroupBody,
 } from '../../../../services/access/src/modules/access/access.schema';
 import {
   authStatusResponse,
@@ -1697,6 +1711,218 @@ export function createProxyRoute(
       },
     )
     .get(
+      '/api/v1/access/groups',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessGroupList],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupListResponse },
+        query: groupListQuery,
+        detail: { tags: ['Access'], summary: 'List permission groups' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessGroupCreate],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupResponse },
+        body: groupCreateBody,
+        detail: { tags: ['Access'], summary: 'Create a permission group' },
+      },
+    )
+    .get(
+      '/api/v1/access/groups/:id',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessGroupRead],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupResponse },
+        params: groupIdParams,
+        detail: { tags: ['Access'], summary: 'Read a permission group' },
+      },
+    )
+    .put(
+      '/api/v1/access/groups/:id',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessGroupUpdate],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupResponse },
+        params: groupIdParams,
+        body: groupUpdateBody,
+        detail: { tags: ['Access'], summary: 'Update a permission group' },
+      },
+    )
+    .delete(
+      '/api/v1/access/groups/:id',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessGroupDelete],
+          permissionCache,
+        ),
+      {
+        response: { 204: t.Void() },
+        params: groupIdParams,
+        detail: { tags: ['Access'], summary: 'Soft delete a permission group' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/restore',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessGroupRestore],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupResponse },
+        params: groupIdParams,
+        detail: { tags: ['Access'], summary: 'Restore a permission group' },
+      },
+    )
+    .get(
+      '/api/v1/access/groups/:id/permissions',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionGroupList],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupPermissionsResponse },
+        params: groupIdParams,
+        detail: { tags: ['Access'], summary: 'List group permissions' },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/permissions',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionGroupCreate],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupMutationResponse },
+        params: groupIdParams,
+        body: groupAttachBody,
+        detail: { tags: ['Access'], summary: 'Attach permissions to a group' },
+      },
+    )
+    .delete(
+      '/api/v1/access/groups/:id/permissions/:permissionId',
+      ({ request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          undefined,
+          [PERMISSIONS.accessPermissionGroupDelete],
+          permissionCache,
+        ),
+      {
+        response: { 204: t.Void() },
+        params: t.Object({
+          id: t.String({ format: 'uuid' }),
+          permissionId: t.String({ format: 'uuid' }),
+        }),
+        detail: {
+          tags: ['Access'],
+          summary: 'Detach a permission from a group',
+        },
+      },
+    )
+    .post(
+      '/api/v1/access/groups/:id/apply',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionUserCreate],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupBulkApplyResponse },
+        params: groupIdParams,
+        body: groupApplyBody,
+        detail: {
+          tags: ['Access'],
+          summary: 'Apply a permission group to users',
+        },
+      },
+    )
+    .get(
       '/api/v1/access/users/:userId/permissions',
       ({ request }) =>
         forwardRequest(
@@ -1714,6 +1940,30 @@ export function createProxyRoute(
         response: { 200: grantsResponse },
         params: t.Object({ userId: t.String({ format: 'uuid' }) }),
         detail: { tags: ['Access'], summary: 'List a user permissions' },
+      },
+    )
+    .post(
+      '/api/v1/access/users/:userId/permissions/apply-group',
+      ({ body, request }) =>
+        forwardRequest(
+          request,
+          environment.serviceUrls.access,
+          '/api/v1/access',
+          '/api/v1/access',
+          environment,
+          true,
+          body,
+          [PERMISSIONS.accessPermissionUserCreate],
+          permissionCache,
+        ),
+      {
+        response: { 200: groupApplyResponse },
+        params: groupUserParams,
+        body: userApplyGroupBody,
+        detail: {
+          tags: ['Access'],
+          summary: 'Apply a permission group to a user',
+        },
       },
     )
     .post(

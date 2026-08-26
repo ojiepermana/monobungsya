@@ -1,7 +1,7 @@
 # 0015. Permission group as a reusable grant template
 
 **Date**: 2026-08-26
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

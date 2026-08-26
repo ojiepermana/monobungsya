@@ -1871,6 +1871,282 @@ export type PutApiV1AccessPermissionsByIdResponses = {
 
 export type PutApiV1AccessPermissionsByIdResponse = PutApiV1AccessPermissionsByIdResponses[keyof PutApiV1AccessPermissionsByIdResponses];
 
+export type GetApiV1AccessGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: string;
+        pageSize?: string;
+        search?: string;
+        status?: 'active' | 'off';
+        deleted?: 'exclude' | 'include' | 'only';
+        appliable?: string;
+    };
+    url: '/api/v1/access/groups';
+};
+
+export type GetApiV1AccessGroupsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        data: Array<{
+            id: string;
+            name: string;
+            status: 'active' | 'off';
+            description: string | unknown;
+            permissionCount: string | number;
+            createdAt: string;
+            updatedAt: string;
+            deletedAt: string | unknown;
+        }>;
+        meta: {
+            page: string | number;
+            pageSize: string | number;
+            total: string | number;
+            totalPages: string | number;
+        };
+        filters: {
+            search: string;
+            status: string;
+            deleted: 'exclude' | 'include' | 'only';
+            appliable: boolean;
+        };
+    };
+};
+
+export type GetApiV1AccessGroupsResponse = GetApiV1AccessGroupsResponses[keyof GetApiV1AccessGroupsResponses];
+
+export type PostApiV1AccessGroupsData = {
+    body: {
+        name: string;
+        description?: string | unknown;
+        status?: 'active' | 'off';
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/access/groups';
+};
+
+export type PostApiV1AccessGroupsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        status: 'active' | 'off';
+        description: string | unknown;
+        permissionCount: string | number;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt: string | unknown;
+    };
+};
+
+export type PostApiV1AccessGroupsResponse = PostApiV1AccessGroupsResponses[keyof PostApiV1AccessGroupsResponses];
+
+export type DeleteApiV1AccessGroupsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}';
+};
+
+export type DeleteApiV1AccessGroupsByIdResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
+};
+
+export type GetApiV1AccessGroupsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}';
+};
+
+export type GetApiV1AccessGroupsByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        status: 'active' | 'off';
+        description: string | unknown;
+        permissionCount: string | number;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt: string | unknown;
+    };
+};
+
+export type GetApiV1AccessGroupsByIdResponse = GetApiV1AccessGroupsByIdResponses[keyof GetApiV1AccessGroupsByIdResponses];
+
+export type PutApiV1AccessGroupsByIdData = {
+    body: {
+        name?: string;
+        description?: string | unknown;
+        status?: 'active' | 'off';
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}';
+};
+
+export type PutApiV1AccessGroupsByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        status: 'active' | 'off';
+        description: string | unknown;
+        permissionCount: string | number;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt: string | unknown;
+    };
+};
+
+export type PutApiV1AccessGroupsByIdResponse = PutApiV1AccessGroupsByIdResponses[keyof PutApiV1AccessGroupsByIdResponses];
+
+export type PostApiV1AccessGroupsByIdRestoreData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}/restore';
+};
+
+export type PostApiV1AccessGroupsByIdRestoreResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        status: 'active' | 'off';
+        description: string | unknown;
+        permissionCount: string | number;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt: string | unknown;
+    };
+};
+
+export type PostApiV1AccessGroupsByIdRestoreResponse = PostApiV1AccessGroupsByIdRestoreResponses[keyof PostApiV1AccessGroupsByIdRestoreResponses];
+
+export type GetApiV1AccessGroupsByIdPermissionsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}/permissions';
+};
+
+export type GetApiV1AccessGroupsByIdPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        name: string;
+        code: string;
+        namespace: string;
+        resource: string;
+        action: string;
+        scope: string | unknown;
+        description: string | unknown;
+        grantCount?: string | number;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+};
+
+export type GetApiV1AccessGroupsByIdPermissionsResponse = GetApiV1AccessGroupsByIdPermissionsResponses[keyof GetApiV1AccessGroupsByIdPermissionsResponses];
+
+export type PostApiV1AccessGroupsByIdPermissionsData = {
+    body: {
+        permissionIds: Array<string>;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}/permissions';
+};
+
+export type PostApiV1AccessGroupsByIdPermissionsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        attached: Array<string>;
+        skipped: Array<string>;
+    };
+};
+
+export type PostApiV1AccessGroupsByIdPermissionsResponse = PostApiV1AccessGroupsByIdPermissionsResponses[keyof PostApiV1AccessGroupsByIdPermissionsResponses];
+
+export type DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdData = {
+    body?: never;
+    path: {
+        id: string;
+        permissionId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}/permissions/{permissionId}';
+};
+
+export type DeleteApiV1AccessGroupsByIdPermissionsByPermissionIdResponses = {
+    /**
+     * Response for status 204
+     */
+    204: unknown;
+};
+
+export type PostApiV1AccessGroupsByIdApplyData = {
+    body: {
+        userIds: Array<string>;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/access/groups/{id}/apply';
+};
+
+export type PostApiV1AccessGroupsByIdApplyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        applied: Array<{
+            userId: string;
+            granted: Array<string>;
+            skipped: Array<string>;
+        }>;
+        failed: Array<{
+            userId: string;
+            reason: string;
+        }>;
+    };
+};
+
+export type PostApiV1AccessGroupsByIdApplyResponse = PostApiV1AccessGroupsByIdApplyResponses[keyof PostApiV1AccessGroupsByIdApplyResponses];
+
 export type GetApiV1AccessUsersByUserIdPermissionsData = {
     body?: never;
     path: {
@@ -1929,6 +2205,29 @@ export type PostApiV1AccessUsersByUserIdPermissionsResponses = {
 };
 
 export type PostApiV1AccessUsersByUserIdPermissionsResponse = PostApiV1AccessUsersByUserIdPermissionsResponses[keyof PostApiV1AccessUsersByUserIdPermissionsResponses];
+
+export type PostApiV1AccessUsersByUserIdPermissionsApplyGroupData = {
+    body: {
+        groupId: string;
+    };
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/access/users/{userId}/permissions/apply-group';
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        granted: Array<string>;
+        skipped: Array<string>;
+    };
+};
+
+export type PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponse = PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses[keyof PostApiV1AccessUsersByUserIdPermissionsApplyGroupResponses];
 
 export type PostApiV1AccessUsersByUserIdPermissionsCopyData = {
     body: {

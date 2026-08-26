@@ -102,22 +102,22 @@ export function appNavigationFor(
 
   const accessItems: NavigationItem[] = [];
   if (hasResolvedPermission(permissions, PERMISSIONS.accessPermissionList)) {
-    accessItems.push(
-      {
-        id: 'permissions',
-        type: 'item',
-        title: 'Catalog',
-        icon: 'list_alt',
-        link: '/permission/catalog',
-      },
-      {
-        id: 'groups',
-        type: 'item',
-        title: 'Group',
-        icon: 'group',
-        link: '/permission/group',
-      },
-    );
+    accessItems.push({
+      id: 'permissions',
+      type: 'item',
+      title: 'Catalog',
+      icon: 'list_alt',
+      link: '/permission/catalog',
+    });
+  }
+  if (hasResolvedPermission(permissions, PERMISSIONS.accessGroupList)) {
+    accessItems.push({
+      id: 'groups',
+      type: 'item',
+      title: 'Group',
+      icon: 'group',
+      link: '/permission/group',
+    });
   }
 
   const group = (

@@ -647,4 +647,90 @@ describe('api gateway', () => {
     expect(writeAccess).not.toHaveBeenCalled();
     writeAccess.mockRestore();
   });
+
+  it('AC-11 forwards group requests with the dedicated group permission identity', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let upstreamRequest: Request | undefined;
+    globalThis.fetch = Object.assign(
+      fetchFor(['access:group:list'], (request) => {
+        upstreamRequest = request;
+        return Response.json({
+          data: [],
+          meta: { page: 1, pageSize: 25, total: 0, totalPages: 0 },
+          filters: {
+            search: '',
+            status: '',
+            deleted: 'exclude',
+            appliable: false,
+          },
+        });
+      }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/access/groups?status=active', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+      const identity = readAndVerifyAuthIdentity(
+        upstreamRequest?.headers ?? new Headers(),
+        'GET',
+        '/api/v1/access/groups',
+        SECRET,
+      );
+
+      expect(response.status).toBe(200);
+      expect(upstreamRequest?.url).toBe(
+        'http://access.internal/api/v1/access/groups?status=active',
+      );
+      expect(identity?.permissions).toEqual(['access:group:list']);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('AC-11 denies group requests before reaching access when group permission is missing', async () => {
+    const app = createApp(
+      loadGatewayEnv({
+        NODE_ENV: 'test',
+        PORT: '3000',
+        AUTH_SERVICE_URL: 'http://auth.internal',
+        ACCESS_SERVICE_URL: 'http://access.internal',
+        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
+      }),
+    );
+    const originalFetch = globalThis.fetch;
+    let accessReached = false;
+    globalThis.fetch = Object.assign(
+      fetchFor([], (request) => {
+        accessReached = new URL(request.url).hostname === 'access.internal';
+        return Response.json({ data: [] });
+      }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const response = await app.handle(
+        new Request('http://localhost/api/v1/access/groups', {
+          headers: { cookie: 'project_session=session-value' },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(accessReached).toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
