@@ -1417,7 +1417,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityTraceRead],
           permissionCache,
         ),
       {
@@ -1425,8 +1425,7 @@ export function createProxyRoute(
         response: { 200: tracesResponse },
         detail: {
           tags: ['Observability'],
-          summary:
-            'List runtime traces (requires observability:telemetry:read)',
+          summary: 'List runtime traces (requires observability:trace:read)',
         },
       },
     )
@@ -1441,7 +1440,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityTraceRead],
           permissionCache,
         ),
       {
@@ -1449,8 +1448,7 @@ export function createProxyRoute(
         response: { 200: traceDetailResponse },
         detail: {
           tags: ['Observability'],
-          summary:
-            'Read a runtime trace (requires observability:telemetry:read)',
+          summary: 'Read a runtime trace (requires observability:trace:read)',
         },
       },
     )
@@ -1465,7 +1463,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityMetricRead],
           permissionCache,
         ),
       {
@@ -1473,8 +1471,7 @@ export function createProxyRoute(
         response: { 200: metricsResponse },
         detail: {
           tags: ['Observability'],
-          summary:
-            'Read runtime metrics (requires observability:telemetry:read)',
+          summary: 'Read runtime metrics (requires observability:metric:read)',
         },
       },
     )
@@ -1489,7 +1486,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityBenchmarkRead],
           permissionCache,
         ),
       {
@@ -1512,7 +1509,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityBenchmarkRead],
           permissionCache,
         ),
       {
@@ -1535,7 +1532,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityBenchmarkRead],
           permissionCache,
         ),
       {
@@ -1558,7 +1555,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityAlertRead],
           permissionCache,
         ),
       {
@@ -1581,7 +1578,7 @@ export function createProxyRoute(
           environment,
           true,
           undefined,
-          [PERMISSIONS.observabilityTelemetryRead],
+          [PERMISSIONS.observabilityAlertRead],
           permissionCache,
         ),
       {

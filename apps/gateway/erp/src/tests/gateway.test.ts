@@ -170,11 +170,13 @@ describe('api gateway', () => {
     const originalFetch = globalThis.fetch;
     let upstreamRequest: Request | undefined;
     globalThis.fetch = Object.assign(
-      fetchFor(['observability:telemetry:read'], (request) => {
+      fetchFor(['observability:trace:read'], (request) => {
         upstreamRequest = request;
         return Response.json({
           data: [],
+          prevCursor: null,
           nextCursor: null,
+          options: { services: [], resourceKinds: [], resourceNames: [] },
           completeness: 'complete',
         });
       }),
@@ -194,7 +196,7 @@ describe('api gateway', () => {
         SECRET,
       );
       expect(response.status).toBe(200);
-      expect(identity?.permissions).toEqual(['observability:telemetry:read']);
+      expect(identity?.permissions).toEqual(['observability:trace:read']);
     } finally {
       globalThis.fetch = originalFetch;
     }
