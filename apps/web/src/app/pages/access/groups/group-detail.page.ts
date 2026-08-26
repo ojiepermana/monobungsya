@@ -120,6 +120,7 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
+          <Icon name="group" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <div class="min-w-0">
             <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Permission group</p>
             <h1 class="truncate text-lg font-semibold text-foreground">{{ group()?.name || 'Group detail' }}</h1>
@@ -215,7 +216,7 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
         </PageFilter>
       }
 
-      <PageContent class="grid min-h-0 content-start gap-6">
+      <PageContent class="grid min-h-0 content-start">
         @if (error()) { <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p> }
         @if (loading()) {
           <p class="text-sm text-muted-foreground">Loading permission group...</p>
@@ -229,17 +230,17 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
           } @else if (filteredAttachedPermissions().length === 0) {
             <p class="border border-border bg-card p-5 text-sm text-muted-foreground">No catalog permissions match the active filters.</p>
           } @else {
-            <Table class="min-w-full bg-card">
+            <Table class="min-w-full rounded-base bg-card">
               <caption TableCaption class="sr-only">Attached catalog permissions</caption>
-              <thead TableHeader class="text-sm uppercase text-muted-foreground">
+              <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
                 <tr TableRow>
-                  <th TableHead scope="col">Name</th>
-                  <th TableHead scope="col">Namespace</th>
-                  <th TableHead scope="col">Resource</th>
-                  <th TableHead scope="col">Action</th>
-                  <th TableHead scope="col">Scope</th>
-                  <th TableHead scope="col">Description</th>
-                  <th TableHead scope="col" class="text-right">Actions</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Name</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Namespace</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Resource</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Action</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Scope</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Description</th>
+                  <th TableHead scope="col" class="bg-card text-right shadow-[inset_0_-1px_0_0_var(--color-border)]">Actions</th>
                 </tr>
               </thead>
               <tbody TableBody>
@@ -253,7 +254,7 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
                     <td TableCell class="text-muted-foreground">{{ permission.description || '—' }}</td>
                     <td TableCell class="text-right">
                       @if (canDetach()) {
-                        <button Button variant="outline" size="xs" type="button" [disabled]="busy()" (click)="openRevokeDialog(permission)">Revoke</button>
+                        <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="busy()" (click)="openRevokeDialog(permission)"><Icon name="link_off" [size]="14" aria-hidden="true" />Revoke</button>
                       }
                     </td>
                   </tr>
@@ -336,8 +337,8 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Page {{ permissionsPage() }} of {{ permissionsPageCount() }} · {{ attachedPermissions().length }} catalog permissions</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="permissionsPage() <= 1 || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="permissionsPage() >= permissionsPageCount() || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() + 1)">Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="permissionsPage() <= 1 || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="permissionsPage() >= permissionsPageCount() || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() + 1)">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
         </div>
       </PageFooter>
     </Page>

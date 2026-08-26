@@ -67,6 +67,7 @@ import {
     >
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
+          <Icon name="fingerprint" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Settings</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Passkey</h1>
         </div>
@@ -85,7 +86,7 @@ import {
         }
       </PageHeader>
 
-      <PageContent class="grid min-h-0 content-start gap-6">
+      <PageContent class="grid min-h-0 content-start">
         <section class="grid gap-4 border-b border-border bg-card p-5">
           <div><h2 class="text-base font-semibold">Two factor authentication</h2><p class="mt-1 text-sm text-muted-foreground">Gunakan kode 6 digit dari aplikasi authenticator. Recovery code hanya ditampilkan sekali.</p></div>
           @if (totpStatus(); as status) {
@@ -133,14 +134,14 @@ import {
             Belum ada passkey terdaftar.
           </p>
         } @else {
-          <Table class="min-w-full bg-card">
+          <Table class="min-w-full rounded-base bg-card">
             <caption TableCaption class="sr-only">Daftar passkey</caption>
-              <thead TableHeader class="text-sm uppercase text-muted-foreground">
+              <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
                 <tr TableRow>
-                  <th TableHead scope="col">Nama</th>
-                  <th TableHead scope="col">Dibuat</th>
-                  <th TableHead scope="col">Terakhir dipakai</th>
-                  <th TableHead scope="col" class="text-right">Aksi</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Nama</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Dibuat</th>
+                  <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Terakhir dipakai</th>
+                  <th TableHead scope="col" class="bg-card text-right shadow-[inset_0_-1px_0_0_var(--color-border)]">Aksi</th>
                 </tr>
               </thead>
               <tbody TableBody>
@@ -176,10 +177,12 @@ import {
                     <td TableCell>
                       <div class="flex justify-end gap-2">
                         @if (editingId() === passkey.id) {
-                          <button Button size="xs" type="button" [disabled]="busy()" (click)="saveLabel(passkey)">
+                          <button Button size="xs" type="button" class="gap-1.5" [disabled]="busy()" (click)="saveLabel(passkey)">
+                            <Icon name="save" [size]="14" aria-hidden="true" />
                             Simpan
                           </button>
-                          <button Button size="xs" type="button" variant="outline" (click)="cancelEdit()">
+                          <button Button size="xs" type="button" variant="outline" class="gap-1.5" (click)="cancelEdit()">
+                            <Icon name="close" [size]="14" aria-hidden="true" />
                             Batal
                           </button>
                         } @else {

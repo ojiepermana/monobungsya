@@ -58,19 +58,19 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
-        <div><p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Operations</p><h1 class="text-lg font-semibold text-foreground">Durable jobs</h1></div>
+        <div class="flex items-center gap-3"><Icon name="sync" [size]="18" class="text-primary" aria-hidden="true" /><div><p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Operations</p><h1 class="text-lg font-semibold text-foreground">Durable jobs</h1></div></div>
         <div class="flex shrink-0 justify-end">
           <select NativeSelect class="w-36 text-center pl-10! pr-10!" [value]="status()" (change)="changeStatus($event)">
             @for (option of statuses; track option.value) { <option NativeSelectOption [value]="option.value">{{ option.label }}</option> }
           </select>
         </div>
       </PageHeader>
-      <PageContent class="grid min-h-0 content-start gap-4">
+      <PageContent class="grid min-h-0 content-start">
         @if (error()) { <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p> }
         @if (loading()) { <p class="text-sm text-muted-foreground">Memuat jobs...</p> }
         @else if (rows().length === 0) { <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada job.</p> }
         @else {
-          <Table class="min-w-full bg-card"><caption TableCaption class="sr-only">Daftar durable jobs</caption><thead TableHeader class="text-sm uppercase text-muted-foreground"><tr TableRow><th TableHead scope="col">Jenis</th><th TableHead scope="col">Target</th><th TableHead scope="col">Status</th><th TableHead scope="col">Percobaan</th><th TableHead scope="col">Dibuat</th></tr></thead><tbody TableBody>
+          <Table class="min-w-full rounded-base bg-card"><caption TableCaption class="sr-only">Daftar durable jobs</caption><thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground"><tr TableRow><th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Jenis</th><th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Target</th><th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Status</th><th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Percobaan</th><th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Dibuat</th></tr></thead><tbody TableBody>
             @for (job of rows(); track job.id) { <tr TableRow><td TableCell><a class="font-medium text-foreground underline-offset-4 hover:underline" [routerLink]="['/operations/jobs', job.id]">{{ job.type }} @{{ job.version }}</a></td><td TableCell class="text-muted-foreground">{{ job.sourceService }} → {{ job.targetService }}</td><td TableCell><span>{{ job.status }}</span></td><td TableCell>{{ job.attemptCount }} / {{ job.maxAttempts }}</td><td TableCell class="whitespace-nowrap">{{ formatDate(job.createdAt) }}</td></tr> }
           </tbody></Table>
         }

@@ -48,9 +48,12 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layoutAppearance" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
-        <div>
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
-          <h1 class="text-lg font-semibold text-foreground">Notifikasi</h1>
+        <div class="flex items-center gap-3">
+          <Icon name="notifications" [size]="18" class="text-primary" aria-hidden="true" />
+          <div>
+            <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
+            <h1 class="text-lg font-semibold text-foreground">Notifikasi</h1>
+          </div>
         </div>
         <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading()" (click)="markAllRead()">
           <Icon name="done_all" [size]="14" aria-hidden="true" />
@@ -58,7 +61,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
         </button>
       </PageHeader>
 
-      <PageContent class="grid min-h-0 content-start gap-3">
+      <PageContent class="grid min-h-0 content-start">
         <div class="flex flex-wrap items-center gap-3 border-b border-border px-3 py-4">
           <select NativeSelect [value]="category()" (change)="changeCategory($event)">
             @for (option of categoryOptions; track option.value) { <option NativeSelectOption [value]="option.value">{{ option.label }}</option> }

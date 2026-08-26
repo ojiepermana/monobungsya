@@ -130,6 +130,7 @@ interface DraftUser {
     >
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
+          <Icon name="admin_panel_settings" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Users</p>
           <h1 class="truncate text-lg font-semibold text-foreground">User Management</h1>
         </div>
@@ -174,7 +175,7 @@ interface DraftUser {
         </button>
       </PageFilter>
 
-      <PageContent class="grid min-h-0 content-start gap-6">
+      <PageContent class="grid min-h-0 content-start">
         @if (error()) {
           <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
         }
@@ -184,15 +185,15 @@ interface DraftUser {
         } @else if (rows().length === 0) {
           <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada user yang cocok.</p>
         } @else {
-          <Table class="min-w-full bg-card">
+          <Table class="min-w-full rounded-base bg-card">
             <caption TableCaption class="sr-only">Daftar user</caption>
-            <thead TableHeader class="text-sm uppercase text-muted-foreground">
+            <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
               <tr TableRow>
-                <th TableHead scope="col">Nama</th>
-                <th TableHead scope="col">Email</th>
-                <th TableHead scope="col">Status</th>
-                <th TableHead scope="col">Dibuat</th>
-                <th TableHead scope="col" class="text-right">Aksi</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Nama</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Email</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Status</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Dibuat</th>
+                <th TableHead scope="col" class="bg-card text-right shadow-[inset_0_-1px_0_0_var(--color-border)]">Aksi</th>
               </tr>
             </thead>
             <tbody TableBody>
@@ -211,7 +212,8 @@ interface DraftUser {
                   <td TableCell>
                     <div class="flex flex-wrap justify-end gap-2">
                       @if (user.status !== 'deleted') {
-                        <button Button size="xs" variant="outline" type="button" (click)="openEdit(user)">
+                        <button Button size="xs" variant="outline" type="button" class="gap-1.5" (click)="openEdit(user)">
+                          <Icon name="edit" [size]="14" aria-hidden="true" />
                           Ubah
                         </button>
                       }
@@ -221,8 +223,10 @@ interface DraftUser {
                           size="xs"
                           type="button"
                           [variant]="action.destructive ? 'destructive' : 'outline'"
+                          class="gap-1.5"
                           (click)="askFor(user, action)"
                         >
+                          <Icon [name]="statusActionIcon(action.action)" [size]="14" aria-hidden="true" />
                           {{ action.label }}
                         </button>
                       }
@@ -311,6 +315,17 @@ export class UsersPage {
 
   protected readonly statusFilters = STATUS_FILTER_LABELS;
   protected readonly actionsFor = actionsFor;
+
+  protected statusActionIcon(action: StatusActionMeta['action']): string {
+    return {
+      suspend: 'pause_circle',
+      unsuspend: 'play_circle',
+      block: 'block',
+      unblock: 'lock_open',
+      delete: 'delete',
+      restore: 'restore',
+    }[action];
+  }
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);

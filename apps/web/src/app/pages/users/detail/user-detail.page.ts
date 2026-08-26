@@ -202,7 +202,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Audit trail user</caption>
-                <thead TableHeader class="text-sm uppercase text-muted-foreground">
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Action</th>
@@ -239,7 +239,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Access log user</caption>
-                <thead TableHeader class="text-sm uppercase text-muted-foreground">
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Event</th>
@@ -267,7 +267,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             } @else {
               <Table class="min-w-full bg-card">
                 <caption TableCaption class="sr-only">Application log user</caption>
-                <thead TableHeader class="text-sm uppercase text-muted-foreground">
+                <thead TableHeader class="text-xs uppercase text-muted-foreground">
                   <tr TableRow>
                     <th TableHead scope="col">Waktu</th>
                     <th TableHead scope="col">Level</th>

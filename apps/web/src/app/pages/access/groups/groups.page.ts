@@ -95,6 +95,7 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
     >
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
+          <Icon name="group" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Permission groups</h1>
         </div>
@@ -130,7 +131,7 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
         <button Button variant="outline" size="xs" type="button" [disabled]="!hasFilters()" (click)="clearFilters()">Clear filters</button>
       </PageFilter>
 
-      <PageContent class="grid min-h-0 content-start gap-6">
+      <PageContent class="grid min-h-0 content-start">
         @if (error()) {
           <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p>
         }
@@ -142,16 +143,16 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
             <p class="mt-1 text-sm text-muted-foreground">Create a group or adjust the filters to see available templates.</p>
           </div>
         } @else {
-          <Table class="min-w-full bg-card">
+          <Table class="min-w-full rounded-base bg-card">
             <caption TableCaption class="sr-only">Permission groups</caption>
-            <thead TableHeader class="text-sm uppercase text-muted-foreground">
+            <thead TableHeader class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
               <tr TableRow>
-                <th TableHead scope="col">Name</th>
-                <th TableHead scope="col">Status</th>
-                <th TableHead scope="col">Permissions</th>
-                <th TableHead scope="col">Description</th>
-                <th TableHead scope="col">Updated</th>
-                <th TableHead scope="col" class="text-right">Actions</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Name</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Status</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Permissions</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Description</th>
+                <th TableHead scope="col" class="bg-card shadow-[inset_0_-1px_0_0_var(--color-border)]">Updated</th>
+                <th TableHead scope="col" class="bg-card text-right shadow-[inset_0_-1px_0_0_var(--color-border)]">Actions</th>
               </tr>
             </thead>
             <tbody TableBody>
@@ -167,11 +168,11 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
                   <td TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDate(group.updatedAt) }}</td>
                   <td TableCell>
                     <div class="flex flex-wrap justify-end gap-2">
-                      <a Button variant="outline" size="xs" [routerLink]="['/permission/group', group.id]">Open</a>
+                      <a Button variant="outline" size="xs" class="gap-1.5" [routerLink]="['/permission/group', group.id]"><Icon name="open_in_new" [size]="14" aria-hidden="true" />Open</a>
                       @if (group.deletedAt) {
-                        <button Button size="xs" type="button" [disabled]="busyId() === group.id" (click)="restore(group)">{{ busyId() === group.id ? 'Restoring...' : 'Restore' }}</button>
+                        <button Button size="xs" type="button" class="gap-1.5" [disabled]="busyId() === group.id" (click)="restore(group)"><Icon name="restore" [size]="14" aria-hidden="true" />{{ busyId() === group.id ? 'Restoring...' : 'Restore' }}</button>
                       } @else {
-                        <button Button variant="destructive" size="xs" type="button" [disabled]="busyId() === group.id" (click)="remove(group)">{{ busyId() === group.id ? 'Deleting...' : 'Delete' }}</button>
+                        <button Button variant="destructive" size="xs" type="button" class="gap-1.5" [disabled]="busyId() === group.id" (click)="remove(group)"><Icon name="delete" [size]="14" aria-hidden="true" />{{ busyId() === group.id ? 'Deleting...' : 'Delete' }}</button>
                       }
                     </div>
                   </td>
@@ -214,8 +215,8 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Page {{ meta().page }} of {{ pageCount() }} · {{ meta().total }} groups</p>
         <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)">Previous</button>
-          <button Button variant="outline" size="xs" type="button" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
         </div>
       </PageFooter>
     </Page>

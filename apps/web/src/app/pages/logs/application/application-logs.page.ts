@@ -49,6 +49,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
     <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
+          <Icon name="terminal" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Logs</p>
           <h1 class="truncate text-lg font-semibold text-foreground">Application Logs</h1>
         </div>
@@ -98,7 +99,7 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
         </button>
       </PageFilter>
 
-      <PageContent class="grid min-h-0 content-start gap-6 overflow-auto">
+      <PageContent class="grid min-h-0 content-start overflow-auto">
 
       @if (error()) {
         <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{{ error() }}</p>
@@ -109,15 +110,14 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
       } @else if (rows().length === 0) {
         <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log.</p>
       } @else {
-        <div class="overflow-auto">
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-border text-sm uppercase text-muted-foreground">
+          <table class="min-w-full rounded-base bg-card text-left text-sm">
+            <thead class="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
               <tr>
-                <th class="px-4 py-3">Time</th>
-                <th class="px-4 py-3">Level</th>
-                <th class="px-4 py-3">Event</th>
-                <th class="px-4 py-3">Message</th>
-                <th class="px-4 py-3">Actor</th>
+                <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Time</th>
+                <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Level</th>
+                <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Event</th>
+                <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Message</th>
+                <th class="bg-card px-4 py-3 shadow-[inset_0_-1px_0_0_var(--color-border)]">Actor</th>
               </tr>
             </thead>
             <tbody>
@@ -137,7 +137,6 @@ const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
               }
             </tbody>
           </table>
-        </div>
       }
 
       </PageContent>
