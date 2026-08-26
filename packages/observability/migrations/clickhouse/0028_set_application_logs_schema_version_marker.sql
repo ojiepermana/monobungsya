@@ -1,0 +1,1 @@
+ALTER TABLE observability.application_logs MODIFY COMMENT 'project_observability_schema_version=1'

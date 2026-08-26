@@ -3,6 +3,7 @@ import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
+  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
@@ -10,6 +11,7 @@ import {
 import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
+import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import { type AccessEnvironment, loadAccessEnv } from './config/env';
 import { createAccessRoute } from './modules/access/access.route';
@@ -19,6 +21,7 @@ export interface AccessAppOptions {
   messaging?: Publisher;
   jobs?: JobRegistry;
   durableJobsEnabled?: boolean;
+  signalStore?: ObservabilitySignalStore;
   telemetry?: TelemetryRuntime;
 }
 
@@ -62,6 +65,13 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check access health' },
       },
+    )
+    .use(
+      createObservabilityStorageHealthRoute({
+        signalStore: options.signalStore,
+        signingSecret: accessEnvironment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: accessEnvironment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
     )
     .use(
       createAccessRoute({

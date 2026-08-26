@@ -225,6 +225,41 @@ describe('workflow progress analysis', () => {
     expect(report.drifts.some((drift) => drift.code === 'D008')).toBe(true);
   });
 
+  it('keeps a completed feature valid when its governing spec is superseded', () => {
+    const root = makeHealthyRepo();
+    writeFixture(
+      root,
+      'docs/specs/0001-feature/index.md',
+      healthySpec({ status: 'Superseded' }),
+    );
+
+    expect(
+      analyzeRepository(root).drifts.some((drift) => drift.code === 'D012'),
+    ).toBe(false);
+  });
+
+  it('rejects an active feature whose governing spec is superseded', () => {
+    const root = makeHealthyRepo();
+    writeFixture(
+      root,
+      'docs/scope/scope.md',
+      healthyScope({
+        tableStatus: 'in-progress',
+        headingStatus: 'in-progress',
+        testChecked: false,
+      }).replace('- [x] Verify it', '- [ ] Verify it'),
+    );
+    writeFixture(
+      root,
+      'docs/specs/0001-feature/index.md',
+      healthySpec({ status: 'Superseded' }),
+    );
+
+    expect(
+      analyzeRepository(root).drifts.some((drift) => drift.code === 'D012'),
+    ).toBe(true);
+  });
+
   it('maps a child spec pointer to its umbrella status and verification plan', () => {
     const root = makeHealthyRepo();
     writeFixture(

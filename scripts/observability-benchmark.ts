@@ -1,6 +1,7 @@
 import { cpus, totalmem } from 'node:os';
 import { v7 as uuidv7 } from 'uuid';
 import type { DatabaseClient } from '#project/database';
+import { createPostgresObservabilitySignalStore } from '#project/observability';
 import {
   BENCHMARK_SCHEMA_VERSION,
   type BenchmarkBaseline,
@@ -601,10 +602,11 @@ for (const operation of scenario.operations) {
     serviceName: 'benchmark-driver',
     serviceInstanceId: `benchmark-driver-${operation}`,
     enabled: true,
-    database: benchmarkDatabase(),
+    signalStore: createPostgresObservabilitySignalStore({
+      telemetryDatabase: benchmarkDatabase(),
+      maxItems: Math.max(2_000, (warmup + iterations) * batchSize * 2),
+    }),
     successSampleRate: benchmarkSuccessSampleRate,
-    queueCapacity: Math.max(2_000, (warmup + iterations) * batchSize * 2),
-    priorityCapacity: Math.max(500, (warmup + iterations) * batchSize),
   });
   const uninstrumentedRuntime = new TelemetryRuntime({
     serviceName: 'benchmark-driver',
@@ -663,10 +665,11 @@ if (scenario.kind === 'throughput' && Bun.env.BENCHMARK_HTTP_URL?.trim()) {
       serviceName: 'benchmark-driver',
       serviceInstanceId: `benchmark-throughput-${concurrency}`,
       enabled: true,
-      database: benchmarkDatabase(),
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: benchmarkDatabase(),
+        maxItems: Math.max(2_000, (warmup + iterations) * concurrency * 2),
+      }),
       successSampleRate: benchmarkSuccessSampleRate,
-      queueCapacity: Math.max(2_000, (warmup + iterations) * concurrency * 2),
-      priorityCapacity: Math.max(500, (warmup + iterations) * concurrency),
     });
     const operation = inBenchmarkContext(
       runtime,

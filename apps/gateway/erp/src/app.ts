@@ -4,12 +4,14 @@ import {
   createAccessLogPlugin,
   createErrorHandler,
   createLoggerPlugin,
+  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
+import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import type { GatewayEnvironment } from './config/env';
 import { loadGatewayEnv } from './config/env';
@@ -17,6 +19,7 @@ import { createProxyRoute } from './routes/proxy.route';
 
 export interface GatewayAppOptions {
   messaging?: Subscriber;
+  signalStore?: ObservabilitySignalStore;
   telemetry?: TelemetryRuntime;
 }
 
@@ -81,6 +84,13 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check gateway health' },
       },
+    )
+    .use(
+      createObservabilityStorageHealthRoute({
+        signalStore: options.signalStore,
+        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
     )
     .use(createProxyRoute(environment, options));
 }

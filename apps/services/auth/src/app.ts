@@ -3,11 +3,13 @@ import type { AppEnvironment } from '#project/config';
 import {
   createErrorHandler,
   createLoggerPlugin,
+  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
+import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import { loadAuthEnv } from './config/env';
 import {
@@ -24,6 +26,7 @@ export function createApp(
   authOptions: AuthRouteOptions = {},
   passkeyOptions: PasskeyRouteOptions = {},
   telemetry?: TelemetryRuntime,
+  signalStore?: ObservabilitySignalStore,
 ) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
     persist: environment.BEST_EFFORT_LOGGING_ENABLED,
@@ -58,6 +61,13 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check service health' },
       },
+    )
+    .use(
+      createObservabilityStorageHealthRoute({
+        signalStore,
+        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
     )
     .use(createAuthRoute(environment.serviceName, authOptions))
     .use(

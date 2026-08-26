@@ -1,6 +1,7 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
 import { ActivityLog } from '#project/logger';
 import { tryConnectMessaging } from '#project/messaging';
+import { createRuntimeObservabilitySignalStore } from '#project/observability';
 import { TelemetryRuntime } from '#project/telemetry';
 import { createApp } from './app';
 import { env } from './config/env';
@@ -12,14 +13,20 @@ const telemetryDatabase =
   env.TELEMETRY_ENABLED && env.ENABLE_INFRASTRUCTURE
     ? createDatabaseClient(env.TELEMETRY_DATABASE_URL)
     : undefined;
+const observabilityDatabase = env.ENABLE_INFRASTRUCTURE
+  ? createDatabaseClient(env.OBSERVABILITY_DATABASE_URL)
+  : undefined;
+const signalStore = await createRuntimeObservabilitySignalStore({
+  environment: env,
+  logsDatabase: logDatabase,
+  telemetryDatabase,
+  controlDatabase: observabilityDatabase,
+});
 const telemetry = env.TELEMETRY_ENABLED
   ? new TelemetryRuntime({
       serviceName: env.serviceName,
       serviceInstanceId: env.serviceInstanceId,
-      database: telemetryDatabase,
-      queueCapacity: env.TELEMETRY_QUEUE_CAPACITY,
-      priorityCapacity: env.TELEMETRY_PRIORITY_CAPACITY,
-      batchSize: env.TELEMETRY_BATCH_SIZE,
+      signalStore,
       flushIntervalMs: env.TELEMETRY_FLUSH_INTERVAL_MS,
       slowThresholdMs: env.TELEMETRY_SLOW_THRESHOLD_MS,
       successSampleRate: env.TELEMETRY_SUCCESS_SAMPLE_RATE,
@@ -27,6 +34,7 @@ const telemetry = env.TELEMETRY_ENABLED
   : undefined;
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
+  signalStore,
 });
 
 const messaging = env.ENABLE_INFRASTRUCTURE
@@ -42,7 +50,7 @@ const messaging = env.ENABLE_INFRASTRUCTURE
       telemetry,
     )
   : undefined;
-const app = createApp(env, { messaging, telemetry });
+const app = createApp(env, { messaging, signalStore, telemetry });
 const server = app.listen(env.PORT);
 
 console.log(
@@ -58,9 +66,11 @@ async function shutdown(signal: string): Promise<void> {
   await server.stop();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   await telemetry?.shutdown(env.TELEMETRY_FLUSH_TIMEOUT_MS);
+  if (!telemetry) await signalStore?.shutdown(env.LOG_FLUSH_TIMEOUT_MS);
   await messaging?.close();
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (telemetryDatabase) await closeDatabaseClient(telemetryDatabase);
+  if (observabilityDatabase) await closeDatabaseClient(observabilityDatabase);
 }
 
 process.on('SIGINT', () => void shutdown('SIGINT').then(() => process.exit(0)));

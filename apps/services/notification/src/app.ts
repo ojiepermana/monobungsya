@@ -3,11 +3,13 @@ import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
+  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
+import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import type { NotificationEnvironment } from './config/env';
 import { createNotificationRoute } from './modules/notification/notification.route';
@@ -16,6 +18,7 @@ export function createApp(
   environment: NotificationEnvironment,
   database?: DatabaseClient,
   telemetry?: TelemetryRuntime,
+  signalStore?: ObservabilitySignalStore,
 ) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
     persist: environment.BEST_EFFORT_LOGGING_ENABLED,
@@ -59,6 +62,13 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check notification readiness' },
       },
+    )
+    .use(
+      createObservabilityStorageHealthRoute({
+        signalStore,
+        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
+        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
+      }),
     )
     .use(
       database

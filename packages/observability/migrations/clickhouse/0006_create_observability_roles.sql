@@ -1,0 +1,1 @@
+CREATE ROLE IF NOT EXISTS project_observability_migrator, project_observability_writer, project_observability_readiness, project_observability_reader, project_observability_operator

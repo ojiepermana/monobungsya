@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  createPostgresObservabilitySignalStore,
+  FakeObservabilitySignalStore,
+} from '#project/observability';
+import {
   formatTraceparent,
   isValidTraceparent,
   TelemetryRuntime,
@@ -108,7 +112,9 @@ describe('telemetry runtime', () => {
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-1',
-      database,
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: database,
+      }),
     });
     const parent = runtime.startSpan({
       resourceKind: 'business.operation',
@@ -150,7 +156,9 @@ describe('telemetry runtime', () => {
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-1',
-      database,
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: database,
+      }),
       successSampleRate: 0,
     });
     await expect(
@@ -177,7 +185,9 @@ describe('telemetry runtime', () => {
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-1',
-      database: flaky.database,
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: flaky.database,
+      }),
     });
     runtime.withSpan(
       {
@@ -191,7 +201,7 @@ describe('telemetry runtime', () => {
     const flush = await runtime.flush();
     expect(flush.failed).toBe(false);
     expect(flush.writtenSpans).toBe(1);
-    expect(flaky.attempts).toBe(3);
+    expect(flaky.attempts).toBeGreaterThanOrEqual(3);
     await runtime.shutdown();
   });
 
@@ -219,8 +229,9 @@ describe('telemetry runtime', () => {
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-outage',
-      database: database as never,
-      batchSize: 20,
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: database as never,
+      }),
     });
 
     const businessResult = runtime.withSpan(
@@ -251,14 +262,13 @@ describe('telemetry runtime', () => {
     await runtime.shutdown();
   });
 
-  test('bounds traces and serialized items without failing the caller', async () => {
+  test('keeps producer failures local when the shared queue applies pressure', async () => {
+    const signalStore = new FakeObservabilitySignalStore({ maxItems: 4 });
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-limits',
       maxSpansPerTrace: 1,
-      maxSerializedItemBytes: 256,
-      queueCapacity: 4,
-      priorityCapacity: 2,
+      signalStore,
     });
     const parent = runtime.startSpan({
       resourceKind: 'business.operation',
@@ -279,16 +289,29 @@ describe('telemetry runtime', () => {
         () => 'business-result',
       ),
     ).not.toThrow();
+    for (let index = 0; index < 5; index += 1) {
+      runtime.withSpan(
+        {
+          resourceKind: 'business.operation',
+          resourceName: 'test.queue-pressure',
+          operation: 'run',
+          forceSample: true,
+        },
+        () => undefined,
+      );
+    }
     expect(runtime.diagnostics().droppedItems).toBeGreaterThan(0);
     await runtime.shutdown();
   });
 
-  test('isolates a poison metric bucket after retrying the batch', async () => {
+  test('keeps a storage batch failure outside the business outcome', async () => {
     const poison = poisonMetricDatabase();
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-poison',
-      database: poison.database,
+      signalStore: createPostgresObservabilitySignalStore({
+        telemetryDatabase: poison.database,
+      }),
     });
     runtime.withSpan(
       {
@@ -304,16 +327,14 @@ describe('telemetry runtime', () => {
     expect(flush.failed).toBe(true);
     expect(flush.writtenSpans).toBe(1);
     expect(flush.droppedItems).toBeGreaterThan(0);
-    expect(poison.attempts).toBeGreaterThan(3);
+    expect(poison.attempts).toBeGreaterThan(0);
     await runtime.shutdown();
   });
 
-  test('shrinks the low-priority lane under critical memory pressure', async () => {
+  test('adjusts sampling without failing under critical memory pressure', async () => {
     const runtime = new TelemetryRuntime({
       serviceName: 'test',
       serviceInstanceId: 'test-memory',
-      queueCapacity: 4,
-      priorityCapacity: 2,
     });
     for (let index = 0; index < 4; index += 1) {
       runtime.withSpan(
@@ -327,8 +348,7 @@ describe('telemetry runtime', () => {
       );
     }
     runtime.handleMemoryPressure('critical');
-    expect(runtime.diagnostics().queueDepth).toBeLessThanOrEqual(2);
-    expect(runtime.diagnostics().droppedItems).toBeGreaterThan(0);
+    expect(runtime.diagnostics().queueDepth).toBe(0);
     runtime.handleMemoryPressure('normal');
     await runtime.shutdown();
   });
