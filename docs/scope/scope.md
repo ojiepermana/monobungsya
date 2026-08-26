@@ -254,14 +254,14 @@ Split the single tabbed `/observability` page into six standalone pages on the s
 **Done when:** Every signal has its own address with its own permission gate, trace and benchmark and alert details are linkable routes, the list endpoints page both ways through `prevCursor` and fill their filter dropdowns from an `options` block, missing metric buckets never render as zero, and a session holding only one signal permission sees and reaches only that signal.
 
 - [x] Design it (spec): `/architect observability pages per signal`
-- [ ] Build it: `/develop observability pages per signal`
-  - [ ] Thin thread: migration `0038` copying then retiring the old grant, `packages/acl` constants, per signal gates across the gateway and the logs service, `anyPermissionGuard`, and the Traces page end to end with URL state and a cursor footer (AC-1, AC-2, AC-4, AC-11, AC-12, AC-18)
-  - [ ] The four remaining list pages plus migration `0039`, two way cursors, baseline pagination, and the `options` blocks (AC-3, AC-5, AC-6, AC-8, AC-9, AC-10, AC-13)
-  - [ ] Three detail routes, including the time scaled trace waterfall with orphan and partial handling (AC-7, AC-14)
-  - [ ] Overview with four permission gated cards and the metric line chart that breaks its line over missing buckets (AC-15, AC-16, AC-17)
-  - [ ] Cleanup and proof: old page removed, client regenerated, e2e widened to nine routes, AXE sweep (AC-19, AC-20)
-- [ ] Verify it: `/check verify observability pages per signal`
-- [ ] Test it: `/test observability pages per signal`
+- [x] Build it: `/develop observability pages per signal`
+  - [x] Thin thread: migration `0038` copying then retiring the old grant, `packages/acl` constants, per signal gates across the gateway and the logs service, `anyPermissionGuard`, and the Traces page end to end with URL state and a cursor footer (AC-1, AC-2, AC-4, AC-11, AC-12, AC-18)
+  - [x] The four remaining list pages plus migration `0039`, two way cursors, baseline pagination, and the `options` blocks (AC-3, AC-5, AC-6, AC-8, AC-9, AC-10, AC-13)
+  - [x] Three detail routes, including the time scaled trace waterfall with orphan and partial handling (AC-7, AC-14)
+  - [x] Overview with four permission gated cards and the metric line chart that breaks its line over missing buckets (AC-15, AC-16, AC-17)
+  - [x] Cleanup and proof: old page removed, client regenerated, e2e widened to nine routes, AXE sweep (AC-19, AC-20)
+- [x] Verify it: `/check verify observability pages per signal` (passed 2026-08-26; browser matrix and AXE green; full web suite retains three unrelated permission-group failures)
+- [x] Test it: `/test observability pages per signal` (backend gate 281/281 and focused observability/nav Angular tests 11/11; full web suite retains three unrelated permission-group failures)
 
 Spec [0016](../specs/0016-observability-per-signal-pages/index.md) · code in `packages/database`, `packages/acl`, `apps/services/logs`, `apps/gateway/erp`, and `apps/web`
 
