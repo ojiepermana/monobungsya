@@ -106,6 +106,7 @@ export function appNavigationFor(
       title: 'Overview',
       icon: 'monitor_heart',
       link: '/observability',
+      exactMatch: true,
     });
   }
   if (hasResolvedPermission(permissions, PERMISSIONS.observabilityTraceRead)) {

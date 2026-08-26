@@ -94,6 +94,17 @@ describe('application navigation authorization', () => {
     );
     expect(ids).not.toContain('observability-alerts');
   });
+
+  it('only activates observability Overview on its exact route', () => {
+    const overview = appNavigationFor([PERMISSIONS.observabilityMetricRead])
+      .flatMap((item) => item.children ?? [])
+      .find((item) => item.id === 'observability-overview');
+
+    expect(overview).toMatchObject({
+      link: '/observability',
+      exactMatch: true,
+    });
+  });
 });
 
 function navigationIds(items: readonly NavigationItem[]): string[] {
