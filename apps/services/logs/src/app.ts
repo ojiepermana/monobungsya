@@ -70,9 +70,21 @@ export function createApp(
         (pathname) =>
           pathname === '/internal/observability/benchmark-ingestions'
             ? null
-            : pathname.startsWith('/internal/observability/')
-              ? PERMISSIONS.observabilityTelemetryRead
-              : PERMISSIONS.logsLogRead,
+            : pathname === '/internal/observability/traces' ||
+                pathname.startsWith('/internal/observability/traces/')
+              ? PERMISSIONS.observabilityTraceRead
+              : pathname === '/internal/observability/metrics'
+                ? PERMISSIONS.observabilityMetricRead
+                : pathname === '/internal/observability/benchmarks/runs' ||
+                    pathname.startsWith(
+                      '/internal/observability/benchmarks/runs/',
+                    ) ||
+                    pathname === '/internal/observability/benchmarks/baselines'
+                  ? PERMISSIONS.observabilityBenchmarkRead
+                  : pathname === '/internal/observability/alerts' ||
+                      pathname.startsWith('/internal/observability/alerts/')
+                    ? PERMISSIONS.observabilityAlertRead
+                    : PERMISSIONS.logsLogRead,
         (pathname) =>
           pathname === '/internal/observability/benchmark-ingestions',
       ),

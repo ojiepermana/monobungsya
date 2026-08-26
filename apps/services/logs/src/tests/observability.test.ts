@@ -35,7 +35,9 @@ describe('observability read surface', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       data: [],
+      prevCursor: null,
       nextCursor: null,
+      options: { services: [], resourceKinds: [], resourceNames: [] },
       completeness: 'partial',
       storageStatus: 'blind_spot',
     });
@@ -170,20 +172,15 @@ describe('observability read surface', () => {
     const secret = 'observability-signing-secret';
     const app = createApp(testEnv({ INTERNAL_AUTH_SIGNING_SECRET: secret }));
     const expiresAt = new Date(Date.now() + 60_000).toISOString();
-    const request = (permissions: string[]) => {
+    const request = (path: string, permissions: string[]) => {
       const identity = {
         userId: '0198f8a0-0000-7000-8000-000000000001',
         email: 'operator@project.local',
         permissions,
         expiresAt,
       };
-      const signature = signAuthIdentity(
-        'GET',
-        '/internal/observability/traces',
-        identity,
-        secret,
-      );
-      return new Request('http://localhost/internal/observability/traces', {
+      const signature = signAuthIdentity('GET', path, identity, secret);
+      return new Request(`http://localhost${path}`, {
         headers: {
           'x-auth-user-id': identity.userId,
           'x-auth-email': identity.email,
@@ -194,10 +191,40 @@ describe('observability read surface', () => {
       });
     };
 
-    expect((await app.handle(request(['logs:log:read']))).status).toBe(403);
     expect(
-      (await app.handle(request(['observability:telemetry:read']))).status,
+      (
+        await app.handle(
+          request('/internal/observability/traces', ['logs:log:read']),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await app.handle(
+          request('/internal/observability/traces', [
+            'observability:trace:read',
+          ]),
+        )
+      ).status,
     ).toBe(200);
+    expect(
+      (
+        await app.handle(
+          request('/internal/observability/alerts', [
+            'observability:alert:read',
+          ]),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await app.handle(
+          request('/internal/observability/traces', [
+            'observability:alert:read',
+          ]),
+        )
+      ).status,
+    ).toBe(403);
   });
 });
 
@@ -235,12 +262,15 @@ describe('observability repository', () => {
 
     expect(result.items[0]?.traceId).toBe('a'.repeat(32));
     expect(result.items[0]?.durationMs).toBe(100);
-    expect(queries[0]?.text).toContain('started_at >= $1');
-    expect(queries[0]?.text).toContain(
+    const traceQuery = queries.find((query) =>
+      query.text.includes('GROUP BY trace_id'),
+    );
+    expect(traceQuery?.text).toContain('started_at >= $1');
+    expect(traceQuery?.text).toContain(
       '(array_agg(run_id ORDER BY started_at DESC NULLS LAST))[1]::text AS run_id',
     );
-    expect(queries[0]?.text).not.toContain('max(run_id)');
-    expect(queries[0]?.params[0]).toEqual(new Date('2026-08-25T09:00:00.000Z'));
+    expect(traceQuery?.text).not.toContain('max(run_id)');
+    expect(traceQuery?.params[0]).toEqual(new Date('2026-08-25T09:00:00.000Z'));
   });
 
   it('filters alert scope and paginates with the mixed sort direction', async () => {
@@ -287,12 +317,15 @@ describe('observability repository', () => {
       severity: 'critical',
     });
     expect(result.nextCursor).toBeNull();
-    expect(queries[0]?.text).toContain('rules.severity = $1');
-    expect(queries[0]?.text).toContain('state.service_name = $2');
-    expect(queries[0]?.text).toContain('state.last_evaluated_at < $3');
-    expect(queries[0]?.text).toContain('state.rule_id > $4');
-    expect(queries[0]?.text).toContain('state.series_fingerprint > $5');
-    expect(queries[0]?.params).toEqual([
+    const alertQuery = queries.find((query) =>
+      query.text.includes('state.last_evaluated_at'),
+    );
+    expect(alertQuery?.text).toContain('rules.severity = $1');
+    expect(alertQuery?.text).toContain('state.service_name = $2');
+    expect(alertQuery?.text).toContain('state.last_evaluated_at < $3');
+    expect(alertQuery?.text).toContain('state.rule_id > $4');
+    expect(alertQuery?.text).toContain('state.series_fingerprint > $5');
+    expect(alertQuery?.params).toEqual([
       'critical',
       'jobs',
       '2026-08-25 10:05:00.000',
@@ -300,5 +333,21 @@ describe('observability repository', () => {
       'c'.repeat(64),
       51,
     ]);
+  });
+
+  it('rejects a valid-looking cursor when its boundary has disappeared', async () => {
+    const { database } = fakeDatabase(() => []);
+    const repository = new ObservabilityRepository(database);
+    const cursor = Buffer.from(
+      `next|2026-08-25 10:00:00.000|${'a'.repeat(32)}`,
+    ).toString('base64');
+
+    await expect(
+      repository.listTraces({
+        from: new Date('2026-08-25T09:00:00.000Z'),
+        to: new Date('2026-08-25T11:00:00.000Z'),
+        cursor,
+      }),
+    ).rejects.toThrow('cursor has expired');
   });
 });

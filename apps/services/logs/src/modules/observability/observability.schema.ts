@@ -39,7 +39,13 @@ const traceSummary = t.Object({
 
 export const tracesResponse = t.Object({
   data: t.Array(traceSummary),
+  prevCursor: nullableString,
   nextCursor: nullableString,
+  options: t.Object({
+    services: t.Array(t.String()),
+    resourceKinds: t.Array(t.String()),
+    resourceNames: t.Array(t.String()),
+  }),
   completeness: t.Union([t.Literal('complete'), t.Literal('partial')]),
   storageStatus,
 });
@@ -122,6 +128,11 @@ export const metricsResponse = t.Object({
     missingBuckets: t.Integer(),
     storageStatus,
   }),
+  options: t.Object({
+    metrics: t.Array(t.String()),
+    services: t.Array(t.String()),
+    resourceKinds: t.Array(t.String()),
+  }),
 });
 
 export const benchmarkRunsQuery = t.Object({
@@ -150,7 +161,13 @@ const benchmarkRunSummary = t.Object({
 
 export const benchmarkRunsResponse = t.Object({
   data: t.Array(benchmarkRunSummary),
+  prevCursor: nullableString,
   nextCursor: nullableString,
+  options: t.Object({
+    scenarioIds: t.Array(t.String()),
+    statuses: t.Array(t.String()),
+    bunVersions: t.Array(t.String()),
+  }),
   storageStatus,
 });
 
@@ -199,6 +216,7 @@ export const benchmarkBaselinesQuery = t.Object({
   scenarioVersion: t.Optional(t.String({ maxLength: 50 })),
   fixtureVersion: t.Optional(t.String({ maxLength: 100 })),
   environment: t.Optional(t.String({ maxLength: 50 })),
+  cursor: t.Optional(t.String({ maxLength: 512 })),
 });
 
 export const benchmarkBaselinesResponse = t.Object({
@@ -217,6 +235,13 @@ export const benchmarkBaselinesResponse = t.Object({
       promotedAt: t.String(),
     }),
   ),
+  prevCursor: nullableString,
+  nextCursor: nullableString,
+  options: t.Object({
+    scenarioIds: t.Array(t.String()),
+    environments: t.Array(t.String()),
+    fixtureVersions: t.Array(t.String()),
+  }),
   storageStatus,
 });
 
@@ -267,7 +292,12 @@ const alertState = t.Object({
 
 export const alertsResponse = t.Object({
   data: t.Array(alertState),
+  prevCursor: nullableString,
   nextCursor: nullableString,
+  options: t.Object({
+    ruleIds: t.Array(t.String()),
+    services: t.Array(t.String()),
+  }),
   storageStatus,
 });
 export const alertParams = t.Object({ ruleId: t.String({ maxLength: 120 }) });

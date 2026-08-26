@@ -29,7 +29,13 @@ export interface TraceSummary {
 
 export interface TraceListResult {
   data: TraceSummary[];
+  prevCursor: string | null;
   nextCursor: string | null;
+  options: {
+    services: string[];
+    resourceKinds: string[];
+    resourceNames: string[];
+  };
   completeness: 'complete' | 'partial';
   storageStatus: 'available' | 'blind_spot';
 }
@@ -106,6 +112,11 @@ export interface MetricsResult {
     missingBuckets: number;
     storageStatus: 'available' | 'blind_spot';
   };
+  options: {
+    metrics: string[];
+    services: string[];
+    resourceKinds: string[];
+  };
 }
 
 export interface BenchmarkRunQuery {
@@ -163,7 +174,13 @@ export interface BenchmarkRunDetail extends BenchmarkRunSummary {
 
 export interface BenchmarkRunsResult {
   data: BenchmarkRunSummary[];
+  prevCursor: string | null;
   nextCursor: string | null;
+  options: {
+    scenarioIds: string[];
+    statuses: string[];
+    bunVersions: string[];
+  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -172,6 +189,7 @@ export interface BenchmarkBaselineQuery {
   scenarioVersion?: string;
   fixtureVersion?: string;
   environment?: string;
+  cursor?: string;
 }
 
 export interface BenchmarkBaselineSummary {
@@ -190,6 +208,13 @@ export interface BenchmarkBaselineSummary {
 
 export interface BenchmarkBaselinesResult {
   data: BenchmarkBaselineSummary[];
+  prevCursor: string | null;
+  nextCursor: string | null;
+  options: {
+    scenarioIds: string[];
+    environments: string[];
+    fixtureVersions: string[];
+  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -228,7 +253,12 @@ export interface AlertStateSummary {
 
 export interface AlertsResult {
   data: AlertStateSummary[];
+  prevCursor: string | null;
   nextCursor: string | null;
+  options: {
+    ruleIds: string[];
+    services: string[];
+  };
   storageStatus: 'available' | 'blind_spot';
 }
 
