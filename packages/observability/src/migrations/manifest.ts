@@ -23,3 +23,18 @@ export interface ClickHouseVersionManifest {
 
 export const CLICKHOUSE_VERSION_MANIFEST =
   manifest as ClickHouseVersionManifest;
+
+const CLICKHOUSE_VERSION_PATTERN = /^(\d+)\.\d+\.\d+(?:\.\d+)?$/;
+
+function majorVersion(version: string): string | null {
+  return version.match(CLICKHOUSE_VERSION_PATTERN)?.[1] ?? null;
+}
+
+export function isCompatibleClickHouseVersion(
+  actualVersion: string,
+  expectedVersion: string = CLICKHOUSE_VERSION_MANIFEST.serverVersion,
+): boolean {
+  const actualMajor = majorVersion(actualVersion);
+  const expectedMajor = majorVersion(expectedVersion);
+  return actualMajor !== null && actualMajor === expectedMajor;
+}

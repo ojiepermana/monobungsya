@@ -67,7 +67,10 @@ export {
   discoverClickHouseMigrations,
   parseClickHouseMigrations,
 } from './migrations/discovery';
-export { CLICKHOUSE_VERSION_MANIFEST } from './migrations/manifest';
+export {
+  CLICKHOUSE_VERSION_MANIFEST,
+  isCompatibleClickHouseVersion,
+} from './migrations/manifest';
 export {
   assertClickHouseMigrationTargetStable,
   type ClickHouseMigrationRunnerOptions,

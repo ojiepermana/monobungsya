@@ -2,6 +2,12 @@ import { stat } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { join, resolve } from 'node:path';
 import { SQL } from 'bun';
+import {
+  CLICKHOUSE_VERSION_MANIFEST,
+  ClickHouseClient,
+  SignalDeliveryError,
+  verifyClickHouseSignalSchema,
+} from '#project/observability';
 
 type PackageJson = {
   packageManager?: string;
@@ -370,6 +376,7 @@ function checkHttpEnvironment(): void {
 
 async function checkDatabase(
   connectionString: string,
+  schemas: readonly string[] = DATABASE_SCHEMAS,
 ): Promise<Set<string> | undefined> {
   let database: SQL | undefined;
   try {
@@ -377,13 +384,193 @@ async function checkDatabase(
     const rows = (await database`
       SELECT schema_name
       FROM information_schema.schemata
-      WHERE schema_name = ANY(${database.array(DATABASE_SCHEMAS, 'text')})
+      WHERE schema_name = ANY(${database.array(schemas, 'text')})
     `) as Array<{ schema_name: string }>;
     return new Set(rows.map((row) => row.schema_name));
   } catch {
     return undefined;
   } finally {
     await database?.close({ timeout: 1 }).catch(() => undefined);
+  }
+}
+
+function booleanSetting(name: string, fallback: boolean): boolean {
+  const configured = Bun.env[name];
+  if (configured === undefined) return fallback;
+  if (configured !== 'true' && configured !== 'false') {
+    fail(`${name} must be exactly true or false`);
+    return fallback;
+  }
+  return configured === 'true';
+}
+
+async function checkDatabaseTarget(
+  name: string,
+  connectionString: string,
+  schemas: readonly string[],
+): Promise<boolean> {
+  const parsed = parseUrl(name, connectionString, ['postgres:', 'postgresql:']);
+  if (!parsed) return false;
+
+  const availableSchemas = await checkDatabase(connectionString, schemas);
+  if (!availableSchemas) {
+    fail(`${name} PostgreSQL is unreachable at ${endpointLabel(parsed)}`);
+    return false;
+  }
+
+  const missingSchemas = schemas.filter(
+    (schema) => !availableSchemas.has(schema),
+  );
+  if (missingSchemas.length > 0) {
+    fail(`${name} PostgreSQL is missing schemas: ${missingSchemas.join(', ')}`);
+    return false;
+  }
+
+  pass(
+    `${name} PostgreSQL is reachable at ${endpointLabel(parsed)} (${schemas.join(', ')} schema)`,
+  );
+  return true;
+}
+
+async function checkClickHouse(): Promise<void> {
+  const writeMode = value('OBSERVABILITY_SIGNAL_WRITE_MODE', 'postgres');
+  const readMode = value('OBSERVABILITY_SIGNAL_READ_MODE', 'postgres');
+  const validMode =
+    (writeMode === 'postgres' && readMode === 'postgres') ||
+    (writeMode === 'dual' &&
+      (readMode === 'postgres' || readMode === 'clickhouse')) ||
+    (writeMode === 'clickhouse' && readMode === 'clickhouse');
+  if (!validMode) {
+    fail(`Invalid observability signal storage mode: ${writeMode}/${readMode}`);
+    return;
+  }
+
+  const usesWriter = writeMode === 'dual' || writeMode === 'clickhouse';
+  const usesReader = readMode === 'clickhouse';
+  if (!usesWriter && !usesReader) {
+    info(
+      'ClickHouse Signal storage is disabled; using PostgreSQL postgres/postgres',
+    );
+    return;
+  }
+
+  const rawUrl = value('CLICKHOUSE_URL');
+  const clickHouseUrl = parseUrl('CLICKHOUSE_URL', rawUrl, ['http:', 'https:']);
+  if (!clickHouseUrl) return;
+  if (clickHouseUrl.username || clickHouseUrl.password) {
+    fail('CLICKHOUSE_URL must not contain username or password');
+    return;
+  }
+
+  const requiredCredentials = [
+    ...(usesWriter
+      ? [
+          'CLICKHOUSE_WRITER_USERNAME',
+          'CLICKHOUSE_WRITER_PASSWORD',
+          'CLICKHOUSE_READINESS_USERNAME',
+          'CLICKHOUSE_READINESS_PASSWORD',
+        ]
+      : []),
+    ...(usesReader
+      ? ['CLICKHOUSE_READER_USERNAME', 'CLICKHOUSE_READER_PASSWORD']
+      : []),
+  ];
+  const missingCredentials = requiredCredentials.filter((name) => !value(name));
+  if (missingCredentials.length > 0) {
+    fail(
+      `ClickHouse credentials are missing: ${missingCredentials.join(', ')}`,
+    );
+    return;
+  }
+
+  const migratorUsername = value('CLICKHOUSE_MIGRATOR_USERNAME');
+  const migratorPassword = value('CLICKHOUSE_MIGRATOR_PASSWORD');
+  if (Boolean(migratorUsername) !== Boolean(migratorPassword)) {
+    fail(
+      'CLICKHOUSE_MIGRATOR_USERNAME and CLICKHOUSE_MIGRATOR_PASSWORD must be configured together',
+    );
+    return;
+  }
+
+  const identityNames = [
+    'CLICKHOUSE_WRITER_USERNAME',
+    'CLICKHOUSE_READINESS_USERNAME',
+    'CLICKHOUSE_READER_USERNAME',
+    'CLICKHOUSE_MIGRATOR_USERNAME',
+  ];
+  const identities = identityNames
+    .map((name) => value(name))
+    .filter((identity): identity is string => Boolean(identity));
+  if (new Set(identities).size !== identities.length) {
+    fail(
+      'ClickHouse writer, readiness, reader, and migrator credentials must use separate identities',
+    );
+    return;
+  }
+
+  const caFile = value('CLICKHOUSE_TLS_CA_FILE');
+  if (caFile && clickHouseUrl.protocol !== 'https:') {
+    fail('CLICKHOUSE_TLS_CA_FILE requires an HTTPS CLICKHOUSE_URL');
+    return;
+  }
+  if (caFile && !(await pathExists(resolve(ROOT, caFile)))) {
+    fail(`CLICKHOUSE_TLS_CA_FILE does not exist: ${caFile}`);
+    return;
+  }
+
+  const requestTimeoutMs = Number(
+    value('CLICKHOUSE_REQUEST_TIMEOUT_MS', '5000'),
+  );
+  if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1) {
+    fail('CLICKHOUSE_REQUEST_TIMEOUT_MS must be a positive integer');
+    return;
+  }
+
+  const readiness = await verifyClickHouseSignalSchema(
+    new ClickHouseClient({
+      url: clickHouseUrl.toString(),
+      username: value('CLICKHOUSE_READINESS_USERNAME') ?? '',
+      password: value('CLICKHOUSE_READINESS_PASSWORD') ?? '',
+      requestTimeoutMs,
+      tlsCaFile: caFile,
+    }),
+    {
+      expectedServerVersion: CLICKHOUSE_VERSION_MANIFEST.serverVersion,
+      schemaVersion: CLICKHOUSE_VERSION_MANIFEST.schema.maximum,
+    },
+  );
+  if (!readiness.available) {
+    fail(
+      `ClickHouse Signal readiness failed at ${endpointLabel(clickHouseUrl)}: ${readiness.failureCode ?? 'unknown'}`,
+    );
+    return;
+  }
+
+  pass(
+    `ClickHouse is reachable at ${endpointLabel(clickHouseUrl)} with compatible server ${readiness.serverVersion}`,
+  );
+  pass(
+    `ClickHouse Signal schema and readiness settings are valid (${writeMode}/${readMode})`,
+  );
+
+  if (usesReader) {
+    try {
+      const reader = new ClickHouseClient({
+        url: clickHouseUrl.toString(),
+        username: value('CLICKHOUSE_READER_USERNAME') ?? '',
+        password: value('CLICKHOUSE_READER_PASSWORD') ?? '',
+        requestTimeoutMs,
+        tlsCaFile: caFile,
+      });
+      await reader.queryRows(
+        'SELECT count() AS count FROM observability.spans',
+      );
+      pass('ClickHouse reader identity can read Signal tables');
+    } catch (error) {
+      const reason =
+        error instanceof SignalDeliveryError ? error.code : 'read_failed';
+      fail(`ClickHouse reader identity cannot read Signal tables: ${reason}`);
+    }
   }
 }
 
@@ -481,10 +668,41 @@ async function checkInfrastructure(): Promise<void> {
     return;
   }
 
+  const infrastructureEnabled = infrastructure === 'true';
+  const telemetryEnabled = booleanSetting(
+    'TELEMETRY_ENABLED',
+    infrastructureEnabled,
+  );
+  const durableJobsEnabled = booleanSetting('DURABLE_JOBS_ENABLED', false);
+  const notificationCenterEnabled = booleanSetting(
+    'NOTIFICATION_CENTER_ENABLED',
+    true,
+  );
+  const bestEffortLoggingEnabled = booleanSetting(
+    'BEST_EFFORT_LOGGING_ENABLED',
+    infrastructureEnabled,
+  );
+
+  if (telemetryEnabled) pass('TELEMETRY_ENABLED=true');
+  else info('TELEMETRY_ENABLED=false; telemetry runtime checks are skipped');
+  if (durableJobsEnabled) pass('DURABLE_JOBS_ENABLED=true');
+  else info('DURABLE_JOBS_ENABLED=false; durable worker checks are skipped');
+  if (notificationCenterEnabled) pass('NOTIFICATION_CENTER_ENABLED=true');
+  else info('NOTIFICATION_CENTER_ENABLED=false');
+  if (bestEffortLoggingEnabled) pass('BEST_EFFORT_LOGGING_ENABLED=true');
+  else info('BEST_EFFORT_LOGGING_ENABLED=false');
+
+  await checkClickHouse();
+
   if (infrastructure !== 'true') {
     info(
       'ENABLE_INFRASTRUCTURE=false; PostgreSQL, NATS, and SMTP checks are skipped',
     );
+    if (telemetryEnabled || durableJobsEnabled) {
+      warn(
+        'Telemetry or durable jobs are enabled but infrastructure is disabled; runtime persistence and workers will be unavailable',
+      );
+    }
     return;
   }
 
@@ -506,19 +724,22 @@ async function checkInfrastructure(): Promise<void> {
   }
 
   const databaseString = value('DATABASE_URL') ?? DATABASE_URL_DEFAULT;
+  const requiredSchemas = telemetryEnabled
+    ? DATABASE_SCHEMAS
+    : DATABASE_SCHEMAS.filter((schema) => schema !== 'telemetry');
   const databaseUrl = parseUrl('DATABASE_URL', databaseString, [
     'postgres:',
     'postgresql:',
   ]);
   if (databaseUrl) {
-    const schemas = await checkDatabase(databaseString);
+    const schemas = await checkDatabase(databaseString, requiredSchemas);
     if (!schemas) {
       fail(
         `PostgreSQL is unreachable or rejected the connection at ${endpointLabel(databaseUrl)}`,
       );
     } else {
       pass(`PostgreSQL is reachable at ${endpointLabel(databaseUrl)}`);
-      const missingSchemas = DATABASE_SCHEMAS.filter(
+      const missingSchemas = requiredSchemas.filter(
         (schema) => !schemas.has(schema),
       );
       if (missingSchemas.length > 0) {
@@ -527,40 +748,42 @@ async function checkInfrastructure(): Promise<void> {
         );
       } else {
         pass(`database schemas are migrated: ${DATABASE_SCHEMAS.join(', ')}`);
-        const telemetryTables = await checkTelemetryTables(databaseString);
-        if (!telemetryTables) {
-          fail('PostgreSQL telemetry schema cannot be inspected');
-        } else {
-          const missingTelemetryTables = TELEMETRY_TABLES.filter(
-            (table) => !telemetryTables.has(table),
-          );
-          if (missingTelemetryTables.length > 0) {
-            fail(
-              `PostgreSQL telemetry tables are missing: ${missingTelemetryTables.join(', ')}; run bun run db:migrate -- --service logs`,
-            );
+        if (telemetryEnabled) {
+          const telemetryTables = await checkTelemetryTables(databaseString);
+          if (!telemetryTables) {
+            fail('PostgreSQL telemetry schema cannot be inspected');
           } else {
-            pass(
-              `telemetry tables are migrated: ${TELEMETRY_TABLES.join(', ')}`,
+            const missingTelemetryTables = TELEMETRY_TABLES.filter(
+              (table) => !telemetryTables.has(table),
             );
-            const telemetryPartitions =
-              await checkTelemetryPartitions(databaseString);
-            if (!telemetryPartitions) {
-              fail('PostgreSQL telemetry partitions cannot be inspected');
-            } else if (
-              !telemetryPartitions.spans_partitioned ||
-              !telemetryPartitions.metric_buckets_partitioned ||
-              telemetryPartitions.spans_current_days < 365 ||
-              telemetryPartitions.metric_buckets_current_days < 365 ||
-              !telemetryPartitions.maintenance_function
-            ) {
+            if (missingTelemetryTables.length > 0) {
               fail(
-                'PostgreSQL telemetry daily partitions or maintenance function are incomplete; run bun run db:migrate -- --service logs',
+                `PostgreSQL telemetry tables are missing: ${missingTelemetryTables.join(', ')}; run bun run db:migrate -- --service logs`,
               );
             } else {
               pass(
-                `telemetry daily partitions are ready for the current year (${telemetryPartitions.spans_current_days} spans days, ${telemetryPartitions.metric_buckets_current_days} metric days)`,
+                `telemetry tables are migrated: ${TELEMETRY_TABLES.join(', ')}`,
               );
-              pass('telemetry partition maintenance function is present');
+              const telemetryPartitions =
+                await checkTelemetryPartitions(databaseString);
+              if (!telemetryPartitions) {
+                fail('PostgreSQL telemetry partitions cannot be inspected');
+              } else if (
+                !telemetryPartitions.spans_partitioned ||
+                !telemetryPartitions.metric_buckets_partitioned ||
+                telemetryPartitions.spans_current_days < 365 ||
+                telemetryPartitions.metric_buckets_current_days < 365 ||
+                !telemetryPartitions.maintenance_function
+              ) {
+                fail(
+                  'PostgreSQL telemetry daily partitions or maintenance function are incomplete; run bun run db:migrate -- --service logs',
+                );
+              } else {
+                pass(
+                  `telemetry daily partitions are ready for the current year (${telemetryPartitions.spans_current_days} spans days, ${telemetryPartitions.metric_buckets_current_days} metric days)`,
+                );
+                pass('telemetry partition maintenance function is present');
+              }
             }
           }
         }
@@ -571,13 +794,24 @@ async function checkInfrastructure(): Promise<void> {
   const migrationString = value('DATABASE_MIGRATION_URL');
   if (!migrationString) {
     warn('DATABASE_MIGRATION_URL is missing; bun run db:migrate cannot run');
-  } else if (
-    parseUrl('DATABASE_MIGRATION_URL', migrationString, [
+  } else {
+    const migrationUrl = parseUrl('DATABASE_MIGRATION_URL', migrationString, [
       'postgres:',
       'postgresql:',
-    ])
-  ) {
-    pass('DATABASE_MIGRATION_URL is valid');
+    ]);
+    if (migrationUrl) {
+      if (migrationString === databaseString) {
+        pass(
+          'DATABASE_MIGRATION_URL uses the reachable DATABASE_URL connection',
+        );
+      } else {
+        await checkDatabaseTarget(
+          'DATABASE_MIGRATION_URL',
+          migrationString,
+          requiredSchemas,
+        );
+      }
+    }
   }
 
   const logDatabaseString = value('LOG_DATABASE_URL') || databaseString;
@@ -585,16 +819,61 @@ async function checkInfrastructure(): Promise<void> {
     'postgres:',
     'postgresql:',
   ]);
-  if (logDatabaseUrl && logDatabaseString !== databaseString) {
-    if (await checkDatabase(logDatabaseString)) {
-      pass(
-        `logging PostgreSQL is reachable at ${endpointLabel(logDatabaseUrl)}`,
-      );
-    } else {
-      fail(
-        `logging PostgreSQL is unreachable at ${endpointLabel(logDatabaseUrl)}`,
-      );
-    }
+  if (logDatabaseUrl && logDatabaseString === databaseString) {
+    pass('LOG_DATABASE_URL uses the reachable DATABASE_URL connection');
+  } else if (logDatabaseString !== databaseString) {
+    await checkDatabaseTarget('LOG_DATABASE_URL', logDatabaseString, ['logs']);
+  }
+
+  const telemetryDatabaseString =
+    value('TELEMETRY_DATABASE_URL') || databaseString;
+  if (telemetryEnabled && telemetryDatabaseString === databaseString) {
+    pass('TELEMETRY_DATABASE_URL uses the reachable DATABASE_URL connection');
+  } else if (telemetryEnabled) {
+    await checkDatabaseTarget(
+      'TELEMETRY_DATABASE_URL',
+      telemetryDatabaseString,
+      ['telemetry'],
+    );
+  }
+
+  const observabilityDatabaseString =
+    value('OBSERVABILITY_DATABASE_URL') || telemetryDatabaseString;
+  if (observabilityDatabaseString === databaseString) {
+    pass(
+      'OBSERVABILITY_DATABASE_URL uses the reachable DATABASE_URL connection',
+    );
+  } else if (observabilityDatabaseString !== telemetryDatabaseString) {
+    await checkDatabaseTarget(
+      'OBSERVABILITY_DATABASE_URL',
+      observabilityDatabaseString,
+      ['telemetry'],
+    );
+  } else {
+    pass('OBSERVABILITY_DATABASE_URL uses the telemetry database connection');
+  }
+
+  const jobsDatabaseString = value('JOBS_DATABASE_URL') || databaseString;
+  if (jobsDatabaseString === databaseString) {
+    pass('JOBS_DATABASE_URL uses the reachable DATABASE_URL connection');
+  } else {
+    await checkDatabaseTarget('JOBS_DATABASE_URL', jobsDatabaseString, [
+      'jobs',
+    ]);
+  }
+
+  const notificationDatabaseString =
+    value('NOTIFICATION_DATABASE_URL') || databaseString;
+  if (notificationDatabaseString === databaseString) {
+    pass(
+      'NOTIFICATION_DATABASE_URL uses the reachable DATABASE_URL connection',
+    );
+  } else {
+    await checkDatabaseTarget(
+      'NOTIFICATION_DATABASE_URL',
+      notificationDatabaseString,
+      ['notification'],
+    );
   }
 
   const natsUrl = parseUrl('NATS_URL', value('NATS_URL', NATS_URL_DEFAULT), [

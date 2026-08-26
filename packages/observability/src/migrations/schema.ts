@@ -1,6 +1,9 @@
 import type { ClickHouseClient } from '../clickhouse';
 import { SignalDeliveryError } from '../store';
-import { CLICKHOUSE_VERSION_MANIFEST } from './manifest';
+import {
+  CLICKHOUSE_VERSION_MANIFEST,
+  isCompatibleClickHouseVersion,
+} from './manifest';
 
 interface TableCatalogRow {
   name: string;
@@ -291,7 +294,13 @@ export async function verifyClickHouseSignalSchema(
       'SELECT version() AS version',
     );
     const serverVersion = versions[0]?.version ?? null;
-    if (serverVersion !== options.expectedServerVersion) {
+    if (
+      serverVersion === null ||
+      !isCompatibleClickHouseVersion(
+        serverVersion,
+        options.expectedServerVersion,
+      )
+    ) {
       return unavailable(now, 'clickhouse_version_mismatch', serverVersion);
     }
 

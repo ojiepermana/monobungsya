@@ -96,7 +96,7 @@ bun run dev:access
 bun run dev:jobs
 ```
 
-`bun run doctor` memeriksa versi Bun, dependency, entrypoint dan port seluruh dev stack. Jika `ENABLE_INFRASTRUCTURE=true`, doctor juga memeriksa konfigurasi serta konektivitas PostgreSQL, schema hasil migrasi, NATS, dan SMTP.
+`bun run doctor` memeriksa versi Bun, dependency, entrypoint dan port seluruh dev stack. Doctor juga memvalidasi feature flags, URL database khusus logs/telemetry/jobs/notification, serta mode observability. Jika ClickHouse dipakai, doctor memeriksa konektivitas, versi compatible, schema Signal, readiness settings, dan akses reader; jika `ENABLE_INFRASTRUCTURE=true`, doctor memeriksa schema PostgreSQL, telemetry partitions, NATS, dan SMTP.
 
 `bun run dev` menjalankan seluruh app secara paralel. Untuk development lokal tanpa PostgreSQL dan NATS, biarkan `ENABLE_INFRASTRUCTURE=false`. Koneksi Bun SQL dan NATS dibuat oleh `main.ts` hanya ketika flag tersebut diaktifkan.
 

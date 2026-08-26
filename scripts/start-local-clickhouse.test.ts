@@ -21,12 +21,20 @@ describe('native ClickHouse runner version gate', () => {
     ).toBe('26.3.17.110');
   });
 
-  test('rejects an installed binary that does not match the manifest', () => {
-    expect(() =>
+  test('accepts an installed binary with the supported major version', () => {
+    expect(
       assertPinnedClickHouseVersion(
         'ClickHouse local version 26.8.1.1324 (official build).',
       ),
-    ).toThrow('Pinned ClickHouse 26.3.17.110 is required');
+    ).toBe('26.8.1.1324');
+  });
+
+  test('rejects an installed binary with a different major version', () => {
+    expect(() =>
+      assertPinnedClickHouseVersion(
+        'ClickHouse local version 27.1.0.0 (official build).',
+      ),
+    ).toThrow('ClickHouse major version 26 is required');
   });
 
   test('recognizes the required query log seven day TTL in server DDL', () => {

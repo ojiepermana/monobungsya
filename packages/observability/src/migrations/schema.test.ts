@@ -201,7 +201,7 @@ describe('verifyClickHouseSignalSchema', () => {
     ).resolves.toMatchObject({ available: true });
   });
 
-  test('returns safe disabled readiness when the binary differs', async () => {
+  test('accepts a compatible ClickHouse minor and patch version', async () => {
     await expect(
       verifyClickHouseSignalSchema(
         client(fetchForCatalog({ version: '26.8.1.1324' })),
@@ -212,10 +212,27 @@ describe('verifyClickHouseSignalSchema', () => {
         },
       ),
     ).resolves.toEqual({
-      available: false,
+      available: true,
       checkedAt: NOW.toISOString(),
-      failureCode: 'clickhouse_version_mismatch',
+      failureCode: null,
       serverVersion: '26.8.1.1324',
+    });
+  });
+
+  test('returns safe disabled readiness for a different ClickHouse major version', async () => {
+    await expect(
+      verifyClickHouseSignalSchema(
+        client(fetchForCatalog({ version: '27.1.0.0' })),
+        {
+          expectedServerVersion: '26.3.17.110',
+          schemaVersion: 1,
+          now: () => NOW,
+        },
+      ),
+    ).resolves.toMatchObject({
+      available: false,
+      failureCode: 'clickhouse_version_mismatch',
+      serverVersion: '27.1.0.0',
     });
   });
 

@@ -4,7 +4,10 @@ import {
   type ClickHouseMigration,
   discoverClickHouseMigrations,
 } from './discovery';
-import { CLICKHOUSE_VERSION_MANIFEST } from './manifest';
+import {
+  CLICKHOUSE_VERSION_MANIFEST,
+  isCompatibleClickHouseVersion,
+} from './manifest';
 import { verifyClickHouseSignalSchema } from './schema';
 
 const MIGRATION_LOCK = 'project:observability:clickhouse-migrations:v1';
@@ -153,7 +156,12 @@ export function planClickHouseMigrations(
         `ClickHouse migration checksum drift at version ${version}`,
       );
     }
-    if (row.clickhouse_version !== expectedClickHouseVersion) {
+    if (
+      !isCompatibleClickHouseVersion(
+        row.clickhouse_version,
+        expectedClickHouseVersion,
+      )
+    ) {
       throw new Error(
         `ClickHouse migration binary drift at version ${row.version}`,
       );
@@ -345,7 +353,12 @@ export async function runClickHouseMigrations(
     options.migrations ?? (await discoverClickHouseMigrations());
   const now = options.now ?? (() => new Date());
   const targetBeforeLock = await readMigrationTarget(options.client);
-  if (targetBeforeLock.serverVersion !== options.expectedServerVersion) {
+  if (
+    !isCompatibleClickHouseVersion(
+      targetBeforeLock.serverVersion,
+      options.expectedServerVersion,
+    )
+  ) {
     throw new Error(
       `ClickHouse version mismatch: expected ${options.expectedServerVersion}, got ${targetBeforeLock.serverVersion}`,
     );
@@ -354,7 +367,12 @@ export async function runClickHouseMigrations(
     await transaction`SELECT pg_advisory_xact_lock(hashtext(${clickHouseMigrationLockKey()}))`;
     const target = await readMigrationTarget(options.client);
     assertClickHouseMigrationTargetStable(targetBeforeLock, target);
-    if (target.serverVersion !== options.expectedServerVersion) {
+    if (
+      !isCompatibleClickHouseVersion(
+        target.serverVersion,
+        options.expectedServerVersion,
+      )
+    ) {
       throw new Error(
         `ClickHouse version mismatch: expected ${options.expectedServerVersion}, got ${target.serverVersion}`,
       );
