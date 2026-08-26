@@ -5,6 +5,13 @@ import { signAuthIdentity } from '#project/contracts';
 import type { DatabaseClient } from '#project/database';
 import { createApp } from '../app';
 import { ObservabilityRepository } from '../modules/observability/observability.repository';
+import {
+  decodeTraceCursor,
+  encodeTraceCursor,
+  TRACE_CURSOR_MAX_LENGTH,
+  TRACE_CURSOR_SORT_KEY,
+  traceCursorFingerprint,
+} from '../modules/observability/observability.trace-cursor';
 
 interface RecordedQuery {
   text: string;
@@ -120,7 +127,7 @@ describe('observability read surface', () => {
     const app = createApp(testEnv());
     const traceResponse = await app.handle(
       new Request(
-        'http://localhost/internal/observability/traces?from=2026-08-20T00:00:00Z&to=2026-08-25T00:00:00Z',
+        'http://localhost/internal/observability/traces?from=2026-08-18T00:00:00Z&to=2026-08-26T00:00:00Z',
       ),
     );
     const metricResponse = await app.handle(
@@ -128,6 +135,33 @@ describe('observability read surface', () => {
     );
     expect(traceResponse.status).toBe(422);
     expect(metricResponse.status).toBe(422);
+  });
+
+  it('rejects a Trace cursor when the request filters change before storage is read', async () => {
+    const scope = {
+      from: new Date('2026-08-25T09:00:00.000Z'),
+      to: new Date('2026-08-25T11:00:00.000Z'),
+      service: 'gateway',
+    };
+    const cursor = encodeTraceCursor(
+      {
+        startedAt: '2026-08-25T10:00:00.000Z',
+        traceId: 'a'.repeat(32),
+      },
+      'next',
+      traceCursorFingerprint(scope),
+    );
+    const app = createApp(testEnv());
+    const response = await app.handle(
+      new Request(
+        `http://localhost/internal/observability/traces?from=2026-08-25T09:00:00.000Z&to=2026-08-25T11:00:00.000Z&service=logs&cursor=${cursor}`,
+      ),
+    );
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'VALIDATION_ERROR' },
+    });
   });
 
   it('rejects unknown metrics and forbidden groups while accepting registry groups', async () => {
@@ -285,6 +319,50 @@ describe('observability read surface', () => {
 });
 
 describe('observability repository', () => {
+  it('encodes bounded versioned Trace cursors that are bound to the query filters', () => {
+    const scope = {
+      from: new Date('2026-08-25T09:00:00.000Z'),
+      to: new Date('2026-08-25T11:00:00.000Z'),
+      service: 'gateway',
+      resourceKind: 'http.server',
+      resourceName: 'GET /api/v1/users',
+      status: 'ok',
+      correlationId: 'journey-1',
+      requestId: 'request-1',
+      runId: '0198f8f8-0000-7000-8000-000000000001',
+    };
+    const fingerprint = traceCursorFingerprint(scope);
+    const encoded = encodeTraceCursor(
+      {
+        startedAt: '2026-08-25T10:00:00.000Z',
+        traceId: 'a'.repeat(32),
+      },
+      'next',
+      fingerprint,
+    );
+
+    expect(encoded).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(encoded.length).toBeLessThanOrEqual(TRACE_CURSOR_MAX_LENGTH);
+    expect(decodeTraceCursor(encoded, fingerprint)).toEqual({
+      version: 1,
+      signalKind: 'trace',
+      direction: 'next',
+      startedAt: '2026-08-25T10:00:00.000Z',
+      traceId: 'a'.repeat(32),
+      sortKey: TRACE_CURSOR_SORT_KEY,
+      filterFingerprint: fingerprint,
+    });
+    expect(() =>
+      decodeTraceCursor(
+        encoded,
+        traceCursorFingerprint({ ...scope, service: 'logs' }),
+      ),
+    ).toThrow('does not match the filters');
+    expect(() => decodeTraceCursor('a'.repeat(513), fingerprint)).toThrow(
+      'does not match the filters',
+    );
+  });
+
   it('groups trace spans and preserves a cursor boundary', async () => {
     const { database, queries } = fakeDatabase((query) => {
       if (query.text.includes('GROUP BY trace_id')) {
@@ -327,6 +405,70 @@ describe('observability repository', () => {
     );
     expect(traceQuery?.text).not.toContain('max(run_id)');
     expect(traceQuery?.params[0]).toEqual(new Date('2026-08-25T09:00:00.000Z'));
+  });
+
+  it('keeps the PostgreSQL Trace boundary outside the grouped Signal rows', async () => {
+    const traceRows = Array.from({ length: 51 }, (_, index) => ({
+      trace_id: index.toString(16).padStart(32, 'a'),
+      started_at: `2026-08-25 10:00:${String(index % 60).padStart(2, '0')}.000`,
+      finished_at: `2026-08-25 10:01:${String(index % 60).padStart(2, '0')}.000`,
+      duration_ns: 100_000_000,
+      service_name: 'gateway',
+      resource_name: 'GET /api/v1/users',
+      status: 'ok',
+      span_count: 1,
+      sampling_reason: 'benchmark',
+      has_root: true,
+      correlation_id: 'journey-1',
+      request_id: 'request-1',
+      run_id: null,
+    }));
+    const { database, queries } = fakeDatabase((query) =>
+      query.text.includes('GROUP BY trace_id') ? traceRows : [],
+    );
+    const repository = new ObservabilityRepository(database);
+    const scope = {
+      from: new Date('2026-08-25T09:00:00.000Z'),
+      to: new Date('2026-08-25T11:00:00.000Z'),
+      service: 'gateway',
+    };
+
+    const first = await repository.listTraces(scope);
+
+    expect(first.nextCursor).not.toBeNull();
+    expect(
+      decodeTraceCursor(first.nextCursor ?? '', traceCursorFingerprint(scope)),
+    ).toMatchObject({
+      signalKind: 'trace',
+      direction: 'next',
+      sortKey: TRACE_CURSOR_SORT_KEY,
+    });
+    const traceQuery = queries.find((query) =>
+      query.text.includes('GROUP BY trace_id'),
+    );
+    expect(traceQuery?.text).not.toContain(
+      'WHERE started_at >= $1 AND started_at < $2 AND (started_at, trace_id)',
+    );
+
+    await repository.listTraces({
+      ...scope,
+      cursor: first.nextCursor ?? undefined,
+    });
+    const pagedTraceQuery = queries
+      .filter((query) => query.text.includes('GROUP BY trace_id'))
+      .at(-1);
+    expect(pagedTraceQuery?.text).toContain(
+      'GROUP BY trace_id HAVING (min(started_at), trace_id) <',
+    );
+    expect(pagedTraceQuery?.params).toContain('2026-08-25 10:00:49.000');
+
+    await expect(
+      repository.listTraces({
+        ...scope,
+        service: 'logs',
+        cursor: first.nextCursor ?? undefined,
+      }),
+    ).rejects.toThrow('does not match the filters');
   });
 
   it('filters alert scope and paginates with the mixed sort direction', async () => {
@@ -394,14 +536,22 @@ describe('observability repository', () => {
   it('rejects a valid-looking cursor when its boundary has disappeared', async () => {
     const { database } = fakeDatabase(() => []);
     const repository = new ObservabilityRepository(database);
-    const cursor = Buffer.from(
-      `next|2026-08-25 10:00:00.000|${'a'.repeat(32)}`,
-    ).toString('base64');
+    const scope = {
+      from: new Date('2026-08-25T09:00:00.000Z'),
+      to: new Date('2026-08-25T11:00:00.000Z'),
+    };
+    const cursor = encodeTraceCursor(
+      {
+        startedAt: '2026-08-25T10:00:00.000Z',
+        traceId: 'a'.repeat(32),
+      },
+      'next',
+      traceCursorFingerprint(scope),
+    );
 
     await expect(
       repository.listTraces({
-        from: new Date('2026-08-25T09:00:00.000Z'),
-        to: new Date('2026-08-25T11:00:00.000Z'),
+        ...scope,
         cursor,
       }),
     ).rejects.toThrow('cursor has expired');

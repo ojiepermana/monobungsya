@@ -70,6 +70,79 @@ describe('ApiService reliable jobs and notifications', () => {
     request.flush({});
   });
 
+  it('serializes log signal windows and cursors without waiting for generated SDK updates', () => {
+    service
+      .accessLogs({
+        search: 'sign in',
+        event: 'login',
+        outcome: 'success',
+        traceId: 'trace-1',
+        page: 1,
+        from: '2026-08-25T00:00:00.000Z',
+        to: '2026-08-25T01:00:00.000Z',
+        cursor: 'access-cursor',
+        actorUserId: 'user-1',
+      })
+      .subscribe();
+    const accessRequest = http.expectOne(
+      (request) => request.url === '/api/v1/logs/access-logs',
+    );
+
+    expect(accessRequest.request.method).toBe('GET');
+    expect(accessRequest.request.params.get('from')).toBe(
+      '2026-08-25T00:00:00.000Z',
+    );
+    expect(accessRequest.request.params.get('to')).toBe(
+      '2026-08-25T01:00:00.000Z',
+    );
+    expect(accessRequest.request.params.get('cursor')).toBe('access-cursor');
+    expect(accessRequest.request.params.get('actorUserId')).toBe('user-1');
+    accessRequest.flush({
+      data: [],
+      prevCursor: null,
+      nextCursor: null,
+      filters: { search: '', event: '', outcome: '', traceId: '' },
+      options: { events: [], outcomes: [] },
+      storageStatus: 'available',
+      blindSpotSince: null,
+    });
+
+    service
+      .applicationLogs({
+        search: 'failure',
+        level: 'error',
+        module: 'jobs',
+        event: 'failed',
+        page: 1,
+        from: '2026-08-25T00:00:00.000Z',
+        to: '2026-08-25T01:00:00.000Z',
+        cursor: 'application-cursor',
+      })
+      .subscribe();
+    const applicationRequest = http.expectOne(
+      (request) => request.url === '/api/v1/logs/application-logs',
+    );
+
+    expect(applicationRequest.request.params.get('from')).toBe(
+      '2026-08-25T00:00:00.000Z',
+    );
+    expect(applicationRequest.request.params.get('to')).toBe(
+      '2026-08-25T01:00:00.000Z',
+    );
+    expect(applicationRequest.request.params.get('cursor')).toBe(
+      'application-cursor',
+    );
+    applicationRequest.flush({
+      data: [],
+      prevCursor: null,
+      nextCursor: null,
+      filters: { search: '', level: '', module: '', event: '' },
+      options: { levels: [], modules: [], events: [] },
+      storageStatus: 'available',
+      blindSpotSince: null,
+    });
+  });
+
   it('AC-12 sends a retry reason and a fresh idempotency key', () => {
     service.retryJob('job-1', 'Retry from test').subscribe();
     const request = http.expectOne('/api/v1/jobs/job-1/retry');

@@ -109,6 +109,9 @@ export interface AccessLogFilters {
   outcome: string;
   traceId: string;
   page: number;
+  from?: string;
+  to?: string;
+  cursor?: string;
 }
 
 export interface SessionSummary {
@@ -204,15 +207,32 @@ export interface AccessLogItem {
   accessedAt: string;
 }
 
-export interface AccessLogsResponse {
+export interface PostgresAccessLogsResponse {
   data: AccessLogItem[];
   meta: LogsMeta;
-  filters: Omit<AccessLogFilters, 'page'>;
+  filters: Omit<AccessLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
   options: {
     events: string[];
     outcomes: string[];
   };
 }
+
+export interface SignalAccessLogsResponse {
+  data: AccessLogItem[];
+  prevCursor: string | null;
+  nextCursor: string | null;
+  filters: Omit<AccessLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
+  options: {
+    events: string[];
+    outcomes: string[];
+  };
+  storageStatus: 'available' | 'blind_spot';
+  blindSpotSince: string | null;
+}
+
+export type AccessLogsResponse =
+  | PostgresAccessLogsResponse
+  | SignalAccessLogsResponse;
 
 export interface ApplicationLogFilters {
   search: string;
@@ -220,6 +240,9 @@ export interface ApplicationLogFilters {
   module: string;
   event: string;
   page: number;
+  from?: string;
+  to?: string;
+  cursor?: string;
 }
 
 export interface ApplicationLogItem {
@@ -241,16 +264,34 @@ export interface ApplicationLogItem {
   createdAt: string;
 }
 
-export interface ApplicationLogsResponse {
+export interface PostgresApplicationLogsResponse {
   data: ApplicationLogItem[];
   meta: LogsMeta;
-  filters: Omit<ApplicationLogFilters, 'page'>;
+  filters: Omit<ApplicationLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
   options: {
     levels: string[];
     modules: string[];
     events: string[];
   };
 }
+
+export interface SignalApplicationLogsResponse {
+  data: ApplicationLogItem[];
+  prevCursor: string | null;
+  nextCursor: string | null;
+  filters: Omit<ApplicationLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
+  options: {
+    levels: string[];
+    modules: string[];
+    events: string[];
+  };
+  storageStatus: 'available' | 'blind_spot';
+  blindSpotSince: string | null;
+}
+
+export type ApplicationLogsResponse =
+  | PostgresApplicationLogsResponse
+  | SignalApplicationLogsResponse;
 
 export type NotificationCategory =
   | 'security'
@@ -740,40 +781,39 @@ export class ApiService {
   accessLogs(
     filters: AccessLogFilters & ActorScope,
   ): Observable<AccessLogsResponse> {
-    return defer(() =>
-      sdkRequest<AccessLogsResponse>(() =>
-        sdk.getApiV1LogsAccessLogs({
-          query: {
-            search: filters.search,
-            event: filters.event,
-            outcome: filters.outcome,
-            traceId: filters.traceId,
-            page: String(filters.page),
-            actorUserId: filters.actorUserId,
-          },
-          throwOnError: true,
-        }),
-      ),
-    );
+    return this.http.get<AccessLogsResponse>('/api/v1/logs/access-logs', {
+      params: {
+        ...(filters.search ? { search: filters.search } : {}),
+        ...(filters.event ? { event: filters.event } : {}),
+        ...(filters.outcome ? { outcome: filters.outcome } : {}),
+        ...(filters.traceId ? { traceId: filters.traceId } : {}),
+        page: filters.page,
+        ...(filters.from ? { from: filters.from } : {}),
+        ...(filters.to ? { to: filters.to } : {}),
+        ...(filters.cursor ? { cursor: filters.cursor } : {}),
+        ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
+      },
+    });
   }
 
   applicationLogs(
     filters: ApplicationLogFilters & ActorScope,
   ): Observable<ApplicationLogsResponse> {
-    return defer(() =>
-      sdkRequest<ApplicationLogsResponse>(() =>
-        sdk.getApiV1LogsApplicationLogs({
-          query: {
-            search: filters.search,
-            level: filters.level,
-            module: filters.module,
-            event: filters.event,
-            page: String(filters.page),
-            actorUserId: filters.actorUserId,
-          },
-          throwOnError: true,
-        }),
-      ),
+    return this.http.get<ApplicationLogsResponse>(
+      '/api/v1/logs/application-logs',
+      {
+        params: {
+          ...(filters.search ? { search: filters.search } : {}),
+          ...(filters.level ? { level: filters.level } : {}),
+          ...(filters.module ? { module: filters.module } : {}),
+          ...(filters.event ? { event: filters.event } : {}),
+          page: filters.page,
+          ...(filters.from ? { from: filters.from } : {}),
+          ...(filters.to ? { to: filters.to } : {}),
+          ...(filters.cursor ? { cursor: filters.cursor } : {}),
+          ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
+        },
+      },
     );
   }
 

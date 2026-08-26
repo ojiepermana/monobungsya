@@ -211,6 +211,22 @@ paths:
           required: false
           schema:
             type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            maxLength: 512
+            type: string
         - name: actorUserId
           in: query
           required: false
@@ -223,180 +239,371 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - data
-                  - meta
-                  - filters
-                  - options
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - event
-                        - outcome
-                        - routeName
-                        - path
-                        - method
-                        - httpStatus
-                        - requestId
-                        - traceId
-                        - traceSource
-                        - clientRoute
-                        - sessionId
-                        - sessionSummary
-                        - actorEmail
-                        - failureReason
-                        - accessedAt
-                      properties:
-                        event:
-                          type: string
-                        outcome:
-                          type: string
-                        routeName:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        path:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        method:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        httpStatus:
-                          anyOf:
-                            - anyOf:
-                                - format: integer
-                                  default: 0
-                                  type: string
-                                - type: integer
-                            - type: "null"
-                        requestId:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        traceId:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        traceSource:
-                          anyOf:
-                            - const: client_header
+                anyOf:
+                  - type: object
+                    required:
+                      - data
+                      - meta
+                      - filters
+                      - options
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - event
+                            - outcome
+                            - routeName
+                            - path
+                            - method
+                            - httpStatus
+                            - requestId
+                            - traceId
+                            - traceSource
+                            - clientRoute
+                            - sessionId
+                            - sessionSummary
+                            - actorEmail
+                            - failureReason
+                            - accessedAt
+                          properties:
+                            event:
                               type: string
-                            - const: request_id
+                            outcome:
                               type: string
-                            - type: "null"
-                        clientRoute:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        sessionId:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        sessionSummary:
-                          anyOf:
-                            - type: object
-                              required:
-                                - state
-                                - reason
-                                - permissionCount
-                              properties:
-                                state:
-                                  anyOf:
-                                    - const: authenticated
-                                      type: string
-                                    - const: anonymous
-                                      type: string
-                                    - const: invalid
-                                      type: string
-                                reason:
-                                  anyOf:
-                                    - type: string
-                                    - type: "null"
-                                permissionCount:
-                                  anyOf:
+                            routeName:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            path:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            method:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            httpStatus:
+                              anyOf:
+                                - anyOf:
                                     - format: integer
                                       default: 0
                                       type: string
                                     - type: integer
-                            - type: "null"
-                        actorEmail:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        failureReason:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        accessedAt:
-                          type: string
-                  meta:
-                    type: object
+                                - type: "null"
+                            requestId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            traceId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            traceSource:
+                              anyOf:
+                                - const: client_header
+                                  type: string
+                                - const: request_id
+                                  type: string
+                                - type: "null"
+                            clientRoute:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            sessionId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            sessionSummary:
+                              anyOf:
+                                - type: object
+                                  required:
+                                    - state
+                                    - reason
+                                    - permissionCount
+                                  properties:
+                                    state:
+                                      anyOf:
+                                        - const: authenticated
+                                          type: string
+                                        - const: anonymous
+                                          type: string
+                                        - const: invalid
+                                          type: string
+                                    reason:
+                                      anyOf:
+                                        - type: string
+                                        - type: "null"
+                                    permissionCount:
+                                      anyOf:
+                                        - format: integer
+                                          default: 0
+                                          type: string
+                                        - type: integer
+                                - type: "null"
+                            actorEmail:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            failureReason:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            accessedAt:
+                              type: string
+                      meta:
+                        type: object
+                        required:
+                          - page
+                          - perPage
+                          - total
+                          - totalPages
+                        properties:
+                          page:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          perPage:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          total:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          totalPages:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                      filters:
+                        type: object
+                        required:
+                          - search
+                          - event
+                          - outcome
+                          - traceId
+                        properties:
+                          search:
+                            type: string
+                          event:
+                            type: string
+                          outcome:
+                            type: string
+                          traceId:
+                            type: string
+                      options:
+                        type: object
+                        required:
+                          - events
+                          - outcomes
+                        properties:
+                          events:
+                            type: array
+                            items:
+                              type: string
+                          outcomes:
+                            type: array
+                            items:
+                              type: string
+                  - type: object
                     required:
-                      - page
-                      - perPage
-                      - total
-                      - totalPages
+                      - data
+                      - prevCursor
+                      - nextCursor
+                      - filters
+                      - options
+                      - storageStatus
+                      - blindSpotSince
                     properties:
-                      page:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      perPage:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      total:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      totalPages:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                  filters:
-                    type: object
-                    required:
-                      - search
-                      - event
-                      - outcome
-                      - traceId
-                    properties:
-                      search:
-                        type: string
-                      event:
-                        type: string
-                      outcome:
-                        type: string
-                      traceId:
-                        type: string
-                  options:
-                    type: object
-                    required:
-                      - events
-                      - outcomes
-                    properties:
-                      events:
+                      data:
                         type: array
                         items:
-                          type: string
-                      outcomes:
-                        type: array
-                        items:
-                          type: string
+                          type: object
+                          required:
+                            - event
+                            - outcome
+                            - routeName
+                            - path
+                            - method
+                            - httpStatus
+                            - requestId
+                            - traceId
+                            - traceSource
+                            - clientRoute
+                            - sessionId
+                            - sessionSummary
+                            - actorEmail
+                            - failureReason
+                            - accessedAt
+                          properties:
+                            event:
+                              type: string
+                            outcome:
+                              type: string
+                            routeName:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            path:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            method:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            httpStatus:
+                              anyOf:
+                                - anyOf:
+                                    - format: integer
+                                      default: 0
+                                      type: string
+                                    - type: integer
+                                - type: "null"
+                            requestId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            traceId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            traceSource:
+                              anyOf:
+                                - const: client_header
+                                  type: string
+                                - const: request_id
+                                  type: string
+                                - type: "null"
+                            clientRoute:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            sessionId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            sessionSummary:
+                              anyOf:
+                                - type: object
+                                  required:
+                                    - state
+                                    - reason
+                                    - permissionCount
+                                  properties:
+                                    state:
+                                      anyOf:
+                                        - const: authenticated
+                                          type: string
+                                        - const: anonymous
+                                          type: string
+                                        - const: invalid
+                                          type: string
+                                    reason:
+                                      anyOf:
+                                        - type: string
+                                        - type: "null"
+                                    permissionCount:
+                                      anyOf:
+                                        - format: integer
+                                          default: 0
+                                          type: string
+                                        - type: integer
+                                - type: "null"
+                            actorEmail:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            failureReason:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            accessedAt:
+                              type: string
+                      prevCursor:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+                      nextCursor:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+                      filters:
+                        type: object
+                        required:
+                          - search
+                          - event
+                          - outcome
+                          - traceId
+                        properties:
+                          search:
+                            type: string
+                          event:
+                            type: string
+                          outcome:
+                            type: string
+                          traceId:
+                            type: string
+                      options:
+                        type: object
+                        required:
+                          - events
+                          - outcomes
+                        properties:
+                          events:
+                            type: array
+                            items:
+                              type: string
+                          outcomes:
+                            type: array
+                            items:
+                              type: string
+                      storageStatus:
+                        anyOf:
+                          - const: available
+                            type: string
+                          - const: blind_spot
+                            type: string
+                      blindSpotSince:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+        "429":
+          description: The Signal query capacity is full. Retry after the number of
+            seconds in the Retry-After response header.
+          content:
+            application/json:
+              schema:
+                description: The Signal query capacity is full. Retry after the number of
+                  seconds in the Retry-After response header.
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: object
+                    required:
+                      - code
+                      - message
+                    properties:
+                      code:
+                        const: RATE_LIMITED
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      requestId:
+                        type: string
       operationId: getInternalLogsAccess-logs
   /internal/logs/application-logs:
     get:
@@ -429,6 +636,22 @@ paths:
           required: false
           schema:
             type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            maxLength: 512
+            type: string
         - name: actorUserId
           in: query
           required: false
@@ -441,149 +664,309 @@ paths:
           content:
             application/json:
               schema:
+                anyOf:
+                  - type: object
+                    required:
+                      - data
+                      - meta
+                      - filters
+                      - options
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - id
+                            - level
+                            - channel
+                            - category
+                            - event
+                            - module
+                            - message
+                            - context
+                            - exceptionClass
+                            - exceptionMessage
+                            - stackTrace
+                            - actorUserId
+                            - actorName
+                            - actorEmail
+                            - occurredAt
+                            - createdAt
+                          properties:
+                            id:
+                              type: string
+                            level:
+                              type: string
+                            channel:
+                              type: string
+                            category:
+                              type: string
+                            event:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            module:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            message:
+                              type: string
+                            context: {}
+                            exceptionClass:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            exceptionMessage:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            stackTrace:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorUserId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorName:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorEmail:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            occurredAt:
+                              type: string
+                            createdAt:
+                              type: string
+                      meta:
+                        type: object
+                        required:
+                          - page
+                          - perPage
+                          - total
+                          - totalPages
+                        properties:
+                          page:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          perPage:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          total:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                          totalPages:
+                            anyOf:
+                              - format: integer
+                                default: 0
+                                type: string
+                              - type: integer
+                      filters:
+                        type: object
+                        required:
+                          - search
+                          - level
+                          - module
+                          - event
+                        properties:
+                          search:
+                            type: string
+                          level:
+                            type: string
+                          module:
+                            type: string
+                          event:
+                            type: string
+                      options:
+                        type: object
+                        required:
+                          - levels
+                          - modules
+                          - events
+                        properties:
+                          levels:
+                            type: array
+                            items:
+                              type: string
+                          modules:
+                            type: array
+                            items:
+                              type: string
+                          events:
+                            type: array
+                            items:
+                              type: string
+                  - type: object
+                    required:
+                      - data
+                      - prevCursor
+                      - nextCursor
+                      - filters
+                      - options
+                      - storageStatus
+                      - blindSpotSince
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - id
+                            - level
+                            - channel
+                            - category
+                            - event
+                            - module
+                            - message
+                            - context
+                            - exceptionClass
+                            - exceptionMessage
+                            - stackTrace
+                            - actorUserId
+                            - actorName
+                            - actorEmail
+                            - occurredAt
+                            - createdAt
+                          properties:
+                            id:
+                              type: string
+                            level:
+                              type: string
+                            channel:
+                              type: string
+                            category:
+                              type: string
+                            event:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            module:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            message:
+                              type: string
+                            context: {}
+                            exceptionClass:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            exceptionMessage:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            stackTrace:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorUserId:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorName:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            actorEmail:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            occurredAt:
+                              type: string
+                            createdAt:
+                              type: string
+                      prevCursor:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+                      nextCursor:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+                      filters:
+                        type: object
+                        required:
+                          - search
+                          - level
+                          - module
+                          - event
+                        properties:
+                          search:
+                            type: string
+                          level:
+                            type: string
+                          module:
+                            type: string
+                          event:
+                            type: string
+                      options:
+                        type: object
+                        required:
+                          - levels
+                          - modules
+                          - events
+                        properties:
+                          levels:
+                            type: array
+                            items:
+                              type: string
+                          modules:
+                            type: array
+                            items:
+                              type: string
+                          events:
+                            type: array
+                            items:
+                              type: string
+                      storageStatus:
+                        anyOf:
+                          - const: available
+                            type: string
+                          - const: blind_spot
+                            type: string
+                      blindSpotSince:
+                        anyOf:
+                          - type: string
+                          - type: "null"
+        "429":
+          description: The Signal query capacity is full. Retry after the number of
+            seconds in the Retry-After response header.
+          content:
+            application/json:
+              schema:
+                description: The Signal query capacity is full. Retry after the number of
+                  seconds in the Retry-After response header.
                 type: object
                 required:
-                  - data
-                  - meta
-                  - filters
-                  - options
+                  - error
                 properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - id
-                        - level
-                        - channel
-                        - category
-                        - event
-                        - module
-                        - message
-                        - context
-                        - exceptionClass
-                        - exceptionMessage
-                        - stackTrace
-                        - actorUserId
-                        - actorName
-                        - actorEmail
-                        - occurredAt
-                        - createdAt
-                      properties:
-                        id:
-                          type: string
-                        level:
-                          type: string
-                        channel:
-                          type: string
-                        category:
-                          type: string
-                        event:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        module:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        message:
-                          type: string
-                        context: {}
-                        exceptionClass:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        exceptionMessage:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        stackTrace:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        actorUserId:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        actorName:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        actorEmail:
-                          anyOf:
-                            - type: string
-                            - type: "null"
-                        occurredAt:
-                          type: string
-                        createdAt:
-                          type: string
-                  meta:
+                  error:
                     type: object
                     required:
-                      - page
-                      - perPage
-                      - total
-                      - totalPages
+                      - code
+                      - message
                     properties:
-                      page:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      perPage:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      total:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                      totalPages:
-                        anyOf:
-                          - format: integer
-                            default: 0
-                            type: string
-                          - type: integer
-                  filters:
-                    type: object
-                    required:
-                      - search
-                      - level
-                      - module
-                      - event
-                    properties:
-                      search:
+                      code:
+                        const: RATE_LIMITED
                         type: string
-                      level:
+                      message:
                         type: string
-                      module:
+                      reason:
                         type: string
-                      event:
+                      requestId:
                         type: string
-                  options:
-                    type: object
-                    required:
-                      - levels
-                      - modules
-                      - events
-                    properties:
-                      levels:
-                        type: array
-                        items:
-                          type: string
-                      modules:
-                        type: array
-                        items:
-                          type: string
-                      events:
-                        type: array
-                        items:
-                          type: string
       operationId: getInternalLogsApplication-logs
   /internal/observability/benchmark-ingestions:
     post:
@@ -825,6 +1208,30 @@ paths:
                     enum:
                       - available
                       - blind_spot
+        "429":
+          description: Response for status 429
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: object
+                    required:
+                      - code
+                      - message
+                    properties:
+                      code:
+                        const: RATE_LIMITED
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      requestId:
+                        type: string
       operationId: getInternalObservabilityTraces
   /internal/observability/traces/{traceId}:
     get:
@@ -934,6 +1341,30 @@ paths:
                     enum:
                       - available
                       - blind_spot
+        "429":
+          description: Response for status 429
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: object
+                    required:
+                      - code
+                      - message
+                    properties:
+                      code:
+                        const: RATE_LIMITED
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      requestId:
+                        type: string
       operationId: getInternalObservabilityTracesByTraceId
   /internal/observability/metrics:
     get:
@@ -1109,6 +1540,30 @@ paths:
                         type: array
                         items:
                           type: string
+        "429":
+          description: Response for status 429
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: object
+                    required:
+                      - code
+                      - message
+                    properties:
+                      code:
+                        const: RATE_LIMITED
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      requestId:
+                        type: string
       operationId: getInternalObservabilityMetrics
   /internal/observability/benchmarks/runs:
     get:
