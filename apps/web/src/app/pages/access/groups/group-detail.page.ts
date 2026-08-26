@@ -6,29 +6,55 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import {
-  BadgeComponent,
-  type BadgeVariant,
-} from '@ojiepermana/angular/component/badge';
+  AlertDialogActionComponent,
+  AlertDialogCancelComponent,
+  AlertDialogComponent,
+  AlertDialogContentComponent,
+  AlertDialogDescriptionComponent,
+  AlertDialogFooterComponent,
+  AlertDialogHeaderComponent,
+  AlertDialogTitleComponent,
+} from '@ojiepermana/angular/component/alert-dialog';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import {
-  CardComponent,
-  CardContentComponent,
-  CardDescriptionComponent,
-  CardHeaderComponent,
-  CardTitleComponent,
-} from '@ojiepermana/angular/component/card';
+  DialogCloseDirective,
+  DialogComponent,
+  DialogContentComponent,
+  DialogDescriptionComponent,
+  DialogFooterComponent,
+  DialogHeaderComponent,
+  DialogTitleComponent,
+} from '@ojiepermana/angular/component/dialog';
+import {
+  MenuContentDirective,
+  MenuItemComponent,
+  MenuSeparatorComponent,
+  MenuSurfaceComponent,
+  MenuTriggerDirective,
+} from '@ojiepermana/angular/component/dropdown-menu';
+import { IconComponent } from '@ojiepermana/angular/component/icon';
 import { InputComponent } from '@ojiepermana/angular/component/input';
-import { LabelComponent } from '@ojiepermana/angular/component/label';
 import {
   NativeSelectComponent,
   NativeSelectOptionDirective,
 } from '@ojiepermana/angular/component/native-select';
+import {
+  TableBodyComponent,
+  TableCaptionComponent,
+  TableCellComponent,
+  TableComponent,
+  TableHeadComponent,
+  TableHeaderComponent,
+  TableRowComponent,
+} from '@ojiepermana/angular/component/table';
 import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
 import {
   PageComponent,
   PageContentComponent,
+  PageFilterComponent,
+  PageFilterToggleComponent,
+  PageFooterComponent,
   PageHeaderComponent,
 } from '@ojiepermana/angular/theme/page';
 import { AuthService } from '../../../auth/auth.service';
@@ -45,161 +71,275 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
+const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-group-detail-page',
   host: { class: 'block h-full min-h-0' },
   imports: [
-    BadgeComponent,
+    AlertDialogActionComponent,
+    AlertDialogCancelComponent,
+    AlertDialogComponent,
+    AlertDialogContentComponent,
+    AlertDialogDescriptionComponent,
+    AlertDialogFooterComponent,
+    AlertDialogHeaderComponent,
+    AlertDialogTitleComponent,
     ButtonComponent,
-    CardComponent,
-    CardContentComponent,
-    CardDescriptionComponent,
-    CardHeaderComponent,
-    CardTitleComponent,
+    DialogCloseDirective,
+    DialogComponent,
+    DialogContentComponent,
+    DialogDescriptionComponent,
+    DialogFooterComponent,
+    DialogHeaderComponent,
+    DialogTitleComponent,
+    IconComponent,
     InputComponent,
-    LabelComponent,
+    MenuContentDirective,
+    MenuItemComponent,
+    MenuSeparatorComponent,
+    MenuSurfaceComponent,
+    MenuTriggerDirective,
     NativeSelectComponent,
     NativeSelectOptionDirective,
     PageComponent,
     PageContentComponent,
+    PageFilterComponent,
+    PageFilterToggleComponent,
+    PageFooterComponent,
     PageHeaderComponent,
-    RouterLink,
+    TableBodyComponent,
+    TableCaptionComponent,
+    TableCellComponent,
+    TableComponent,
+    TableHeadComponent,
+    TableHeaderComponent,
+    TableRowComponent,
   ],
   template: `
     <Page variant="stacked" scroll="content" [appearance]="layout.appearance()" class="h-full min-h-0">
       <PageHeader class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <div class="flex min-w-0 items-center gap-3">
-          <a Button variant="ghost" size="xs" [routerLink]="['/permission/group']" aria-label="Back to permission groups">Back</a>
           <div class="min-w-0">
             <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Permission group</p>
             <h1 class="truncate text-lg font-semibold text-foreground">{{ group()?.name || 'Group detail' }}</h1>
+            @if (applyMessage()) { <p class="text-xs text-muted-foreground" role="status">{{ applyMessage() }}</p> }
           </div>
-          @if (group()) { <span Badge [variant]="statusVariant()">{{ statusLabel() }}</span> }
         </div>
-        <div class="flex shrink-0 gap-2">
-          @if (group() && group()!.deletedAt) {
-            <button Button size="xs" type="button" [disabled]="busy() || !canRestore()" (click)="restore()">Restore</button>
-          } @else if (group()) {
-            <button Button variant="destructive" size="xs" type="button" [disabled]="busy() || !canDelete()" (click)="remove()">Delete</button>
+        <div class="flex shrink-0 justify-end gap-2">
+          <PageFilterToggle
+            ariaLabel="Show or hide filters"
+            (toggled)="filterOpen.set($event)"
+          >
+            <Icon name="filter_list" [size]="14" aria-hidden="true" />
+            <span>Filter</span>
+          </PageFilterToggle>
+          @if (group()) {
+            <button Button variant="outline" size="icon" class="h-8 w-8 p-0" type="button" aria-label="Group actions" title="Group actions" [MenuTrigger]="groupActionsMenu" align="end" [disabled]="busy()">
+              <Icon name="more_vert" [size]="16" aria-hidden="true" />
+            </button>
+            <ng-template MenuContent #groupActionsMenu="MenuContent">
+              <MenuSurface class="w-52">
+                @if (!group()!.deletedAt) {
+                  @if (canAttach()) {
+                    <button MenuItem type="button" (selected)="openAttachDialog()"><Icon name="playlist_add" [size]="16" aria-hidden="true" />Attach catalog</button>
+                  }
+                  @if (canApply() && canListUsers()) {
+                    <button MenuItem type="button" (selected)="openApplyDialog()"><Icon name="person_add" [size]="16" aria-hidden="true" />Apply to users</button>
+                  }
+                  @if (canEdit()) {
+                    <button MenuItem type="button" (selected)="toggleStatus()"><Icon [name]="group()!.status === 'active' ? 'toggle_off' : 'toggle_on'" [size]="16" aria-hidden="true" />{{ group()!.status === 'active' ? 'Turn off' : 'Activate' }}</button>
+                  }
+                }
+                <MenuSeparator />
+                @if (group()!.deletedAt) {
+                  @if (canRestore()) {
+                    <button MenuItem type="button" (selected)="restore()"><Icon name="restore" [size]="16" aria-hidden="true" />Restore</button>
+                  }
+                } @else if (canDelete()) {
+                  <button MenuItem variant="destructive" type="button" (selected)="remove()"><Icon name="delete" [size]="16" aria-hidden="true" />Delete</button>
+                }
+              </MenuSurface>
+            </ng-template>
           }
         </div>
       </PageHeader>
 
-      <PageContent class="grid min-h-0 content-start gap-6 p-3 lg:grid-cols-2">
-        @if (error()) { <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive lg:col-span-2" role="alert">{{ error() }}</p> }
+      @if (group()) {
+        <PageFilter
+          placement="stacked"
+          collapsible
+          [hidden]="!filterOpen()"
+          class="grid shrink-0 gap-3 px-3 py-4 md:flex md:flex-wrap md:items-center"
+        >
+          <input
+            Input
+            type="search"
+            placeholder="Search attached permissions..."
+            class="md:max-w-xs"
+            [value]="permissionSearch()"
+            (input)="setPermissionSearch($event)"
+          />
+          <select
+            NativeSelect
+            class="md:w-40"
+            [value]="permissionNamespace()"
+            (change)="setPermissionNamespace($event)"
+          >
+            <option NativeSelectOption value="">All namespaces</option>
+            @for (namespace of permissionNamespaces(); track namespace) {
+              <option NativeSelectOption [value]="namespace">{{ namespace }}</option>
+            }
+          </select>
+          <select
+            NativeSelect
+            class="md:w-36"
+            [value]="permissionAction()"
+            (change)="setPermissionAction($event)"
+          >
+            <option NativeSelectOption value="">All actions</option>
+            @for (action of permissionActions(); track action) {
+              <option NativeSelectOption [value]="action">{{ action }}</option>
+            }
+          </select>
+          <button
+            Button
+            variant="outline"
+            size="xs"
+            type="button"
+            [disabled]="!hasPermissionFilters()"
+            (click)="clearPermissionFilters()"
+          >
+            Clear filters
+          </button>
+        </PageFilter>
+      }
+
+      <PageContent class="grid min-h-0 content-start gap-6">
+        @if (error()) { <p class="border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error() }}</p> }
         @if (loading()) {
-          <p class="text-sm text-muted-foreground lg:col-span-2">Loading permission group...</p>
+          <p class="text-sm text-muted-foreground">Loading permission group...</p>
         } @else if (!group()) {
-          <p class="border border-border bg-card p-5 text-sm text-muted-foreground lg:col-span-2">Permission group not found.</p>
+          <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Permission group not found.</p>
         } @else {
-          <Card class="bg-card">
-            <CardHeader>
-              <CardTitle level="2">Profile</CardTitle>
-              <CardDescription>Group metadata and lifecycle state.</CardDescription>
-            </CardHeader>
-            <CardContent class="grid gap-4">
-              <div class="grid gap-2">
-                <label Label for="detail-group-name">Name</label>
-                <input Input id="detail-group-name" [value]="name()" [disabled]="!canEdit() || !!group()!.deletedAt" (input)="setName($event)" />
-              </div>
-              <div class="grid gap-2">
-                <label Label for="detail-group-description">Description</label>
-                <textarea id="detail-group-description" class="min-h-28 border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60" [value]="description()" [disabled]="!canEdit() || !!group()!.deletedAt" (input)="setDescription($event)"></textarea>
-              </div>
-              <div class="grid gap-2">
-                <label Label for="detail-group-status">Status</label>
-                <select NativeSelect id="detail-group-status" [value]="formStatus()" [disabled]="!canEdit() || !!group()!.deletedAt" (change)="setStatus($event)">
-                  <option NativeSelectOption value="active">Active</option>
-                  <option NativeSelectOption value="off">Off</option>
-                </select>
-              </div>
-              <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span>Updated {{ formatDate(group()!.updatedAt) }}</span>
-                <button Button size="xs" type="button" [disabled]="busy() || !canEdit() || !!group()!.deletedAt || !formValid()" (click)="save()">{{ busy() ? 'Saving...' : 'Save changes' }}</button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card class="bg-card lg:row-span-2">
-            <CardHeader>
-              <CardTitle level="2">Group permissions</CardTitle>
-              <CardDescription>These catalog permissions are copied as direct grants when the group is applied.</CardDescription>
-            </CardHeader>
-            <CardContent class="grid gap-5">
-              @if (permissionsLoading()) {
-                <p class="text-sm text-muted-foreground">Loading group permissions...</p>
-              } @else if (attachedPermissions().length === 0) {
-                <p class="text-sm text-muted-foreground">No permissions attached. An empty group cannot be applied.</p>
-              } @else {
-                <div class="grid gap-2">
-                  @for (permission of attachedPermissions(); track permission.id) {
-                    <div class="flex flex-wrap items-center justify-between gap-3 border border-border p-3">
-                      <div class="min-w-0">
-                        <p class="font-mono text-sm text-foreground">{{ permission.name }}</p>
-                        <p class="text-xs text-muted-foreground">{{ permission.description || 'No description' }}</p>
-                      </div>
-                      <button Button variant="outline" size="xs" type="button" [disabled]="busy() || !canDetach()" (click)="detach(permission)">Detach</button>
-                    </div>
-                  }
-                </div>
-              }
-
-              @if (canAttach()) {
-                <div class="grid gap-3 border-t border-border pt-4">
-                  <div>
-                    <h3 class="font-medium text-foreground">Attach catalog permissions</h3>
-                    <p class="mt-1 text-sm text-muted-foreground">Select one or more permissions to add idempotently.</p>
-                  </div>
-                  @if (availablePermissions().length === 0) {
-                    <p class="text-sm text-muted-foreground">All catalog permissions are already attached.</p>
-                  } @else {
-                    <div class="grid max-h-72 gap-2 overflow-y-auto">
-                      @for (permission of availablePermissions(); track permission.id) {
-                        <label class="flex items-start gap-3 border border-border p-3 text-sm">
-                          <input type="checkbox" [checked]="selectedPermissionIds().includes(permission.id)" (change)="togglePermission(permission.id, $event)" />
-                          <span class="min-w-0"><span class="block font-mono text-foreground">{{ permission.name }}</span><span class="block text-xs text-muted-foreground">{{ permission.description || 'No description' }}</span></span>
-                        </label>
+          @if (permissionsLoading()) {
+            <p class="text-sm text-muted-foreground">Loading attached catalog permissions...</p>
+          } @else if (attachedPermissions().length === 0) {
+            <p class="border border-border bg-card p-5 text-sm text-muted-foreground">No catalog permissions attached.</p>
+          } @else if (filteredAttachedPermissions().length === 0) {
+            <p class="border border-border bg-card p-5 text-sm text-muted-foreground">No catalog permissions match the active filters.</p>
+          } @else {
+            <Table class="min-w-full bg-card">
+              <caption TableCaption class="sr-only">Attached catalog permissions</caption>
+              <thead TableHeader class="text-sm uppercase text-muted-foreground">
+                <tr TableRow>
+                  <th TableHead scope="col">Name</th>
+                  <th TableHead scope="col">Namespace</th>
+                  <th TableHead scope="col">Resource</th>
+                  <th TableHead scope="col">Action</th>
+                  <th TableHead scope="col">Scope</th>
+                  <th TableHead scope="col">Description</th>
+                  <th TableHead scope="col" class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody TableBody>
+                @for (permission of attachedPermissionPage(); track permission.id) {
+                  <tr TableRow class="align-top">
+                    <td TableCell class="font-mono text-sm">{{ permission.name }}</td>
+                    <td TableCell>{{ permission.namespace }}</td>
+                    <td TableCell>{{ permission.resource }}</td>
+                    <td TableCell>{{ permission.action }}</td>
+                    <td TableCell>{{ permission.scope || '—' }}</td>
+                    <td TableCell class="text-muted-foreground">{{ permission.description || '—' }}</td>
+                    <td TableCell class="text-right">
+                      @if (canDetach()) {
+                        <button Button variant="outline" size="xs" type="button" [disabled]="busy()" (click)="openRevokeDialog(permission)">Revoke</button>
                       }
-                    </div>
-                    <button Button size="xs" class="justify-self-start" type="button" [disabled]="busy() || selectedPermissionIds().length === 0 || !!group()!.deletedAt" (click)="attach()">Attach selected</button>
-                  }
-                </div>
-              } @else {
-                <p class="border border-border p-3 text-sm text-muted-foreground">You need permission-group create access to attach catalog permissions.</p>
-              }
-            </CardContent>
-          </Card>
-
-          <Card class="bg-card">
-            <CardHeader>
-              <CardTitle level="2">Apply to users</CardTitle>
-              <CardDescription>Apply this active, non-empty template to up to 50 users. Existing direct grants are skipped.</CardDescription>
-            </CardHeader>
-            <CardContent class="grid gap-4">
-              @if (!canApply()) {
-                <p class="border border-border p-3 text-sm text-muted-foreground">You need group manage access to apply a template.</p>
-              } @else if (!canListUsers()) {
-                <p class="border border-border p-3 text-sm text-muted-foreground">User selection is disabled because you do not have user list access.</p>
-              } @else if (usersLoading()) {
-                <p class="text-sm text-muted-foreground">Loading users...</p>
-              } @else if (users().length === 0) {
-                <p class="text-sm text-muted-foreground">No users available.</p>
-              } @else {
-                <div class="grid max-h-72 gap-2 overflow-y-auto">
-                  @for (user of users(); track user.id) {
-                    <label class="flex items-center gap-3 border border-border p-3 text-sm">
-                      <input type="checkbox" [checked]="selectedUserIds().includes(user.id)" (change)="toggleUser(user.id, $event)" />
-                      <span class="min-w-0"><span class="block font-medium text-foreground">{{ user.name }}</span><span class="block text-xs text-muted-foreground">{{ user.email }}</span></span>
-                    </label>
-                  }
-                </div>
-                <button Button type="button" [disabled]="busy() || selectedUserIds().length === 0 || !!group()!.deletedAt || group()!.status !== 'active' || group()!.permissionCount === 0" (click)="applyToUsers()">Apply to {{ selectedUserIds().length }} users</button>
-                @if (applyMessage()) { <p class="text-sm text-muted-foreground" role="status">{{ applyMessage() }}</p> }
-              }
-            </CardContent>
-          </Card>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </Table>
+          }
         }
       </PageContent>
+
+        <Dialog [(open)]="attachDialogOpen" class="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attach catalog permissions</DialogTitle>
+            <DialogDescription>Select one or more permissions to add to this group.</DialogDescription>
+          </DialogHeader>
+          <DialogContent class="grid gap-4 py-2">
+            @if (permissionsLoading()) {
+              <p class="text-sm text-muted-foreground">Loading permission catalog...</p>
+            } @else if (availablePermissions().length === 0) {
+              <p class="text-sm text-muted-foreground">All catalog permissions are already attached.</p>
+            } @else {
+              <div class="grid max-h-80 gap-2 overflow-y-auto">
+                @for (permission of availablePermissions(); track permission.id) {
+                  <label class="flex items-start gap-3 border border-border p-3 text-sm">
+                    <input type="checkbox" [checked]="selectedPermissionIds().includes(permission.id)" (change)="togglePermission(permission.id, $event)" />
+                    <span class="min-w-0"><span class="block font-mono text-foreground">{{ permission.name }}</span><span class="block text-xs text-muted-foreground">{{ permission.description || 'No description' }}</span></span>
+                  </label>
+                }
+              </div>
+            }
+            @if (dialogError()) { <p class="text-sm text-destructive" role="alert">{{ dialogError() }}</p> }
+          </DialogContent>
+          <DialogFooter>
+            <button Button variant="outline" type="button" DialogClose (click)="closeAttachDialog()">Cancel</button>
+            <button Button type="button" [disabled]="busy() || selectedPermissionIds().length === 0 || !!group()?.deletedAt" (click)="attach()">{{ busy() ? 'Attaching...' : 'Attach selected' }}</button>
+          </DialogFooter>
+        </Dialog>
+
+        <Dialog [(open)]="applyDialogOpen" class="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Apply group to users</DialogTitle>
+            <DialogDescription>Choose up to 50 users. Existing direct grants are skipped.</DialogDescription>
+          </DialogHeader>
+          <DialogContent class="grid gap-4 py-2">
+            @if (usersLoading()) {
+              <p class="text-sm text-muted-foreground">Loading users...</p>
+            } @else if (users().length === 0) {
+              <p class="text-sm text-muted-foreground">No users available.</p>
+            } @else {
+              <div class="grid max-h-80 gap-2 overflow-y-auto">
+                @for (user of users(); track user.id) {
+                  <label class="flex items-center gap-3 border border-border p-3 text-sm">
+                    <input type="checkbox" [checked]="selectedUserIds().includes(user.id)" (change)="toggleUser(user.id, $event)" />
+                    <span class="min-w-0"><span class="block font-medium text-foreground">{{ user.name }}</span><span class="block text-xs text-muted-foreground">{{ user.email }}</span></span>
+                  </label>
+                }
+              </div>
+            }
+            @if (dialogError()) { <p class="text-sm text-destructive" role="alert">{{ dialogError() }}</p> }
+          </DialogContent>
+          <DialogFooter>
+            <button Button variant="outline" type="button" DialogClose (click)="closeApplyDialog()">Cancel</button>
+            <button Button type="button" [disabled]="busy() || selectedUserIds().length === 0 || selectedUserIds().length > 50 || !!group()?.deletedAt || group()?.status !== 'active' || group()?.permissionCount === 0" (click)="applyToUsers()">{{ busy() ? 'Applying...' : 'Apply to ' + selectedUserIds().length + ' users' }}</button>
+          </DialogFooter>
+        </Dialog>
+
+        <AlertDialog [(open)]="revokeDialogOpen">
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Revoke permission?</AlertDialogTitle>
+              <AlertDialogDescription>This will remove {{ selectedPermission()?.name }} from this permission group.</AlertDialogDescription>
+            </AlertDialogHeader>
+            @if (dialogError()) { <p class="text-sm text-destructive" role="alert">{{ dialogError() }}</p> }
+            <AlertDialogFooter>
+              <button type="button" AlertDialogCancel (click)="closeRevokeDialog()">Cancel</button>
+              <button type="button" AlertDialogAction variant="destructive" [closeOnClick]="false" [disabled]="busy() || !selectedPermission()" (click)="confirmRevoke()">{{ busy() ? 'Revoking...' : 'Revoke' }}</button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
+        <p class="text-sm text-muted-foreground">Page {{ permissionsPage() }} of {{ permissionsPageCount() }} · {{ attachedPermissions().length }} catalog permissions</p>
+        <div class="flex items-center gap-2">
+          <button Button variant="outline" size="xs" type="button" [disabled]="permissionsPage() <= 1 || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() - 1)">Previous</button>
+          <button Button variant="outline" size="xs" type="button" [disabled]="permissionsPage() >= permissionsPageCount() || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() + 1)">Next</button>
+        </div>
+      </PageFooter>
     </Page>
   `,
 })
@@ -215,16 +355,22 @@ export class GroupDetailPage {
   protected readonly users = signal<UserRecord[]>([]);
   protected readonly selectedPermissionIds = signal<string[]>([]);
   protected readonly selectedUserIds = signal<string[]>([]);
+  protected readonly attachDialogOpen = signal(false);
+  protected readonly applyDialogOpen = signal(false);
+  protected readonly revokeDialogOpen = signal(false);
+  protected readonly selectedPermission = signal<PermissionRecord | null>(null);
+  protected readonly permissionsPage = signal(1);
+  protected readonly filterOpen = signal(false);
+  protected readonly permissionSearch = signal('');
+  protected readonly permissionNamespace = signal('');
+  protected readonly permissionAction = signal('');
   protected readonly loading = signal(true);
   protected readonly permissionsLoading = signal(true);
   protected readonly usersLoading = signal(true);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly dialogError = signal<string | null>(null);
   protected readonly applyMessage = signal<string | null>(null);
-  protected readonly name = signal('');
-  protected readonly description = signal('');
-  protected readonly formStatus = signal<'active' | 'off'>('active');
-  protected readonly formValid = computed(() => this.name().trim().length > 0);
   protected readonly canEdit = computed(() =>
     this.auth.hasPermission(PERMISSIONS.accessGroupUpdate),
   );
@@ -252,6 +398,58 @@ export class GroupDetailPage {
     );
     return this.catalog().filter((permission) => !attached.has(permission.id));
   });
+  protected readonly permissionNamespaces = computed(() =>
+    [
+      ...new Set(
+        this.attachedPermissions().map((permission) => permission.namespace),
+      ),
+    ].sort(),
+  );
+  protected readonly permissionActions = computed(() =>
+    [
+      ...new Set(
+        this.attachedPermissions().map((permission) => permission.action),
+      ),
+    ].sort(),
+  );
+  protected readonly filteredAttachedPermissions = computed(() => {
+    const search = this.permissionSearch().trim().toLowerCase();
+    const namespace = this.permissionNamespace();
+    const action = this.permissionAction();
+    return this.attachedPermissions().filter((permission) => {
+      const matchesSearch =
+        search.length === 0 ||
+        [
+          permission.name,
+          permission.namespace,
+          permission.resource,
+          permission.action,
+          permission.scope ?? '',
+          permission.description ?? '',
+        ].some((value) => value.toLowerCase().includes(search));
+      return (
+        matchesSearch &&
+        (namespace.length === 0 || permission.namespace === namespace) &&
+        (action.length === 0 || permission.action === action)
+      );
+    });
+  });
+  protected readonly permissionsPageCount = computed(() =>
+    Math.max(
+      Math.ceil(
+        this.filteredAttachedPermissions().length /
+          ATTACHED_PERMISSIONS_PAGE_SIZE,
+      ),
+      1,
+    ),
+  );
+  protected readonly attachedPermissionPage = computed(() => {
+    const start = (this.permissionsPage() - 1) * ATTACHED_PERMISSIONS_PAGE_SIZE;
+    return this.filteredAttachedPermissions().slice(
+      start,
+      start + ATTACHED_PERMISSIONS_PAGE_SIZE,
+    );
+  });
 
   constructor() {
     effect(() => {
@@ -260,18 +458,47 @@ export class GroupDetailPage {
     });
   }
 
+  protected setPermissionSearch(event: Event): void {
+    this.permissionSearch.set((event.target as HTMLInputElement).value);
+    this.permissionsPage.set(1);
+  }
+
+  protected setPermissionNamespace(event: Event): void {
+    this.permissionNamespace.set((event.target as HTMLSelectElement).value);
+    this.permissionsPage.set(1);
+  }
+
+  protected setPermissionAction(event: Event): void {
+    this.permissionAction.set((event.target as HTMLSelectElement).value);
+    this.permissionsPage.set(1);
+  }
+
+  protected hasPermissionFilters(): boolean {
+    return (
+      this.permissionSearch().trim().length > 0 ||
+      this.permissionNamespace().length > 0 ||
+      this.permissionAction().length > 0
+    );
+  }
+
+  protected clearPermissionFilters(): void {
+    this.permissionSearch.set('');
+    this.permissionNamespace.set('');
+    this.permissionAction.set('');
+    this.permissionsPage.set(1);
+  }
+
   private load(id: string): void {
     this.loading.set(true);
     this.permissionsLoading.set(true);
     this.usersLoading.set(true);
+    this.permissionsPage.set(1);
     this.error.set(null);
+    this.dialogError.set(null);
     this.applyMessage.set(null);
     this.api.group(id).subscribe({
       next: (group) => {
         this.group.set(group);
-        this.name.set(group.name);
-        this.description.set(group.description ?? '');
-        this.formStatus.set(group.status);
         this.loading.set(false);
       },
       error: () => {
@@ -282,7 +509,7 @@ export class GroupDetailPage {
     });
     this.api.groupPermissions(id).subscribe({
       next: (permissions) => {
-        this.attachedPermissions.set(permissions);
+        this.setAttachedPermissions(permissions);
         this.permissionsLoading.set(false);
       },
       error: () => {
@@ -314,43 +541,56 @@ export class GroupDetailPage {
     }
   }
 
-  protected setName(event: Event): void {
-    this.name.set((event.target as HTMLInputElement).value);
-  }
-
-  protected setDescription(event: Event): void {
-    this.description.set((event.target as HTMLTextAreaElement).value);
-  }
-
-  protected setStatus(event: Event): void {
-    this.formStatus.set(
-      (event.target as HTMLSelectElement).value as 'active' | 'off',
-    );
-  }
-
-  protected save(): void {
+  protected toggleStatus(): void {
     const group = this.group();
-    if (!group || !this.canEdit() || !this.formValid()) return;
+    if (!group || !this.canEdit() || group.deletedAt) return;
     this.busy.set(true);
+    this.error.set(null);
     this.api
       .updateGroup(group.id, {
-        name: this.name().trim(),
-        description: this.description().trim(),
-        status: this.formStatus(),
+        status: group.status === 'active' ? 'off' : 'active',
       })
       .subscribe({
         next: (updated) => {
           this.group.set(updated);
-          this.name.set(updated.name);
-          this.description.set(updated.description ?? '');
-          this.formStatus.set(updated.status);
           this.busy.set(false);
         },
         error: () => {
           this.busy.set(false);
-          this.error.set('Failed to update permission group.');
+          this.error.set('Failed to update permission group status.');
         },
       });
+  }
+
+  protected openRevokeDialog(permission: PermissionRecord): void {
+    this.selectedPermission.set(permission);
+    this.dialogError.set(null);
+    this.revokeDialogOpen.set(true);
+  }
+
+  protected closeRevokeDialog(): void {
+    this.selectedPermission.set(null);
+    this.dialogError.set(null);
+  }
+
+  protected confirmRevoke(): void {
+    const group = this.group();
+    const permission = this.selectedPermission();
+    if (!group || !permission || !this.canDetach() || group.deletedAt) return;
+    this.busy.set(true);
+    this.dialogError.set(null);
+    this.api.detachGroupPermission(group.id, permission.id).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.revokeDialogOpen.set(false);
+        this.selectedPermission.set(null);
+        this.reloadGroupPermissions(group.id);
+      },
+      error: () => {
+        this.busy.set(false);
+        this.dialogError.set('Failed to revoke group permission.');
+      },
+    });
   }
 
   protected remove(): void {
@@ -399,36 +639,50 @@ export class GroupDetailPage {
     );
   }
 
+  protected openAttachDialog(): void {
+    this.selectedPermissionIds.set([]);
+    this.dialogError.set(null);
+    this.attachDialogOpen.set(true);
+  }
+
+  protected closeAttachDialog(): void {
+    this.selectedPermissionIds.set([]);
+    this.dialogError.set(null);
+  }
+
+  protected openApplyDialog(): void {
+    this.selectedUserIds.set([]);
+    this.dialogError.set(null);
+    this.applyDialogOpen.set(true);
+  }
+
+  protected closeApplyDialog(): void {
+    this.selectedUserIds.set([]);
+    this.dialogError.set(null);
+  }
+
+  protected goToPermissionsPage(page: number): void {
+    this.permissionsPage.set(
+      Math.min(Math.max(page, 1), this.permissionsPageCount()),
+    );
+  }
+
   protected attach(): void {
     const group = this.group();
     const ids = this.selectedPermissionIds();
     if (!group || ids.length === 0 || !this.canAttach()) return;
     this.busy.set(true);
+    this.dialogError.set(null);
     this.api.attachGroupPermissions(group.id, ids).subscribe({
       next: () => {
         this.selectedPermissionIds.set([]);
+        this.attachDialogOpen.set(false);
         this.busy.set(false);
         this.reloadGroupPermissions(group.id);
       },
       error: () => {
         this.busy.set(false);
-        this.error.set('Failed to attach group permissions.');
-      },
-    });
-  }
-
-  protected detach(permission: PermissionRecord): void {
-    const group = this.group();
-    if (!group || !this.canDetach()) return;
-    this.busy.set(true);
-    this.api.detachGroupPermission(group.id, permission.id).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.reloadGroupPermissions(group.id);
-      },
-      error: () => {
-        this.busy.set(false);
-        this.error.set('Failed to detach group permission.');
+        this.dialogError.set('Failed to attach group permissions.');
       },
     });
   }
@@ -447,17 +701,19 @@ export class GroupDetailPage {
       return;
     this.busy.set(true);
     this.applyMessage.set(null);
+    this.dialogError.set(null);
     this.api.applyGroupToUsers(group.id, ids).subscribe({
       next: (result) => {
         this.busy.set(false);
         this.selectedUserIds.set([]);
+        this.applyDialogOpen.set(false);
         this.applyMessage.set(
           `${result.applied.length} user(s) updated; ${result.failed.length} failed.`,
         );
       },
       error: () => {
         this.busy.set(false);
-        this.error.set('Failed to apply permission group.');
+        this.dialogError.set('Failed to apply permission group.');
       },
     });
   }
@@ -466,7 +722,7 @@ export class GroupDetailPage {
     this.permissionsLoading.set(true);
     this.api.groupPermissions(id).subscribe({
       next: (permissions) => {
-        this.attachedPermissions.set(permissions);
+        this.setAttachedPermissions(permissions);
         this.permissionsLoading.set(false);
         this.group.update((value) =>
           value ? { ...value, permissionCount: permissions.length } : value,
@@ -479,18 +735,11 @@ export class GroupDetailPage {
     });
   }
 
-  protected statusLabel(): string {
-    const group = this.group();
-    if (!group) return '';
-    if (group.deletedAt) return 'Deleted';
-    return group.status === 'active' ? 'Active' : 'Off';
-  }
-
-  protected statusVariant(): BadgeVariant {
-    const group = this.group();
-    return !group || group.deletedAt || group.status === 'off'
-      ? 'destructive'
-      : 'secondary';
+  private setAttachedPermissions(permissions: PermissionRecord[]): void {
+    this.attachedPermissions.set(permissions);
+    this.permissionsPage.update((page) =>
+      Math.min(page, this.permissionsPageCount()),
+    );
   }
 
   protected formatDate(value: string): string {
