@@ -1,7 +1,8 @@
 # 0014. Adopt a Bun observability and benchmarking standard
 
 **Date**: 2026-08-25
-**Status**: Accepted
+**Status**: Superseded
+**Superseded by**: [0017](../0017-hybrid-observability-storage/index.md)
 
 ## Summary
 

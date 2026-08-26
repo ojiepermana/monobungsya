@@ -25,6 +25,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 12  | Bun observability and benchmarking standard | Foundation | done        |
 | 13  | Permission group grant templates    | Foundation | done        |
 | 14  | Observability pages per signal      | Foundation | in-progress |
+| 15  | Hybrid observability storage        | Foundation | in-progress |
 
 ## Foundations
 
@@ -264,6 +265,22 @@ Split the single tabbed `/observability` page into six standalone pages on the s
 - [x] Test it: `/test observability pages per signal` (backend gate 281/281 and focused observability/nav Angular tests 11/11; full web suite retains three unrelated permission-group failures)
 
 Spec [0016](../specs/0016-observability-per-signal-pages/index.md) · code in `packages/database`, `packages/acl`, `apps/services/logs`, `apps/gateway/erp`, and `apps/web`
+
+### 15. Hybrid observability storage · in-progress
+
+Move high volume Span, Metric Bucket, Application Log, and Access Log data behind one bounded signal store that can cut over from PostgreSQL to ClickHouse, while audit trail and observability control remain transactional in PostgreSQL.
+**Done when:** Producers depend only on the typed signal store, ClickHouse storage and reads meet the bounded query and retention contract, the dual write cutover and rollback gates are proven, and operational health exposes every Blind Spot.
+
+- [x] Design it (spec): `/architect hybrid observability storage`
+- [ ] Build it: `/develop hybrid observability storage`
+  - [x] Canonical Signal interface, bounded queue, fake, PostgreSQL adapter, and producer extraction (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9)
+  - [x] ClickHouse HTTP adapter, schema migration, version gate, and local runner (AC-5, AC-6, AC-8, AC-23)
+  - [ ] Read model, control health, query limits, and per signal cursor paths (AC-10 to AC-16)
+  - [ ] Capacity, dual write, backfill, cutover, rollback, and operational evidence (AC-2, AC-17 to AC-22)
+- [ ] Verify it: `/check verify hybrid observability storage`
+- [x] Test it: `/test hybrid observability storage` (445 backend and package tests, 153 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-26)
+
+Spec [0017](../specs/0017-hybrid-observability-storage/index.md) · code in `packages/observability`, `packages/telemetry`, `packages/logger`, `packages/database`, `apps/services/logs`, and `apps/gateway/erp`
 
 ## Domain
 
