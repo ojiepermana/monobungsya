@@ -205,7 +205,9 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     fixture.detectChanges();
 
     expect(api.updateGroup).toHaveBeenCalledWith(group.id, { status: 'off' });
-    expect(root.textContent).toContain('Off');
+    menuTrigger?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+    expect(document.body.textContent).toContain('Activate');
   });
 
   it('paginates attached catalog permissions in the page footer', () => {
@@ -257,7 +259,7 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
       (button) => button.textContent?.includes('Filter'),
     );
 
-    expect(root.querySelector('input[type="search"]')).toBeNull();
+    expect(root.querySelector('pagefilter')?.hasAttribute('hidden')).toBe(true);
     filterToggle?.click();
     fixture.detectChanges();
 
@@ -272,7 +274,7 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
 
     expect(root.textContent).toContain('access:group:update');
     expect(root.textContent).not.toContain(permission.name);
-    expect(root.textContent).toContain('Page 1 of 1 · 1 catalog permissions');
+    expect(root.textContent).toContain('Page 1 of 1 · 2 catalog permissions');
   });
 
   it('revokes an attached permission from the table', () => {
@@ -310,7 +312,12 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
   it('AC-5 attaches from a dialog and AC-8 reports the bulk result from a dialog', () => {
     const { fixture, api } = createPage();
     const root = fixture.nativeElement as HTMLElement;
-    const attachAction = Array.from(root.querySelectorAll('button')).find(
+    const menuTrigger = root.querySelector(
+      'button[aria-label="Group actions"]',
+    );
+    menuTrigger?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+    const attachAction = Array.from(document.querySelectorAll('button')).find(
       (button) => button.textContent?.includes('Attach catalog'),
     );
     attachAction?.click();
@@ -337,7 +344,9 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
       additionalPermission.id,
     ]);
 
-    const applyAction = Array.from(root.querySelectorAll('button')).find(
+    menuTrigger?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+    const applyAction = Array.from(document.querySelectorAll('button')).find(
       (button) => button.textContent?.includes('Apply to users'),
     );
     applyAction?.click();
