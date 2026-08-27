@@ -155,12 +155,12 @@ if (inventory.schemaVersion !== '0014.1' || !Array.isArray(inventory.seams)) {
   }
 }
 
-const observabilityPackage = 'packages/observability/src';
+const telemetryPackage = 'packages/telemetry/src';
 const forbidden = ['apps', 'packages'].flatMap((root) =>
   Array.from(new Bun.Glob('**/*.ts').scanSync({ cwd: root, absolute: true })),
 );
 for (const path of forbidden) {
-  if (path.includes(`/${observabilityPackage}/`)) continue;
+  if (path.includes(`/${telemetryPackage}/`)) continue;
   const source = await Bun.file(path).text();
   if (
     /INSERT\s+INTO\s+["']telemetry["']\.["'](?:spans|metric_buckets)["']/i.test(
@@ -168,49 +168,9 @@ for (const path of forbidden) {
     )
   ) {
     failures.push(
-      `${path} writes signal storage outside packages/observability`,
+      `${path} writes telemetry storage outside packages/telemetry`,
     );
   }
-}
-
-const producerPaths = [
-  'packages/telemetry/src/index.ts',
-  'packages/logger/src/activity-log.ts',
-] as const;
-for (const path of producerPaths) {
-  const source = await Bun.file(path).text();
-  if (!source.includes('#project/observability')) {
-    failures.push(`${path} does not use the ObservabilitySignalStore seam`);
-  }
-  if (source.includes('createPostgresObservabilitySignalStore')) {
-    failures.push(
-      `${path} constructs a storage adapter instead of receiving one`,
-    );
-  }
-}
-
-const telemetryProducer = await Bun.file(producerPaths[0]).text();
-if (telemetryProducer.includes('#project/database')) {
-  failures.push(
-    'packages/telemetry imports a database client instead of the signal seam',
-  );
-}
-const loggerProducer = await Bun.file(producerPaths[1]).text();
-if (
-  /INSERT\s+INTO\s+["']logs["']\.["'](?:logging|access_logs)["']/i.test(
-    loggerProducer,
-  )
-) {
-  failures.push(
-    'packages/logger writes Signal tables instead of using the signal seam',
-  );
-}
-const auditMethod = loggerProducer.slice(
-  loggerProducer.indexOf('static async writeAudit'),
-  loggerProducer.indexOf('private static appendApplicationLog'),
-);
-if (auditMethod.includes('signalStore')) {
-  failures.push('Audit Trail write path depends on ObservabilitySignalStore');
 }
 
 const applicationSourceFiles = Array.from(

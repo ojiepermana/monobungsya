@@ -4,7 +4,6 @@ import {
   createTelemetryDatabaseClient,
 } from '#project/database';
 import { ActivityLog, Logger } from '#project/logger';
-import { createRuntimeObservabilitySignalStore } from '#project/observability';
 import { TelemetryRuntime } from '#project/telemetry';
 import { createApp } from './app';
 import { env } from './config/env';
@@ -21,20 +20,14 @@ const telemetryDatabase =
   env.TELEMETRY_ENABLED && env.ENABLE_INFRASTRUCTURE
     ? createDatabaseClient(env.TELEMETRY_DATABASE_URL)
     : undefined;
-const observabilityDatabase = env.ENABLE_INFRASTRUCTURE
-  ? createDatabaseClient(env.OBSERVABILITY_DATABASE_URL)
-  : undefined;
-const signalStore = await createRuntimeObservabilitySignalStore({
-  environment: env,
-  logsDatabase: logDatabase,
-  telemetryDatabase,
-  controlDatabase: observabilityDatabase,
-});
 const telemetry = env.TELEMETRY_ENABLED
   ? new TelemetryRuntime({
       serviceName: env.serviceName,
       serviceInstanceId: env.serviceInstanceId,
-      signalStore,
+      database: telemetryDatabase,
+      queueCapacity: env.TELEMETRY_QUEUE_CAPACITY,
+      priorityCapacity: env.TELEMETRY_PRIORITY_CAPACITY,
+      batchSize: env.TELEMETRY_BATCH_SIZE,
       flushIntervalMs: env.TELEMETRY_FLUSH_INTERVAL_MS,
       slowThresholdMs: env.TELEMETRY_SLOW_THRESHOLD_MS,
       successSampleRate: env.TELEMETRY_SUCCESS_SAMPLE_RATE,
@@ -50,7 +43,6 @@ const applicationDatabase =
     : database;
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
-  signalStore,
 });
 const logger = new Logger(env.serviceName, env.LOG_LEVEL, {
   persist: env.BEST_EFFORT_LOGGING_ENABLED,
@@ -86,12 +78,9 @@ const cleanupTimer = applicationDatabase
     }, env.NOTIFICATION_CLEANUP_INTERVAL_MS)
   : undefined;
 cleanupTimer?.unref();
-const server = createApp(
-  env,
-  applicationDatabase,
-  telemetry,
-  signalStore,
-).listen(env.NOTIFICATION_SERVICE_PORT);
+const server = createApp(env, applicationDatabase, telemetry).listen(
+  env.NOTIFICATION_SERVICE_PORT,
+);
 console.log(
   `${env.serviceName} listening on http://localhost:${server.server?.port ?? env.NOTIFICATION_SERVICE_PORT}`,
 );
@@ -105,10 +94,8 @@ async function shutdown(signal: string) {
   await stopWorker();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   await telemetry?.shutdown(env.TELEMETRY_FLUSH_TIMEOUT_MS);
-  if (!telemetry) await signalStore?.shutdown(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (telemetryDatabase) await closeDatabaseClient(telemetryDatabase);
-  if (observabilityDatabase) await closeDatabaseClient(observabilityDatabase);
   if (database) await closeDatabaseClient(database);
 }
 process.on('SIGINT', () => void shutdown('SIGINT').then(() => process.exit(0)));

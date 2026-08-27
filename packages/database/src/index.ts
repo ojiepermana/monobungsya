@@ -124,16 +124,6 @@ export async function closeDatabaseClient(
 export { loadDatabaseToolConfig } from './config';
 export { parseCsv } from './csv';
 export {
-  ensureLogPartition,
-  isMissingLogPartitionError,
-  jakartaYear,
-  jakartaYearBoundaryUtc,
-  LOG_TABLES,
-  type LogTable,
-  logPartitionName,
-  withLogPartitionRecovery,
-} from './log-partition';
-export {
   assertChecksumMatches,
   DatabaseRunner,
   discoverMigrations,

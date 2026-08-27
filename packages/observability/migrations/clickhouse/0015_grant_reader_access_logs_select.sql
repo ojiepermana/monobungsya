@@ -1,1 +1,0 @@
-GRANT SELECT ON observability.access_logs TO project_observability_reader

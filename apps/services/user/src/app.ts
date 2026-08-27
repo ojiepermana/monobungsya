@@ -5,7 +5,6 @@ import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
-  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
@@ -13,7 +12,6 @@ import {
 import type { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
 import type { Publisher } from '#project/messaging';
-import type { ObservabilitySignalStore } from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import { createUsersRoute } from './modules/users/users.route';
 
@@ -22,7 +20,6 @@ export interface UserAppDependencies {
   messaging?: Publisher;
   jobs?: JobRegistry;
   durableJobsEnabled?: boolean;
-  signalStore?: ObservabilitySignalStore;
   telemetry?: TelemetryRuntime;
 }
 
@@ -61,13 +58,6 @@ export function createApp(
         },
         detail: { tags: ['Health'], summary: 'Check service health' },
       },
-    )
-    .use(
-      createObservabilityStorageHealthRoute({
-        signalStore: dependencies.signalStore,
-        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
-        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
-      }),
     )
     .use(
       createUsersRoute(environment.serviceName, {

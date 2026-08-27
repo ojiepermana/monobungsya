@@ -525,11 +525,7 @@ export function analyzeRepository(root: string): ProgressReport {
       expected &&
       governingSpec?.status &&
       governingSpec.status !== expected &&
-      governingSpec.status !== 'Assumed' &&
-      !(
-        governingSpec.status === 'Superseded' &&
-        (feature.status === 'done' || feature.status === 'existing')
-      )
+      governingSpec.status !== 'Assumed'
     ) {
       addDrift(drifts, {
         code: 'D012',

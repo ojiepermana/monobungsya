@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import type { DatabaseClient } from '#project/database';
-import { createPostgresObservabilitySignalStore } from '#project/observability';
 import { ActivityLog } from './activity-log';
 
 interface RecordedQuery {
@@ -27,14 +26,6 @@ function createFakeDatabase(
   return { database: fake as unknown as DatabaseClient, queries };
 }
 
-function configure(database: DatabaseClient | undefined): void {
-  ActivityLog.configure(database, {
-    signalStore: database
-      ? createPostgresObservabilitySignalStore({ logsDatabase: database })
-      : undefined,
-  });
-}
-
 afterEach(async () => {
   await ActivityLog.flush();
   ActivityLog.configure(undefined);
@@ -43,7 +34,7 @@ afterEach(async () => {
 describe('ActivityLog.writeLog', () => {
   it('returns the record synchronously and inserts asynchronously', async () => {
     const { database, queries } = createFakeDatabase();
-    configure(database);
+    ActivityLog.configure(database);
 
     const record = ActivityLog.writeLog({
       level: 'info',
@@ -67,7 +58,7 @@ describe('ActivityLog.writeLog', () => {
 
   it('encodes a missing context as SQL NULL', async () => {
     const { database, queries } = createFakeDatabase();
-    configure(database);
+    ActivityLog.configure(database);
 
     ActivityLog.writeLog({ level: 'info', message: 'no context' });
     await ActivityLog.flush();
@@ -80,7 +71,7 @@ describe('ActivityLog.writeLog', () => {
     const { database } = createFakeDatabase(() => {
       throw new Error('connection refused');
     });
-    configure(database);
+    ActivityLog.configure(database);
 
     const record = ActivityLog.writeLog({ level: 'error', message: 'boom' });
 
@@ -89,7 +80,7 @@ describe('ActivityLog.writeLog', () => {
 
     expect(consoleError).toHaveBeenCalled();
     expect(String(consoleError.mock.calls[0]?.[0])).toContain(
-      '[observability] signal delivery failed',
+      '[activity-log] write failed:',
     );
     consoleError.mockRestore();
   });
@@ -104,16 +95,13 @@ describe('ActivityLog.writeLog', () => {
       }
       return [];
     });
-    configure(database);
+    ActivityLog.configure(database);
 
     ActivityLog.writeLog({ level: 'error', message: 'first fails' });
     ActivityLog.writeLog({ level: 'info', message: 'second lands' });
     await ActivityLog.flush();
 
-    expect(queries.length).toBeGreaterThanOrEqual(2);
-    expect(queries.some((query) => query.values.includes('second lands'))).toBe(
-      true,
-    );
+    expect(queries).toHaveLength(2);
     consoleError.mockRestore();
   });
 
@@ -130,7 +118,7 @@ describe('ActivityLog.writeLog', () => {
 describe('ActivityLog.writeAccess', () => {
   it('queues the insert with the success outcome default', async () => {
     const { database, queries } = createFakeDatabase();
-    configure(database);
+    ActivityLog.configure(database);
 
     const record = ActivityLog.writeAccess({ event: 'sign_in' });
 
@@ -145,7 +133,7 @@ describe('ActivityLog.writeAccess', () => {
 describe('ActivityLog.writeAudit', () => {
   it('awaits the insert and returns the record', async () => {
     const { database, queries } = createFakeDatabase();
-    configure(database);
+    ActivityLog.configure(database);
 
     const record = await ActivityLog.writeAudit({
       action: 'update',
@@ -167,7 +155,7 @@ describe('ActivityLog.writeAudit', () => {
     const { database } = createFakeDatabase(() => {
       throw new Error('audit insert failed');
     });
-    configure(database);
+    ActivityLog.configure(database);
 
     await expect(
       ActivityLog.writeAudit({
@@ -191,7 +179,7 @@ describe('ActivityLog.writeAudit', () => {
       }
       return [];
     });
-    configure(database);
+    ActivityLog.configure(database);
 
     const record = await ActivityLog.writeAudit({
       action: 'create',

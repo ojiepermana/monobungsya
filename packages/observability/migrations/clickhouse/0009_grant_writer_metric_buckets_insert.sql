@@ -1,1 +1,0 @@
-GRANT INSERT ON observability.metric_buckets TO project_observability_writer

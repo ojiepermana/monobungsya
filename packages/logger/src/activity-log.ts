@@ -1,10 +1,4 @@
 import type { DatabaseClient } from '#project/database';
-import {
-  type AccessLogSignal,
-  type ApplicationLogSignal,
-  OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-  type ObservabilitySignalStore,
-} from '#project/observability';
 import { withLogPartitionRecovery } from './partition';
 import { sanitizeLogContext } from './sanitize';
 
@@ -164,13 +158,9 @@ export interface AccessLogRecord {
   actorUserId: string | null;
   actorName: string | null;
   actorEmail: string | null;
-  branchCode: string | null;
   ipAddress: string | null;
   forwardedIp: string | null;
   userAgent: string | null;
-  deviceName: string | null;
-  platform: string | null;
-  browser: string | null;
   sessionId: string | null;
   requestId: string | null;
   traceId: string | null;
@@ -216,24 +206,40 @@ function encodeAmount(
 // biome-ignore lint/complexity/noStaticOnlyClass: The public static API keeps one process local queue behind the existing writer contract.
 export abstract class ActivityLog {
   private static database: DatabaseClient | undefined;
-  private static signalStore: ObservabilitySignalStore | undefined;
   private static bestEffortEnabled = true;
+  private static pending: Promise<void> = Promise.resolve();
 
   static configure(
     database: DatabaseClient | undefined,
-    options: {
-      bestEffort?: boolean;
-      signalStore?: ObservabilitySignalStore;
-    } = {},
+    options: { bestEffort?: boolean } = {},
   ): void {
     ActivityLog.database = database;
     ActivityLog.bestEffortEnabled = options.bestEffort ?? true;
-    ActivityLog.signalStore = options.signalStore;
   }
 
   /** Wait for every queued write to settle. */
   static async flush(timeoutMs?: number): Promise<void> {
-    await ActivityLog.signalStore?.flush(timeoutMs);
+    if (!timeoutMs) {
+      await ActivityLog.pending;
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        ActivityLog.pending,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            console.error(
+              `[activity-log] flush timed out after ${timeoutMs}ms`,
+            );
+            resolve();
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   static writeLog(input: WriteLogInput): ApplicationLogRecord {
@@ -269,7 +275,36 @@ export abstract class ActivityLog {
     };
 
     if (!ActivityLog.bestEffortEnabled) return record;
-    ActivityLog.appendApplicationLog(record);
+
+    ActivityLog.enqueue(async (database) => {
+      await withLogPartitionRecovery(
+        database,
+        'logging',
+        record.occurredAt,
+        () => database`
+          INSERT INTO "logs"."logging" (
+            id, level, channel, category, event, module, message, context,
+            exception_class, exception_message, stack_trace,
+            actor_user_id, actor_name, actor_email,
+            entity_type, entity_id, reference_no, branch_code,
+            request_id, trace_id, runtime_trace_id, runtime_span_id,
+            session_id, ip_address, user_agent,
+            occurred_at, created_at
+          ) VALUES (
+            ${record.id}, ${record.level}, ${record.channel},
+            ${record.category}, ${record.event}, ${record.module},
+            ${record.message}, ${encodeJson(record.context)},
+            ${record.exceptionClass}, ${record.exceptionMessage},
+            ${record.stackTrace}, ${record.actorUserId}, ${record.actorName},
+            ${record.actorEmail}, ${record.entityType}, ${record.entityId},
+            ${record.referenceNo}, ${record.branchCode}, ${record.requestId},
+            ${record.traceId}, ${record.runtimeTraceId},
+            ${record.runtimeSpanId}, ${record.sessionId}, ${record.ipAddress},
+            ${record.userAgent}, ${record.occurredAt}, ${record.createdAt}
+          )
+        `,
+      );
+    });
 
     return record;
   }
@@ -286,13 +321,9 @@ export abstract class ActivityLog {
       actorUserId: text(input.actor?.id),
       actorName: text(input.actor?.name),
       actorEmail: text(input.actor?.email),
-      branchCode: text(input.branchCode),
       ipAddress: text(input.ipAddress),
       forwardedIp: text(input.forwardedIp),
       userAgent: text(input.userAgent),
-      deviceName: text(input.deviceName),
-      platform: text(input.platform),
-      browser: text(input.browser),
       sessionId: text(input.sessionId),
       requestId: text(input.requestId),
       traceId: text(input.traceId),
@@ -309,7 +340,41 @@ export abstract class ActivityLog {
     };
 
     if (!ActivityLog.bestEffortEnabled) return record;
-    ActivityLog.appendAccessLog(record);
+
+    ActivityLog.enqueue(async (database) => {
+      await withLogPartitionRecovery(
+        database,
+        'access_logs',
+        record.accessedAt,
+        () => database`
+          INSERT INTO "logs"."access_logs" (
+            id, event, outcome, authentication_method, access_channel, guard,
+            actor_user_id, actor_name, actor_email, branch_code,
+            ip_address, forwarded_ip, user_agent,
+            device_name, platform, browser,
+            session_id, request_id, trace_id, runtime_trace_id, runtime_span_id,
+            route_name, path, method, http_status, failure_reason, metadata,
+            accessed_at, created_at
+          ) VALUES (
+            ${record.id}, ${record.event}, ${record.outcome},
+            ${record.authenticationMethod},
+            ${record.accessChannel}, ${record.guard},
+            ${record.actorUserId}, ${record.actorName},
+            ${record.actorEmail}, ${text(input.branchCode)},
+            ${record.ipAddress}, ${record.forwardedIp},
+            ${record.userAgent}, ${text(input.deviceName)},
+            ${text(input.platform)}, ${text(input.browser)},
+            ${record.sessionId}, ${record.requestId},
+            ${record.traceId}, ${record.runtimeTraceId},
+            ${record.runtimeSpanId}, ${record.routeName},
+            ${record.path}, ${record.method},
+            ${record.httpStatus}, ${record.failureReason},
+            ${encodeJson(record.metadata)},
+            ${record.accessedAt}, ${record.createdAt}
+          )
+        `,
+      );
+    });
 
     return record;
   }
@@ -372,27 +437,19 @@ export abstract class ActivityLog {
     return record;
   }
 
-  private static appendApplicationLog(record: ApplicationLogRecord): void {
-    try {
-      ActivityLog.signalStore?.append({
-        kind: 'application_log',
-        ...record,
-        schemaVersion: OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-      } satisfies ApplicationLogSignal);
-    } catch {
-      console.error('[observability] application log enqueue failed');
-    }
-  }
-
-  private static appendAccessLog(record: AccessLogRecord): void {
-    try {
-      ActivityLog.signalStore?.append({
-        kind: 'access_log',
-        ...record,
-        schemaVersion: OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-      } satisfies AccessLogSignal);
-    } catch {
-      console.error('[observability] access log enqueue failed');
-    }
+  private static enqueue(
+    run: (database: DatabaseClient) => Promise<void>,
+  ): void {
+    ActivityLog.pending = ActivityLog.pending
+      .then(() => {
+        const database = ActivityLog.database;
+        return database ? run(database) : undefined;
+      })
+      .then(
+        () => undefined,
+        (error) => {
+          console.error('[activity-log] write failed:', error);
+        },
+      );
   }
 }

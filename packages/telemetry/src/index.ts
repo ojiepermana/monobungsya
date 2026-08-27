@@ -1,10 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
-import {
-  OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-  type ObservabilitySignalStore,
-  type SpanSignal,
-} from '#project/observability';
+import type { DatabaseClient } from '#project/database';
+import { withTransaction } from '#project/database';
 
 export const RESOURCE_KINDS = [
   'http.server',
@@ -139,7 +136,7 @@ export interface Telemetry {
 export interface TelemetryRuntimeOptions {
   serviceName: string;
   serviceInstanceId: string;
-  signalStore?: ObservabilitySignalStore;
+  database?: DatabaseClient;
   enabled?: boolean;
   queueCapacity?: number;
   priorityCapacity?: number;
@@ -227,6 +224,8 @@ let randomPoolOffset = RANDOM_POOL.byteLength;
 const SPAN_ID_PREFIX = randomHex(4);
 let spanIdSequence = 0;
 const DEFAULT_MAX_SPANS_PER_TRACE = 1_000;
+const DEFAULT_MAX_SERIALIZED_ITEM_BYTES = 4_096;
+const TEXT_ENCODER = new TextEncoder();
 
 function randomHex(bytes: number): string {
   if (randomPoolOffset + bytes > RANDOM_POOL.byteLength) {
@@ -328,14 +327,39 @@ function seriesFingerprint(
   return createHash('sha256').update(canonical).digest('hex');
 }
 
+function sqlValues(rows: unknown[][]): { sql: string; params: unknown[] } {
+  const params: unknown[] = [];
+  const placeholders = rows.map((row) => {
+    const values = row.map((value) => {
+      params.push(value);
+      return `$${params.length}`;
+    });
+    return `(${values.join(', ')})`;
+  });
+  return { sql: placeholders.join(', '), params };
+}
+
+function isStorageUnavailable(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /connection|connect|timeout|timed out|database .* does not exist|server closed|terminating connection|network|refused|permission denied|unavailable/i.test(
+    message,
+  );
+}
+
 export class TelemetryRuntime implements Telemetry {
   private readonly serviceName: string;
   private readonly serviceInstanceId: string;
-  private readonly signalStore?: ObservabilitySignalStore;
+  private readonly database?: DatabaseClient;
   private readonly enabled: boolean;
+  private readonly queueCapacity: number;
+  private readonly priorityCapacity: number;
+  private readonly batchSize: number;
   private readonly slowThresholdNs: number;
   private readonly successSampleRate: number;
   private readonly maxSpansPerTrace: number;
+  private readonly maxSerializedItemBytes: number;
+  private readonly spans: StoredSpan[] = [];
+  private readonly prioritySpans: StoredSpan[] = [];
   private readonly metrics = new Map<string, MetricBucket>();
   private flushTimer: ReturnType<typeof setInterval> | undefined;
   private probeTimer: ReturnType<typeof setInterval> | undefined;
@@ -343,9 +367,8 @@ export class TelemetryRuntime implements Telemetry {
   private flushSequence = 0;
   private droppedItems = 0;
   private recoveryDroppedItems = 0;
-  private pendingSpans = 0;
-  private pendingMetricBuckets = 0;
-  private persistedDroppedItems = 0;
+  private storageBackoffUntil = 0;
+  private storageBackoffMs = 0;
   private readonly traceSpanCounts = new Map<string, number>();
   private readonly incompleteTraces = new Set<string>();
   private readonly metricFingerprints = new Map<string, string>();
@@ -361,13 +384,18 @@ export class TelemetryRuntime implements Telemetry {
   constructor(options: TelemetryRuntimeOptions) {
     this.serviceName = options.serviceName;
     this.serviceInstanceId = options.serviceInstanceId;
-    this.signalStore = options.signalStore;
+    this.database = options.database;
     this.enabled = options.enabled ?? true;
+    this.queueCapacity = options.queueCapacity ?? 2_000;
+    this.priorityCapacity = options.priorityCapacity ?? 500;
+    this.batchSize = options.batchSize ?? 200;
     this.slowThresholdNs = (options.slowThresholdMs ?? 1_000) * 1_000_000;
     this.successSampleRate = options.successSampleRate ?? 0.05;
     this.maxSpansPerTrace =
       options.maxSpansPerTrace ?? DEFAULT_MAX_SPANS_PER_TRACE;
-    if (this.enabled && this.signalStore) {
+    this.maxSerializedItemBytes =
+      options.maxSerializedItemBytes ?? DEFAULT_MAX_SERIALIZED_ITEM_BYTES;
+    if (this.enabled && this.database) {
       this.flushTimer = setInterval(
         () => void this.flush(),
         options.flushIntervalMs ?? 1_000,
@@ -389,15 +417,9 @@ export class TelemetryRuntime implements Telemetry {
   }
 
   diagnostics(): { droppedItems: number; queueDepth: number } {
-    const storeDiagnostics = this.signalStore?.diagnostics();
     return {
-      droppedItems:
-        this.droppedItems +
-        Object.values(storeDiagnostics?.droppedByReason ?? {}).reduce(
-          (total, count) => total + count,
-          0,
-        ),
-      queueDepth: storeDiagnostics?.queueDepth ?? 0,
+      droppedItems: this.droppedItems,
+      queueDepth: this.spans.length + this.prioritySpans.length,
     };
   }
 
@@ -567,6 +589,10 @@ export class TelemetryRuntime implements Telemetry {
     } else if (level === 'critical') {
       this.samplingMultiplier = 0;
       this.addCounter('telemetry.memory_pressure.critical_total');
+      while (this.spans.length > Math.floor(this.queueCapacity / 2)) {
+        this.spans.shift();
+        this.dropItem('memory_pressure');
+      }
       void this.flush();
     }
     if (level !== 'normal') {
@@ -613,15 +639,36 @@ export class TelemetryRuntime implements Telemetry {
   }
 
   async flush(timeoutMs?: number): Promise<FlushResult> {
-    if (!this.enabled || !this.signalStore) {
+    if (!this.enabled || !this.database) {
       return {
         writtenSpans: 0,
         writtenMetricBuckets: 0,
-        droppedItems: this.droppedItems + this.persistedDroppedItems,
+        droppedItems: this.droppedItems,
         failed: false,
       };
     }
-    return this.flushNow(timeoutMs);
+    const operation = this.flushNow();
+    if (!timeoutMs) return operation;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<FlushResult>((resolve) => {
+          timer = setTimeout(
+            () =>
+              resolve({
+                writtenSpans: 0,
+                writtenMetricBuckets: 0,
+                droppedItems: this.droppedItems,
+                failed: true,
+              }),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   async shutdown(timeoutMs?: number): Promise<FlushResult> {
@@ -644,9 +691,7 @@ export class TelemetryRuntime implements Telemetry {
       );
       this.memoryPressureListener = undefined;
     }
-    const result = await this.flush(timeoutMs);
-    await this.signalStore?.shutdown(timeoutMs);
-    return result;
+    return this.flush(timeoutMs);
   }
 
   private endSpan(active: ActiveSpan, result: SpanEnd): void {
@@ -713,7 +758,15 @@ export class TelemetryRuntime implements Telemetry {
     if (this.incompleteTraces.has(span.traceId)) {
       span.attributes['telemetry.incomplete'] = true;
     }
-    this.appendSpan(span);
+    if (!this.fitSerializedItem(span)) {
+      this.markTraceIncomplete(span.traceId);
+      this.dropItem('item_limit');
+      return;
+    }
+    this.enqueueSpan(
+      span,
+      Boolean(result.error) || durationNs >= this.slowThresholdNs,
+    );
     this.addCounter('telemetry.operation.count', 1, {
       resource_kind: active.definition.resourceKind,
       resource_name: resourceName,
@@ -728,6 +781,19 @@ export class TelemetryRuntime implements Telemetry {
         resource_name: resourceName,
       },
     );
+  }
+
+  private enqueueSpan(span: StoredSpan, priority: boolean): void {
+    const target = priority ? this.prioritySpans : this.spans;
+    const capacity = priority ? this.priorityCapacity : this.queueCapacity;
+    if (target.length >= capacity) {
+      this.dropItem(priority ? 'high' : 'low');
+      this.addCounter('telemetry.spans.dropped_total', 1, {
+        priority: priority ? 'high' : 'low',
+      });
+      return;
+    }
+    target.push(span);
   }
 
   private recordMetric(
@@ -846,14 +912,13 @@ export class TelemetryRuntime implements Telemetry {
     return this.metricBucketStartValue;
   }
 
-  private async flushNow(timeoutMs?: number): Promise<FlushResult> {
-    const signalStore = this.signalStore;
-    if (!signalStore) {
+  private async flushNow(): Promise<FlushResult> {
+    if (Date.now() < this.storageBackoffUntil) {
       return {
         writtenSpans: 0,
         writtenMetricBuckets: 0,
-        droppedItems: this.droppedItems + this.persistedDroppedItems,
-        failed: false,
+        droppedItems: this.droppedItems,
+        failed: true,
       };
     }
     if (this.recoveryDroppedItems > 0) {
@@ -866,58 +931,194 @@ export class TelemetryRuntime implements Telemetry {
       );
       this.recoveryDroppedItems = 0;
     }
+    const spans: StoredSpan[] = [];
+    while (this.prioritySpans.length > 0 && spans.length < this.batchSize) {
+      const span = this.prioritySpans.shift();
+      if (span) spans.push(span);
+    }
+    while (this.spans.length > 0 && spans.length < this.batchSize) {
+      const span = this.spans.shift();
+      if (span) spans.push(span);
+    }
     const buckets = Array.from(this.metrics.values());
     this.metrics.clear();
     this.currentMetricBuckets.clear();
-    this.flushSequence += 1;
-    for (const bucket of buckets) {
-      bucket.flushSequence = this.flushSequence;
-      this.appendMetricBucket(bucket);
+    if (!this.database || (spans.length === 0 && buckets.length === 0)) {
+      return {
+        writtenSpans: 0,
+        writtenMetricBuckets: 0,
+        droppedItems: this.droppedItems,
+        failed: false,
+      };
     }
-    const storeResult = await signalStore.flush(timeoutMs);
-    this.persistedDroppedItems += storeResult.dropped;
-    this.recoveryDroppedItems += storeResult.dropped;
-    const pending = this.pendingSpans + this.pendingMetricBuckets;
-    const written = Math.min(storeResult.written, pending);
-    const writtenSpans = Math.min(this.pendingSpans, written);
-    const writtenMetricBuckets = Math.min(
-      this.pendingMetricBuckets,
-      Math.max(0, written - writtenSpans),
-    );
-    this.pendingSpans -= writtenSpans;
-    this.pendingMetricBuckets -= writtenMetricBuckets;
+    this.flushSequence += 1;
+    for (const bucket of buckets) bucket.flushSequence = this.flushSequence;
+    const written = await this.persistItems(spans, buckets);
+    if (!written.failed) {
+      this.storageBackoffMs = 0;
+      this.storageBackoffUntil = 0;
+    }
     return {
-      writtenSpans,
-      writtenMetricBuckets,
-      droppedItems: this.droppedItems + this.persistedDroppedItems,
-      failed: storeResult.failed || storeResult.timedOut,
+      writtenSpans: written.writtenSpans,
+      writtenMetricBuckets: written.writtenMetricBuckets,
+      droppedItems: this.droppedItems,
+      failed: written.failed,
     };
   }
 
-  private appendSpan(span: StoredSpan): void {
-    const result = this.signalStore?.append({
-      kind: 'span',
-      ...span,
-      schemaVersion: OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-    } satisfies SpanSignal);
-    if (result?.status === 'accepted') {
-      this.pendingSpans += 1;
-    } else if (result?.status === 'dropped') {
-      this.dropItem(result.reason);
+  private async persistItems(
+    spans: StoredSpan[],
+    buckets: MetricBucket[],
+  ): Promise<{
+    writtenSpans: number;
+    writtenMetricBuckets: number;
+    failed: boolean;
+  }> {
+    if (spans.length === 0 && buckets.length === 0) {
+      return { writtenSpans: 0, writtenMetricBuckets: 0, failed: false };
     }
-  }
+    const database = this.database;
+    if (!database) {
+      return { writtenSpans: 0, writtenMetricBuckets: 0, failed: true };
+    }
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await withTransaction(database, async (transaction) => {
+          if (spans.length > 0) {
+            const values = sqlValues(
+              spans.map((span) => [
+                span.traceId,
+                span.spanId,
+                span.parentSpanId,
+                span.correlationId,
+                span.requestId,
+                span.runId,
+                span.serviceName,
+                span.serviceInstanceId,
+                span.resourceKind,
+                span.resourceName,
+                span.operation,
+                span.status,
+                span.samplingReason,
+                JSON.stringify(span.attributes),
+                span.errorType,
+                span.startedAt,
+                span.finishedAt,
+                span.durationNs,
+              ]),
+            );
+            await transaction.unsafe(
+              `INSERT INTO "telemetry"."spans" (trace_id, span_id, parent_span_id, correlation_id, request_id, run_id, service_name, service_instance_id, resource_kind, resource_name, operation, status, sampling_reason, attributes, error_type, started_at, finished_at, duration_ns) VALUES ${values.sql} ON CONFLICT DO NOTHING`,
+              values.params as never[],
+            );
+          }
+          if (buckets.length > 0) {
+            const values = sqlValues(
+              buckets.map((bucket) => [
+                bucket.bucketStart,
+                bucket.bucketWidthSeconds,
+                bucket.seriesFingerprint,
+                bucket.flushSequence,
+                bucket.serviceName,
+                bucket.serviceInstanceId,
+                bucket.resourceKind,
+                bucket.resourceName,
+                bucket.metricName,
+                bucket.metricKind,
+                bucket.unit,
+                bucket.count,
+                bucket.sum,
+                bucket.min,
+                bucket.max,
+                transaction.array(bucket.histogramBoundaries, 'float8'),
+                transaction.array(bucket.histogramCounts, 'int8'),
+                JSON.stringify(bucket.labels),
+              ]),
+            );
+            await transaction.unsafe(
+              `INSERT INTO "telemetry"."metric_buckets" (bucket_start, bucket_width_seconds, series_fingerprint, flush_sequence, service_name, service_instance_id, resource_kind, resource_name, metric_name, metric_kind, unit, count, sum, min, max, histogram_boundaries, histogram_counts, labels) VALUES ${values.sql} ON CONFLICT (bucket_start, series_fingerprint) DO UPDATE SET flush_sequence = EXCLUDED.flush_sequence, count = EXCLUDED.count, sum = EXCLUDED.sum, min = EXCLUDED.min, max = EXCLUDED.max, histogram_boundaries = EXCLUDED.histogram_boundaries, histogram_counts = EXCLUDED.histogram_counts, labels = EXCLUDED.labels WHERE EXCLUDED.flush_sequence > "telemetry"."metric_buckets".flush_sequence`,
+              values.params as never[],
+            );
+          }
+        });
+        return {
+          writtenSpans: spans.length,
+          writtenMetricBuckets: buckets.length,
+          failed: false,
+        };
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 20 * 2 ** attempt + Math.random() * 20),
+          );
+        }
+      }
+    }
 
-  private appendMetricBucket(bucket: MetricBucket): void {
-    const result = this.signalStore?.append({
-      kind: 'metric_bucket',
-      ...bucket,
-      schemaVersion: OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
-    });
-    if (result?.status === 'accepted') {
-      this.pendingMetricBuckets += 1;
-    } else if (result?.status === 'dropped') {
-      this.dropItem(result.reason);
+    const all = [
+      ...spans.map((value) => ({ kind: 'span' as const, value })),
+      ...buckets.map((value) => ({ kind: 'bucket' as const, value })),
+    ];
+    if (isStorageUnavailable(lastError)) {
+      this.dropItems(all.length, 'storage_outage');
+      this.scheduleStorageRetry();
+      console.error(
+        '[telemetry] storage unavailable; dropped telemetry batch',
+        all.length,
+      );
+      return { writtenSpans: 0, writtenMetricBuckets: 0, failed: true };
     }
+    if (all.length > 1) {
+      const midpoint = Math.ceil(all.length / 2);
+      const left = await this.persistItems(
+        all
+          .slice(0, midpoint)
+          .filter(
+            (item): item is { kind: 'span'; value: StoredSpan } =>
+              item.kind === 'span',
+          )
+          .map((item) => item.value),
+        all
+          .slice(0, midpoint)
+          .filter(
+            (item): item is { kind: 'bucket'; value: MetricBucket } =>
+              item.kind === 'bucket',
+          )
+          .map((item) => item.value),
+      );
+      const right = await this.persistItems(
+        all
+          .slice(midpoint)
+          .filter(
+            (item): item is { kind: 'span'; value: StoredSpan } =>
+              item.kind === 'span',
+          )
+          .map((item) => item.value),
+        all
+          .slice(midpoint)
+          .filter(
+            (item): item is { kind: 'bucket'; value: MetricBucket } =>
+              item.kind === 'bucket',
+          )
+          .map((item) => item.value),
+      );
+      return {
+        writtenSpans: left.writtenSpans + right.writtenSpans,
+        writtenMetricBuckets:
+          left.writtenMetricBuckets + right.writtenMetricBuckets,
+        failed: left.failed || right.failed,
+      };
+    }
+
+    this.dropItem('poison');
+    this.addCounter('telemetry.flush.failures_total');
+    console.error(
+      '[telemetry] poison item dropped:',
+      lastError instanceof Error ? lastError.constructor.name : 'unknown',
+    );
+    return { writtenSpans: 0, writtenMetricBuckets: 0, failed: true };
   }
 
   private dropItem(reason: string): void {
@@ -931,10 +1132,38 @@ export class TelemetryRuntime implements Telemetry {
     this.addCounter('telemetry.items.dropped_total', count, { reason });
   }
 
+  private scheduleStorageRetry(): void {
+    this.storageBackoffMs = Math.min(
+      this.storageBackoffMs === 0 ? 1_000 : this.storageBackoffMs * 2,
+      60_000,
+    );
+    this.storageBackoffUntil = Date.now() + this.storageBackoffMs;
+  }
+
   private markTraceIncomplete(traceId: string): void {
     if (this.incompleteTraces.has(traceId)) return;
     this.incompleteTraces.add(traceId);
     this.addCounter('telemetry.traces.incomplete_total');
+    for (const span of [...this.spans, ...this.prioritySpans]) {
+      if (span.traceId === traceId) {
+        span.attributes['telemetry.incomplete'] = true;
+      }
+    }
+  }
+
+  private fitSerializedItem(span: StoredSpan): boolean {
+    if (Object.keys(span.attributes).length === 0) {
+      return true;
+    }
+    const serializedBytes = () =>
+      TEXT_ENCODER.encode(JSON.stringify(span)).byteLength;
+    if (serializedBytes() <= this.maxSerializedItemBytes) return true;
+    const keys = Object.keys(span.attributes);
+    while (keys.length > 0 && serializedBytes() > this.maxSerializedItemBytes) {
+      const key = keys.pop();
+      if (key) delete span.attributes[key];
+    }
+    return serializedBytes() <= this.maxSerializedItemBytes;
   }
 
   private effectiveSampleRate(): number {
@@ -984,7 +1213,7 @@ export class TelemetryRuntime implements Telemetry {
     );
     this.observeGauge(
       'telemetry.queue.depth',
-      this.signalStore?.diagnostics().queueDepth ?? 0,
+      this.spans.length + this.prioritySpans.length,
       { resource_kind: 'business.operation', resource_name: 'telemetry.queue' },
     );
   }
