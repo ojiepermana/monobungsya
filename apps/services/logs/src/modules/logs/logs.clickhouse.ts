@@ -251,8 +251,7 @@ export class ClickHouseLogsSignalReader {
       cursor,
       'id, level, channel, category, event, module, message, context, ' +
         'exception_class, exception_message, stack_trace, actor_user_id, ' +
-        'actor_name, actor_email, toString(occurred_at) AS occurred_at, ' +
-        'toString(created_at) AS created_at',
+        'actor_name, actor_email, occurred_at, created_at',
       conditions,
       deadline,
     );
@@ -322,7 +321,7 @@ export class ClickHouseLogsSignalReader {
       cursor,
       'id, event, outcome, route_name, path, method, http_status, request_id, ' +
         'trace_id, session_id, metadata, actor_email, failure_reason, ' +
-        'toString(accessed_at) AS accessed_at',
+        'accessed_at',
       conditions,
       deadline,
     );

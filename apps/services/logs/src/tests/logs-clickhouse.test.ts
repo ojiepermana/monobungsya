@@ -224,6 +224,12 @@ describe('ClickHouse log Signal reads', () => {
     expect(firstDataQuery?.query).toContain('observability.application_logs');
     expect(firstDataQuery?.query).toContain('LIMIT 1 BY id, occurred_at');
     expect(firstDataQuery?.query).toContain("DateTime64(6, 'UTC')");
+    expect(firstDataQuery?.query).toContain(
+      'actor_email, occurred_at, created_at',
+    );
+    expect(firstDataQuery?.query).not.toContain(
+      'toString(occurred_at) AS occurred_at',
+    );
     expect(firstDataQuery?.options).toMatchObject({
       params: { search: injection, level: 'error', module: 'billing' },
     });

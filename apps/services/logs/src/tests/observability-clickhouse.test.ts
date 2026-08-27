@@ -310,7 +310,7 @@ describe('ClickHouse observability reads', () => {
           {
             aligned_bucket_start: '2026-08-26 10:00:00',
             value: 3,
-            count: 3,
+            row_count: 3,
             service_name: 'gateway',
             resource_kind: '*',
             resource_name: '*',
@@ -356,6 +356,8 @@ describe('ClickHouse observability reads', () => {
       call.query.includes('toStartOfInterval'),
     );
     expect(dataQuery?.query).toContain('JSONExtractString(labels');
+    expect(dataQuery?.query).toContain('sum(`sum`) AS value');
+    expect(dataQuery?.query).toContain('sum(`count`) AS row_count');
     expect(dataQuery?.options).toMatchObject({
       params: { stepSeconds: 300 },
     });

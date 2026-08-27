@@ -443,10 +443,12 @@ export class ClickHouseObservabilitySignalReader {
     }
 
     const valueExpression = {
-      count: 'sum(count)',
-      sum: 'sum(sum)',
-      min: 'min(min)',
-      max: 'max(max)',
+      // These column names overlap ClickHouse aggregate function names. Quote
+      // them so ClickHouse 26.3 resolves the source column, not the function.
+      count: 'sum(`count`)',
+      sum: 'sum(`sum`)',
+      min: 'min(`min`)',
+      max: 'max(`max`)',
     }[query.statistic];
     const bucket =
       'toStartOfInterval(bucket_start, toIntervalSecond({stepSeconds:UInt32}))';
@@ -459,7 +461,7 @@ export class ClickHouseObservabilitySignalReader {
     const rows = await this.queryRows<{
       aligned_bucket_start: string;
       value: string | number;
-      count: string | number;
+      row_count: string | number;
       service_name: string;
       resource_kind: string;
       resource_name: string;
@@ -468,7 +470,7 @@ export class ClickHouseObservabilitySignalReader {
       result_labels: unknown;
     }>(
       `SELECT toString(${bucket}) AS aligned_bucket_start, ${valueExpression} AS value, ` +
-        `sum(count) AS count, ${serviceName} AS service_name, ` +
+        `sum(\`count\`) AS row_count, ${serviceName} AS service_name, ` +
         `${resourceKind} AS resource_kind, ${resourceName} AS resource_name, ` +
         `metric_name, max(unit) AS unit, ${labels} AS result_labels ` +
         `FROM (${filters.source}) GROUP BY ${bucket}, ${seriesDimensions.join(', ')} ` +
@@ -490,7 +492,7 @@ export class ClickHouseObservabilitySignalReader {
       data: rows.map((row) => ({
         bucketStart: timestamp(row.aligned_bucket_start),
         value: Number(row.value ?? 0),
-        count: Number(row.count ?? 0),
+        count: Number(row.row_count ?? 0),
         serviceName: row.service_name,
         resourceKind: row.resource_kind,
         resourceName: row.resource_name,
