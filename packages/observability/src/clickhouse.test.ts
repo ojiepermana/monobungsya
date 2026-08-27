@@ -45,6 +45,107 @@ function batch(): SignalBatch {
   };
 }
 
+function signalForKind(
+  kind: 'span' | 'metric_bucket' | 'application_log' | 'access_log',
+): StoredObservabilitySignal {
+  const common = {
+    schemaVersion: OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
+    ingestedAt: '2026-08-26T12:00:01.000Z',
+    writeVersion: 1_777_211_201_000_000,
+  };
+  if (kind === 'span') return span();
+  if (kind === 'metric_bucket') {
+    return {
+      kind,
+      bucketStart: '2026-08-26T11:59:00.000Z',
+      bucketWidthSeconds: 60,
+      seriesFingerprint: 'a'.repeat(64),
+      flushSequence: 1,
+      serviceName: 'logs',
+      serviceInstanceId: 'logs-1',
+      resourceKind: 'http.server',
+      resourceName: 'health',
+      metricName: 'telemetry.operation.count',
+      metricKind: 'counter',
+      unit: 'count',
+      count: 1,
+      sum: 1,
+      min: 1,
+      max: 1,
+      histogramBoundaries: [],
+      histogramCounts: [1],
+      labels: { status: 'ok' },
+      ...common,
+    };
+  }
+  if (kind === 'application_log') {
+    return {
+      kind,
+      id: '01812345-6789-7abc-8def-0123456789ac',
+      level: 'error',
+      channel: 'application',
+      category: 'application',
+      event: 'invoice.failed',
+      module: 'billing',
+      message: 'invoice failed',
+      context: { invoiceId: 42 },
+      exceptionClass: 'DatabaseError',
+      exceptionMessage: 'connection refused',
+      stackTrace: null,
+      actorUserId: null,
+      actorName: null,
+      actorEmail: null,
+      entityType: 'invoice',
+      entityId: 'invoice-42',
+      referenceNo: null,
+      branchCode: null,
+      requestId: 'request-123',
+      traceId: '0123456789abcdef0123456789abcdef',
+      runtimeTraceId: '0123456789abcdef0123456789abcdef',
+      runtimeSpanId: '0123456789abcdef',
+      sessionId: null,
+      ipAddress: null,
+      userAgent: null,
+      occurredAt: '2026-08-26T11:59:59.000Z',
+      createdAt: '2026-08-26T12:00:00.000Z',
+      ...common,
+    };
+  }
+  return {
+    kind,
+    id: '01812345-6789-7abc-8def-0123456789ad',
+    event: 'api_request',
+    outcome: 'failure',
+    authenticationMethod: 'session',
+    accessChannel: 'web',
+    guard: 'user',
+    actorUserId: null,
+    actorName: null,
+    actorEmail: null,
+    branchCode: null,
+    ipAddress: null,
+    forwardedIp: null,
+    userAgent: null,
+    deviceName: null,
+    platform: null,
+    browser: null,
+    sessionId: null,
+    requestId: 'request-123',
+    traceId: '0123456789abcdef0123456789abcdef',
+    runtimeTraceId: '0123456789abcdef0123456789abcdef',
+    runtimeSpanId: '0123456789abcdef',
+    routeName: '/api/v1/invoices',
+    path: '/api/v1/invoices',
+    method: 'POST',
+    httpStatus: 500,
+    failureReason: 'upstream_failure',
+    metadata: { source: 'test' },
+    accessedAt: '2026-08-26T11:59:59.000Z',
+    createdAt: '2026-08-26T12:00:00.000Z',
+    ...common,
+  };
+}
+
 describe('ClickHouse HTTP signal adapter', () => {
   test('sends an acknowledged async insert with stable token and snake case row', async () => {
     const requests: Array<{ url: URL; init?: RequestInit }> = [];
@@ -89,6 +190,53 @@ describe('ClickHouse HTTP signal adapter', () => {
       attributes: '{"status_code":200}',
     });
     expect(row).not.toHaveProperty('traceId');
+  });
+
+  test('routes all four Signal kinds through acknowledged async inserts', async () => {
+    const requests: Array<{ url: URL; init?: RequestInit }> = [];
+    const fetch: ClickHouseFetch = async (input, init) => {
+      requests.push({ url: new URL(input.toString()), init });
+      return new Response('', { status: 200 });
+    };
+    const target = new ClickHouseSignalTarget(
+      new ClickHouseClient({
+        url: 'https://clickhouse.internal:8443',
+        username: 'writer',
+        password: 'writer-secret',
+        fetch,
+      }),
+    );
+    const kinds = [
+      'span',
+      'metric_bucket',
+      'application_log',
+      'access_log',
+    ] as const;
+    const tables = [
+      'spans',
+      'metric_buckets',
+      'application_logs',
+      'access_logs',
+    ];
+
+    for (const [index, kind] of kinds.entries()) {
+      const batchId = `01812345-6789-7abc-8def-0123456789a${index}`;
+      await target.write({
+        id: batchId,
+        kind,
+        signals: [signalForKind(kind)],
+      });
+      const request = requests[index];
+      expect(request?.url.searchParams.get('query')).toBe(
+        `INSERT INTO observability.${tables[index]} FORMAT JSONEachRow`,
+      );
+      expect(request?.url.searchParams.get('wait_for_async_insert')).toBe('1');
+      expect(request?.url.searchParams.get('insert_deduplication_token')).toBe(
+        batchId,
+      );
+      expect(String(request?.init?.body)).toContain('"schema_version":1');
+    }
+    expect(requests).toHaveLength(4);
   });
 
   test('binds query values as HTTP parameters and parses JSONEachRow', async () => {
@@ -154,6 +302,24 @@ describe('ClickHouse HTTP signal adapter', () => {
       code: 'clickhouse_row_invalid',
       options: { rowSpecific: true },
     });
+  });
+
+  test('classifies HTTP 429 and 5xx insert failures as retryable', async () => {
+    for (const status of [429, 500, 503]) {
+      const target = new ClickHouseSignalTarget(
+        new ClickHouseClient({
+          url: 'http://127.0.0.1:8123',
+          username: 'writer',
+          password: 'writer-secret',
+          fetch: async () => new Response('temporary failure', { status }),
+        }),
+      );
+
+      await expect(target.write(batch())).rejects.toMatchObject({
+        code: `clickhouse_http_${status}`,
+        options: { transient: true },
+      });
+    }
   });
 
   test('classifies an access denial even when ClickHouse returns it as HTTP 500', async () => {

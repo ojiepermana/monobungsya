@@ -83,7 +83,7 @@ export function assertPinnedClickHouseVersion(output: string): string {
     )
   ) {
     throw new Error(
-      `ClickHouse major version ${CLICKHOUSE_VERSION_MANIFEST.serverVersion.split('.')[0]} is required; found ${version ?? 'unknown'}`,
+      `ClickHouse version ${CLICKHOUSE_VERSION_MANIFEST.serverVersion} is required; found ${version ?? 'unknown'}`,
     );
   }
   return version;

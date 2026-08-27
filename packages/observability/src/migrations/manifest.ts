@@ -26,15 +26,16 @@ export const CLICKHOUSE_VERSION_MANIFEST =
 
 const CLICKHOUSE_VERSION_PATTERN = /^(\d+)\.\d+\.\d+(?:\.\d+)?$/;
 
-function majorVersion(version: string): string | null {
-  return version.match(CLICKHOUSE_VERSION_PATTERN)?.[1] ?? null;
-}
-
 export function isCompatibleClickHouseVersion(
   actualVersion: string,
   expectedVersion: string = CLICKHOUSE_VERSION_MANIFEST.serverVersion,
 ): boolean {
-  const actualMajor = majorVersion(actualVersion);
-  const expectedMajor = majorVersion(expectedVersion);
-  return actualMajor !== null && actualMajor === expectedMajor;
+  // The schema and settings are validated against one pinned patch. A same-
+  // major server can still change MergeTree or async-insert behavior, so it
+  // is not a compatible deployment target until a manifest explicitly moves.
+  return (
+    CLICKHOUSE_VERSION_PATTERN.test(actualVersion) &&
+    CLICKHOUSE_VERSION_PATTERN.test(expectedVersion) &&
+    actualVersion === expectedVersion
+  );
 }

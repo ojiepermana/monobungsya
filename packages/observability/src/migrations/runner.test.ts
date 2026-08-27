@@ -175,8 +175,8 @@ describe('ClickHouse migration plan', () => {
     ).toThrow('unknown version');
   });
 
-  test('accepts history applied by a compatible ClickHouse minor and patch version', () => {
-    expect(
+  test('rejects history applied by an unpinned ClickHouse minor and patch version', () => {
+    expect(() =>
       planClickHouseMigrations(
         migrations,
         [
@@ -191,10 +191,10 @@ describe('ClickHouse migration plan', () => {
         PINNED_CLICKHOUSE_VERSION,
         FIRST_TARGET_ID,
       ),
-    ).toEqual([expect.objectContaining({ version: 2 })]);
+    ).toThrow('ClickHouse migration binary drift at version 1');
   });
 
-  test('rejects history applied by a different ClickHouse major version', () => {
+  test('rejects history applied by a different ClickHouse version', () => {
     expect(() =>
       planClickHouseMigrations(
         migrations,
