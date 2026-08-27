@@ -12,24 +12,26 @@ import { IconComponent } from '@ojiepermana/angular/component/icon';
         variant="outline"
         size="xs"
         type="button"
-        class="gap-1.5"
+        class="size-8 p-0"
+        aria-label="First page"
+        title="First page"
         [disabled]="loading() || page() <= 1"
         (click)="selectPage(1)"
       >
         <Icon name="first_page" [size]="14" aria-hidden="true" />
-        First
       </button>
       <button
         Button
         variant="outline"
         size="xs"
         type="button"
-        class="gap-1.5"
+        class="size-8 p-0"
+        aria-label="Previous page"
+        title="Previous page"
         [disabled]="loading() || page() <= 1"
         (click)="selectPage(page() - 1)"
       >
         <Icon name="chevron_left" [size]="14" aria-hidden="true" />
-        Previous
       </button>
       @for (pageNumber of pageNumbers(); track pageNumber) {
         <button
@@ -53,11 +55,12 @@ import { IconComponent } from '@ojiepermana/angular/component/icon';
         variant="outline"
         size="xs"
         type="button"
-        class="gap-1.5"
+        class="size-8 p-0"
+        aria-label="Next page"
+        title="Next page"
         [disabled]="loading() || page() >= totalPageCount()"
         (click)="selectPage(page() + 1)"
       >
-        Next
         <Icon name="chevron_right" [size]="14" aria-hidden="true" />
       </button>
       <button
@@ -65,11 +68,12 @@ import { IconComponent } from '@ojiepermana/angular/component/icon';
         variant="outline"
         size="xs"
         type="button"
-        class="gap-1.5"
+        class="size-8 p-0"
+        aria-label="Last page"
+        title="Last page"
         [disabled]="loading() || page() >= totalPageCount()"
         (click)="selectPage(totalPageCount())"
       >
-        Last
         <Icon name="last_page" [size]="14" aria-hidden="true" />
       </button>
     </nav>

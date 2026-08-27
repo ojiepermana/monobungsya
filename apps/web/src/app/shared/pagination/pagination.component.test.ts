@@ -41,11 +41,14 @@ describe('PaginationComponent', () => {
     fixture.componentInstance.pageChange.subscribe((page) =>
       selectedPages.push(page),
     );
-    const nextButton = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
-    ).find((button) => button.textContent?.includes('Next'));
+    const nextButton = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label="Next page"]',
+    ) as HTMLButtonElement | null;
+    expect(nextButton).not.toBeNull();
+    expect(nextButton?.disabled).toBe(false);
 
-    nextButton?.click();
+    nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
 
     expect(selectedPages).toEqual([3]);
   });

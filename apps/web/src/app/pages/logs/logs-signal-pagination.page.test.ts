@@ -176,8 +176,12 @@ describe('access and application signal log pagination', () => {
 
     expect(page.cursorPagination()).toBe(false);
     expect(text).toContain('Page 2 of 3 · 60 records');
-    expect(text).toContain('First');
-    expect(text).toContain('Last');
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="First page"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Last page"]'),
+    ).not.toBeNull();
   });
 
   it('keeps application-log cursor filters in the URL and renders its blind spot without offset controls', () => {
@@ -251,7 +255,11 @@ describe('access and application signal log pagination', () => {
 
     expect(page.cursorPagination()).toBe(false);
     expect(text).toContain('Page 2 of 3 · 60 records');
-    expect(text).toContain('First');
-    expect(text).toContain('Last');
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="First page"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Last page"]'),
+    ).not.toBeNull();
   });
 });

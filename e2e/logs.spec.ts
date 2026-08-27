@@ -9,14 +9,11 @@ import { expect, type Page, test } from '@playwright/test';
  * the English source label and its Indonesian rendering.
  */
 
-const first = (page: Page) =>
-  page.getByRole('button', { name: /^(Pertama|First)$/ });
+const first = (page: Page) => page.getByRole('button', { name: 'First page' });
 const previous = (page: Page) =>
-  page.getByRole('button', { name: /^(Sebelumnya|Previous)$/ });
-const next = (page: Page) =>
-  page.getByRole('button', { name: /^(Berikutnya|Next)$/ });
-const last = (page: Page) =>
-  page.getByRole('button', { name: /^(Terakhir|Last)$/ });
+  page.getByRole('button', { name: 'Previous page' });
+const next = (page: Page) => page.getByRole('button', { name: 'Next page' });
+const last = (page: Page) => page.getByRole('button', { name: 'Last page' });
 const pageLabel = (page: Page, pageNo: number) =>
   page.getByText(
     new RegExp(`(Halaman|Page) ${pageNo} (dari|of) \\d+ · \\d+ records`),

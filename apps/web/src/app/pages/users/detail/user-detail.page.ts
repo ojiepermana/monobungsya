@@ -340,8 +340,8 @@ function tabFromQuery(value: string | null): TabKey {
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           @if (activeCursorPagination()) {
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || !activePrevCursor()" (click)="goToCursor(activePrevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || !activeNextCursor()" (click)="goToCursor(activeNextCursor())">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
+            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Previous page" title="Previous page" [disabled]="logsLoading() || !activePrevCursor()" (click)="goToCursor(activePrevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" /></button>
+            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Next page" title="Next page" [disabled]="logsLoading() || !activeNextCursor()" (click)="goToCursor(activeNextCursor())"><Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
           } @else {
             <app-pagination
               [page]="activeMeta().page"

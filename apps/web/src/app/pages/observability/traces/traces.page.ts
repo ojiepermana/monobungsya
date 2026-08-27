@@ -86,7 +86,7 @@ import {
         }
       </PageContent>
 
-      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3"><p class="text-sm text-muted-foreground">{{ rows().length }} rows on this page</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !prevCursor()" (click)="goTo(prevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button><button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !nextCursor()" (click)="goTo(nextCursor())">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button></div></PageFooter>
+      <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3"><p class="text-sm text-muted-foreground">{{ rows().length }} rows on this page</p><div class="flex gap-2"><button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Previous page" title="Previous page" [disabled]="loading() || !prevCursor()" (click)="goTo(prevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" /></button><button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Next page" title="Next page" [disabled]="loading() || !nextCursor()" (click)="goTo(nextCursor())"><Icon name="chevron_right" [size]="14" aria-hidden="true" /></button></div></PageFooter>
     </Page>
   `,
 })

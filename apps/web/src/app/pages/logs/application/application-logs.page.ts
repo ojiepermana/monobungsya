@@ -207,8 +207,8 @@ function validateSignalLogRange(from: string, to: string): string | null {
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
           @if (cursorPagination()) {
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !prevCursor()" (click)="goToCursor(prevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !nextCursor()" (click)="goToCursor(nextCursor())">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
+            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Previous page" title="Previous page" [disabled]="loading() || !prevCursor()" (click)="goToCursor(prevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" /></button>
+            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Next page" title="Next page" [disabled]="loading() || !nextCursor()" (click)="goToCursor(nextCursor())"><Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
           } @else {
             <app-pagination
               [page]="meta().page"

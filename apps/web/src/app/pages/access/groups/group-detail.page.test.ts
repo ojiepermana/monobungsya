@@ -228,9 +228,9 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     expect(root.textContent).toContain('Page 1 of 2 · 101 catalog permissions');
     expect(root.querySelectorAll('tbody tr')).toHaveLength(100);
 
-    const next = Array.from(root.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Next'),
-    );
+    const next = root.querySelector(
+      'button[aria-label="Next page"]',
+    ) as HTMLButtonElement | null;
     next?.click();
     fixture.detectChanges();
 
