@@ -13,9 +13,6 @@ import {
 export function createAuthIdentityPlugin(
   secret: string,
   clockSkewSeconds: number,
-  requiredPermissionForPath: (pathname: string) => string | null = () =>
-    PERMISSIONS.logsLogRead,
-  skipIdentityForPath: (pathname: string) => boolean = () => false,
 ) {
   return new Elysia({ name: 'logs-auth-identity' }).onBeforeHandle(
     { as: 'scoped' },
@@ -24,13 +21,10 @@ export function createAuthIdentityPlugin(
         return;
       }
 
-      const pathname = new URL(request.url).pathname;
-      if (skipIdentityForPath(pathname)) return;
-
       const identity = readAndVerifyAuthIdentity(
         request.headers,
         request.method,
-        pathname,
+        new URL(request.url).pathname,
         secret,
         Date.now(),
         clockSkewSeconds,
@@ -45,10 +39,10 @@ export function createAuthIdentityPlugin(
         return mapped.body;
       }
 
-      const requiredPermission = requiredPermissionForPath(pathname);
-      if (!requiredPermission) return;
       if (
-        !hasAnyRequiredPermission(identity.permissions, [requiredPermission])
+        !hasAnyRequiredPermission(identity.permissions, [
+          PERMISSIONS.logsLogRead,
+        ])
       ) {
         const mapped = toErrorResponse(
           new ForbiddenError(

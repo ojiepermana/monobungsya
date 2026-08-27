@@ -22,10 +22,6 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 9   | TOTP two factor authentication      | Foundation | done        |
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | done        |
-| 12  | Bun observability and benchmarking standard | Foundation | done        |
-| 13  | Permission group grant templates    | Foundation | in-progress |
-| 14  | Observability pages per signal      | Foundation | in-progress |
-| 15  | Hybrid observability storage        | Foundation | in-progress |
 
 ## Foundations
 
@@ -215,73 +211,6 @@ Add a 6 digit authenticator app code (TOTP) as a second login step after magic l
 
 Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/services/auth`, `apps/services/user`, `apps/gateway/erp`, `apps/web`, `packages/database`, and `packages/contracts`
 
-### 12. Bun observability and benchmarking standard · done
-
-Extend the log subsystem with one typed telemetry contract for every Bun backend, bounded PostgreSQL storage, reproducible Git baselines, and operator evidence.
-**Done when:** Required backend resource seams use the typed contract without changing business behavior, runtime traces connect to logs, metrics, benchmarks, alerts, and operator views, benchmark comparisons are reproducible, and instrumentation overhead stays within the accepted limits.
-
-- [x] Design it (spec): `/architect Bun observability and benchmarking standard`
-- [x] Build it: `/develop Bun observability and benchmarking standard`
-  - [x] Typed runtime contract, bounded PostgreSQL writer, W3C Elysia roots, and log correlation links
-  - [x] Trace, metric, benchmark, and alert operator read API with dedicated permission, logs service queries, gateway proxy, and generated contracts
-  - [x] Observability enforcement check, migration grants, retrying writer, focused tests, and repository typecheck
-  - [x] Benchmark runner, Git baselines, comparison projection, and CI ingestion
-  - [x] Angular trace/metric viewer, alert projection/evaluator, and remaining resource seams
-- [x] Verify it: `/check verify Bun observability and benchmarking standard`
-- [x] Test it: `/test Bun observability and benchmarking standard`
-
-Spec [0014](../specs/0014-bun-observability-benchmarking/index.md)
-
-### 13. Permission group grant templates · in-progress
-
-Name a set of permissions once as a group, then apply it to one user or to many at once. A group is a template: applying it copies its permissions into direct grants, so the authorization path, the gateway permission cache, and the signed identity header stay exactly as they are.
-**Done when:** An operator can create, edit, switch off, soft delete, and restore a group, attach and detach its permissions, apply it to one user from that user's page and to many users from the group page, every apply lands as ordinary grants with one audit row per affected user, a group that is off or empty cannot be applied, and no query on the authorization path reads the group tables.
-
-- [x] Design it (spec): `/architect permission group grant templates`
-- [ ] Build it: `/develop permission group grant templates`
-  - [ ] Thin thread: migration `0037`, the eleven catalog permissions, `packages/acl` constants, group create and list from service through gateway to a rebuilt group page (AC-1, AC-2, AC-12, AC-15)
-  - [ ] Group contents and lifecycle: attach and detach, update with status, the detail route and page, soft delete and restore with their guards, the appliable filter, audit writes (AC-3, AC-4, AC-5, AC-6, AC-10, AC-13)
-  - [ ] Apply to one user from the user detail access panel, with the eligibility guard, the invalidation event, and one audit row per user (AC-7, AC-9, AC-14)
-  - [ ] Bulk apply from the group page: per user transactions, the fifty id cap, and a picker reading the existing users endpoint (AC-8, AC-11, AC-13)
-  - [ ] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, repository validation gate (AC-16)
-- [ ] Verify it: `/check verify permission group grant templates`
-- [ ] Test it: `/test permission group grant templates`
-
-Spec [0015](../specs/0015-permission-group-template/index.md) · code in `packages/database`, `packages/acl`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
-
-### 14. Observability pages per signal · in-progress
-
-Split the single tabbed `/observability` page into six standalone pages on the same header, filter, and footer scaffold the logs pages use, and retire the one shared `observability:telemetry:read` permission in favour of one permission per signal.
-**Done when:** Every signal has its own address with its own permission gate, trace and benchmark and alert details are linkable routes, the list endpoints page both ways through `prevCursor` and fill their filter dropdowns from an `options` block, missing metric buckets never render as zero, and a session holding only one signal permission sees and reaches only that signal.
-
-- [x] Design it (spec): `/architect observability pages per signal`
-- [ ] Build it: `/develop observability pages per signal`
-  - [ ] Thin thread: migration `0038` copying then retiring the old grant, `packages/acl` constants, per signal gates across the gateway and the logs service, `anyPermissionGuard`, and the Traces page end to end with URL state and a cursor footer (AC-1, AC-2, AC-4, AC-11, AC-12, AC-18)
-  - [ ] The four remaining list pages plus migration `0039`, two way cursors, baseline pagination, and the `options` blocks (AC-3, AC-5, AC-6, AC-8, AC-9, AC-10, AC-13)
-  - [ ] Three detail routes, including the time scaled trace waterfall with orphan and partial handling (AC-7, AC-14)
-  - [ ] Overview with four permission gated cards and the metric line chart that breaks its line over missing buckets (AC-15, AC-16, AC-17)
-  - [ ] Cleanup and proof: old page removed, client regenerated, e2e widened to nine routes, AXE sweep (AC-19, AC-20)
-- [ ] Verify it: `/check verify observability pages per signal`
-- [ ] Test it: `/test observability pages per signal`
-
-Spec [0016](../specs/0016-observability-per-signal-pages/index.md) · code in `packages/database`, `packages/acl`, `apps/services/logs`, `apps/gateway/erp`, and `apps/web`
-
-### 15. Hybrid observability storage · in-progress
-
-Move high volume Span, Metric Bucket, Application Log, and Access Log data behind one bounded signal store that can cut over from PostgreSQL to ClickHouse, while audit trail and observability control remain transactional in PostgreSQL.
-**Done when:** Producers depend only on the typed signal store, ClickHouse storage and reads meet the bounded query and retention contract, the dual write cutover and rollback gates are proven, and operational health exposes every Blind Spot.
-
-- [x] Design it (spec): `/architect hybrid observability storage`
-- [ ] Build it: `/develop hybrid observability storage`
-  - [x] Canonical Signal interface, bounded queue, fake, PostgreSQL adapter, and producer extraction (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9)
-  - [x] ClickHouse HTTP adapter, schema migration, version gate, and local runner (AC-5, AC-6, AC-8, AC-23)
-  - [ ] Read model, control health, query limits, and per signal cursor paths (AC-10 to AC-16)
-  - [ ] Capacity, dual write, backfill, cutover, rollback, and operational evidence (AC-2, AC-17 to AC-22)
-- [ ] Verify it: `/check verify hybrid observability storage`
-- [x] Test it: `/test hybrid observability storage` (445 backend and package tests, 153 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-26)
-
-Spec [0017](../specs/0017-hybrid-observability-storage/index.md) · code in `packages/observability`, `packages/telemetry`, `packages/logger`, `packages/database`, `apps/services/logs`, and `apps/gateway/erp`
-
 ## Domain
 
 ### 7. User lifecycle management · done
@@ -312,14 +241,8 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Resend invitation action for failed or expired invitation emails · reason: Users can request a magic link themselves in the current flow · from spec 0007
 - Manager level read access to the user pages · reason: The current permission model only defines the admin management surface · from spec 0007
 - Scoped permission variants (`:own`, `:scoped`) plus downstream ownership rules · reason: No self service ownership surface exists yet · from spec 0008
-- Permission group assignment, where a group keeps granting through an `access.group_user` table and later edits reach every member · reason: Feature 13 answers grouping in template form only; the assignment form changes the effective permission lookup and is deferred until template drift becomes the real pain · from spec 0008, narrowed by spec 0015
-- Reconciliation view showing users missing permissions their applied group has since gained · reason: The cheapest partial cure for template drift, but it needs apply history read from the audit log and blocks nothing today · from spec 0015
-- Revoke by group, so taking a set of access back costs as little as giving it · reason: Apply is additive by design in the template model; revoking stays per permission until this is designed · from spec 0015
+- Permission grouping (bundles) · reason: Defer until per user granting becomes operationally painful · from spec 0008
 - Orphan grant sweep · reason: Only needed if user hard deletion is introduced · from spec 0008
 - Remember this device for 30 days (skip the TOTP step in a trusted browser) · reason: Trusted device behavior is outside the current 2FA contract · from spec 0009
 - Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
 - Access and jobs Dockerfiles plus CI image matrix coverage · reason: Runtime code is available, but deployment images have not been implemented · from spec 0001
-- Revisit OpenTelemetry integration · reason: Wait for official Bun support or evidence that maintaining the internal telemetry stack costs more than operating a Collector · from spec 0014
-- Supporting index for the global `benchmarks/runs` order, since the existing index leads with `scenario_id` and cannot serve an unfiltered `created_at DESC` listing · reason: Measure on real data before adding an index that has to be maintained · from spec 0016
-- Shared list page scaffold component, so the header, filter, and footer shell stops being duplicated across the observability and logs pages · reason: Nine pages of duplication is tolerable; a tenth is the signal to extract it · from spec 0016
-- Time series comparison in the metric chart, across metrics or across two time ranges · reason: The chart deliberately draws one line per `group` value; comparison is its own feature and deserves its own spec · from spec 0016

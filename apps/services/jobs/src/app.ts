@@ -4,12 +4,10 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
-  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { JobRegistry } from '#project/jobs';
 import { Logger } from '#project/logger';
-import type { TelemetryRuntime } from '#project/telemetry';
 import type { JobsEnvironment } from './config/env';
 import { loadJobsEnv } from './config/env';
 import { createJobsRoute } from './modules/jobs/jobs.route';
@@ -18,7 +16,6 @@ export interface JobsAppOptions {
   database?: DatabaseClient;
   registry?: JobRegistry;
   isReady?: () => boolean;
-  telemetry?: TelemetryRuntime;
 }
 
 export function createApp(
@@ -32,7 +29,6 @@ export function createApp(
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
-    .use(createTelemetryPlugin(options.telemetry))
     .use(createLoggerPlugin(logger, 'jobs-logger'))
     .use(createErrorHandler('jobs-error-handler', { logger }))
     .use(

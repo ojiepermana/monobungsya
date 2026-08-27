@@ -96,7 +96,7 @@ const EMPTY_META: PermissionListMeta = {
         <div class="flex min-w-0 items-center gap-3">
           <Icon name="list_alt" [size]="18" class="shrink-0 text-primary" aria-hidden="true" />
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Access</p>
-          <h1 class="truncate text-lg font-semibold text-foreground">Permission Catalog</h1>
+          <h1 class="truncate text-lg font-semibold text-foreground">Permissions</h1>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <PageFilterToggle

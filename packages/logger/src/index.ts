@@ -139,8 +139,6 @@ export class Logger {
         stackTrace: errorDetails.stackTrace,
         requestId: stringValue(context.requestId),
         traceId: stringValue(context.traceId ?? context.correlationId),
-        runtimeTraceId: stringValue(context.runtimeTraceId),
-        runtimeSpanId: stringValue(context.runtimeSpanId),
         sessionId: stringValue(context.sessionId),
         ipAddress: stringValue(context.ipAddress),
         userAgent: stringValue(context.userAgent),

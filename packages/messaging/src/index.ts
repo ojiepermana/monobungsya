@@ -1,12 +1,10 @@
 import {
   connect,
-  headers,
   JSONCodec,
   type Msg,
   type NatsConnection,
   type Subscription,
 } from 'nats';
-import type { Telemetry } from '#project/telemetry';
 
 export interface Publisher {
   publish<T>(subject: string, payload: T): void;
@@ -30,10 +28,9 @@ export interface Requester {
 export async function connectMessaging(
   url: string,
   serviceName: string,
-  telemetry?: Telemetry,
 ): Promise<NatsMessaging> {
   const connection = await connect({ servers: url, name: serviceName });
-  return new NatsMessaging(connection, telemetry);
+  return new NatsMessaging(connection);
 }
 
 /**
@@ -51,10 +48,9 @@ export async function tryConnectMessaging(
   url: string,
   serviceName: string,
   onUnavailable?: (error: unknown) => void,
-  telemetry?: Telemetry,
 ): Promise<NatsMessaging | undefined> {
   try {
-    return await connectMessaging(url, serviceName, telemetry);
+    return await connectMessaging(url, serviceName);
   } catch (error) {
     onUnavailable?.(error);
 
@@ -65,39 +61,10 @@ export async function tryConnectMessaging(
 export class NatsMessaging implements Publisher, Subscriber, Requester {
   private readonly codec = JSONCodec<unknown>();
 
-  constructor(
-    private readonly connection: NatsConnection,
-    private readonly telemetry?: Telemetry,
-  ) {}
+  constructor(private readonly connection: NatsConnection) {}
 
   publish<T>(subject: string, payload: T): void {
-    const publish = () => {
-      const messageHeaders = headers();
-      const context = this.telemetry?.currentContext();
-      if (context) {
-        messageHeaders.set(
-          'traceparent',
-          this.telemetry?.inject(context).traceparent ?? '',
-        );
-        if (context.correlationId) {
-          messageHeaders.set('x-correlation-id', context.correlationId);
-        }
-      }
-      this.connection.publish(subject, this.codec.encode(payload), {
-        headers: messageHeaders,
-      });
-    };
-    if (!this.telemetry) publish();
-    else {
-      this.telemetry.withSpan(
-        {
-          resourceKind: 'nats.publish',
-          resourceName: stableSubject(subject),
-          operation: 'publish',
-        },
-        publish,
-      );
-    }
+    this.connection.publish(subject, this.codec.encode(payload));
   }
 
   subscribe<T>(
@@ -108,25 +75,7 @@ export class NatsMessaging implements Publisher, Subscriber, Requester {
 
     void (async () => {
       for await (const message of subscription) {
-        const context = this.telemetry?.extract({
-          traceparent: message.headers?.get('traceparent'),
-          correlationId: message.headers?.get('x-correlation-id'),
-        });
-        const consume = () =>
-          handler(this.codec.decode(message.data) as T, message);
-        if (!this.telemetry || !context) await consume();
-        else {
-          await this.telemetry.withContext(context, () =>
-            this.telemetry?.withSpan(
-              {
-                resourceKind: 'nats.consume',
-                resourceName: stableSubject(subject),
-                operation: 'consume',
-              },
-              consume,
-            ),
-          );
-        }
+        await handler(this.codec.decode(message.data) as T, message);
       }
     })();
 
@@ -138,41 +87,18 @@ export class NatsMessaging implements Publisher, Subscriber, Requester {
     payload: TRequest,
     timeoutMs = 2_000,
   ): Promise<TResponse> {
-    const request = async () => {
-      const messageHeaders = headers();
-      const context = this.telemetry?.currentContext();
-      if (context) {
-        messageHeaders.set(
-          'traceparent',
-          this.telemetry?.inject(context).traceparent ?? '',
-        );
-        if (context.correlationId) {
-          messageHeaders.set('x-correlation-id', context.correlationId);
-        }
-      }
-      const response = await this.connection.request(
-        subject,
-        this.codec.encode(payload),
-        { timeout: timeoutMs, headers: messageHeaders },
-      );
-      return this.codec.decode(response.data) as TResponse;
-    };
-    if (!this.telemetry) return request();
-    return this.telemetry.withSpan(
+    const response = await this.connection.request(
+      subject,
+      this.codec.encode(payload),
       {
-        resourceKind: 'nats.request',
-        resourceName: stableSubject(subject),
-        operation: 'request',
+        timeout: timeoutMs,
       },
-      request,
     );
+
+    return this.codec.decode(response.data) as TResponse;
   }
 
   async close(): Promise<void> {
     await this.connection.drain();
   }
-}
-
-function stableSubject(subject: string): string {
-  return subject.replace(/[^A-Za-z0-9._:-]/g, '_').slice(0, 150) || 'unknown';
 }

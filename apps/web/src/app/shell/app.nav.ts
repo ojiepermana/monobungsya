@@ -87,19 +87,6 @@ export function appNavigationFor(
     );
   }
 
-  const observabilityItems: NavigationItem[] = [];
-  if (
-    hasResolvedPermission(permissions, PERMISSIONS.observabilityTelemetryRead)
-  ) {
-    observabilityItems.push({
-      id: 'observability',
-      type: 'item',
-      title: 'Observability',
-      icon: 'monitor_heart',
-      link: '/observability',
-    });
-  }
-
   const accessItems: NavigationItem[] = [];
   if (hasResolvedPermission(permissions, PERMISSIONS.accessPermissionList)) {
     accessItems.push(
@@ -137,8 +124,5 @@ export function appNavigationFor(
     ...(settingsItems.length > 0 ? [group('Settings', settingsItems)] : []),
     ...(accessItems.length > 0 ? [group('Permission', accessItems)] : []),
     ...(logItems.length > 0 ? [group('Logs', logItems)] : []),
-    ...(observabilityItems.length > 0
-      ? [group('Observability', observabilityItems)]
-      : []),
   ];
 }

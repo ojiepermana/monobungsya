@@ -7,9 +7,7 @@ import type {
   NotificationEmailDeliveryPayload,
   NotificationRecipientCapabilitySyncPayload,
   NotificationRecipientSyncPayload,
-  ObservabilityAlertNotificationPayload,
 } from '#project/jobs';
-import type { Telemetry } from '#project/telemetry';
 
 export const NOTIFICATION_CATEGORIES = [
   'security',
@@ -158,29 +156,6 @@ const definitions: Record<string, Definition> = {
       actionRoute: '/operations/jobs',
     }),
   },
-  'operational.observability_alert': {
-    category: 'operational',
-    severity: 'warning',
-    templateKey: 'operational.observability_alert',
-    templateVersion: 1,
-    defaultChannels: ['in_app', 'email'],
-    mandatoryChannels: [],
-    render: (payload) => ({
-      title:
-        safe(payload.transition, 'firing') === 'resolved'
-          ? 'Alert observability pulih'
-          : 'Alert observability aktif',
-      body: `Rule ${safe(payload.ruleId, 'observability')} pada service ${safe(payload.service, 'runtime')} berstatus ${safe(payload.transition, 'firing')} pada ${safe(payload.evaluatedAt, 'waktu yang tercatat')}.`,
-      metadata: pick(payload, [
-        'ruleId',
-        'severity',
-        'service',
-        'transition',
-        'evaluatedAt',
-      ]),
-      actionRoute: '/observability',
-    }),
-  },
 };
 
 export interface NotificationMailer {
@@ -200,7 +175,6 @@ export class SmtpNotificationMailer implements NotificationMailer {
       username: string;
       password: string;
       from: string;
-      telemetry?: Telemetry;
     },
   ) {
     this.transporter = nodemailer.createTransport({
@@ -218,23 +192,12 @@ export class SmtpNotificationMailer implements NotificationMailer {
     title: string;
     body: string;
   }): Promise<string | null> {
-    const send = () =>
-      this.transporter.sendMail({
-        from: this.config.from,
-        to: input.recipient,
-        subject: input.title,
-        text: input.body,
-      });
-    const result = this.config.telemetry
-      ? await this.config.telemetry.withSpan(
-          {
-            resourceKind: 'smtp.send',
-            resourceName: 'notification.delivery',
-            operation: 'send',
-          },
-          send,
-        )
-      : await send();
+    const result = await this.transporter.sendMail({
+      from: this.config.from,
+      to: input.recipient,
+      subject: input.title,
+      text: input.body,
+    });
     return result.messageId ?? null;
   }
 }
@@ -247,14 +210,13 @@ export class NotificationService {
 
   async syncRecipient(input: NotificationRecipientSyncPayload): Promise<void> {
     await this.database`
-      INSERT INTO notification.recipient_projection (user_id, display_name, email, active, can_read_jobs, can_read_observability, synced_at)
-      VALUES (${input.userId}, ${input.displayName}, ${input.email}, ${input.active}, ${input.canReadJobs ?? false}, ${input.canReadObservability ?? false}, CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+      INSERT INTO notification.recipient_projection (user_id, display_name, email, active, can_read_jobs, synced_at)
+      VALUES (${input.userId}, ${input.displayName}, ${input.email}, ${input.active}, ${input.canReadJobs ?? false}, CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
       ON CONFLICT (user_id) DO UPDATE SET
         display_name = EXCLUDED.display_name,
         email = EXCLUDED.email,
         active = EXCLUDED.active,
         can_read_jobs = EXCLUDED.can_read_jobs,
-        can_read_observability = EXCLUDED.can_read_observability,
         synced_at = EXCLUDED.synced_at
     `;
   }
@@ -264,7 +226,7 @@ export class NotificationService {
   ): Promise<void> {
     await this.database`
       UPDATE notification.recipient_projection
-      SET can_read_jobs = ${input.canReadJobs}, can_read_observability = ${input.canReadObservability}, synced_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+      SET can_read_jobs = ${input.canReadJobs}, synced_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
       WHERE user_id = ${input.userId}
     `;
   }
@@ -273,7 +235,6 @@ export class NotificationService {
     const definition = definitions[input.type];
     if (!definition || input.version !== 1)
       throw new Error('unknown notification type or version');
-    const severity = input.severity ?? definition.severity;
     const [recipient] = await this.database`
       SELECT user_id, email, active FROM notification.recipient_projection WHERE user_id = ${input.userId}
     `;
@@ -288,7 +249,7 @@ export class NotificationService {
         user_id, idempotency_key, category, severity, type, template_key, template_version,
         title, body, metadata, action_route
       ) VALUES (
-        ${input.userId}, ${idempotencyKey}, ${definition.category}, ${severity}, ${input.type},
+        ${input.userId}, ${idempotencyKey}, ${definition.category}, ${definition.severity}, ${input.type},
         ${definition.templateKey}, ${definition.templateVersion}, ${rendered.title},
         ${rendered.body}, ${rendered.metadata}::jsonb, ${rendered.actionRoute}
       ) ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
@@ -346,27 +307,6 @@ export class NotificationService {
         },
         occurredAt: input.failedAt,
         eventKey: `job-failure:${input.jobId}:${recipient.user_id}`,
-      });
-    }
-  }
-
-  async fanoutObservabilityAlert(
-    input: ObservabilityAlertNotificationPayload,
-  ): Promise<void> {
-    const recipients = await this.database`
-      SELECT user_id
-      FROM notification.recipient_projection
-      WHERE active = true AND can_read_observability = true
-    `;
-    for (const recipient of recipients as Array<{ user_id: string }>) {
-      await this.create({
-        userId: String(recipient.user_id),
-        type: 'operational.observability_alert',
-        version: 1,
-        payload: { ...input },
-        severity: input.severity,
-        occurredAt: input.evaluatedAt,
-        eventKey: `observability-alert:${input.ruleId}:${input.ruleVersion}:${input.transition}:${input.transitionSequence}:${recipient.user_id}`,
       });
     }
   }

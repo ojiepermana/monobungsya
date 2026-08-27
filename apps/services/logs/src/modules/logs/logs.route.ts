@@ -1,6 +1,5 @@
 import { Elysia } from 'elysia';
 import type { DatabaseClient } from '#project/database';
-import type { TelemetryRuntime } from '#project/telemetry';
 import { LogsRepository } from './logs.repository';
 import {
   accessLogsQuery,
@@ -14,11 +13,10 @@ import { LogsService } from './logs.service';
 
 export interface LogsRouteOptions {
   database?: DatabaseClient;
-  telemetry?: TelemetryRuntime;
 }
 
 export function createLogsRoute(options: LogsRouteOptions = {}) {
-  const repository = new LogsRepository(options.database, options.telemetry);
+  const repository = new LogsRepository(options.database);
   const service = new LogsService(repository);
 
   return new Elysia({ name: 'logs-routes' })

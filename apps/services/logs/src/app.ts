@@ -1,5 +1,4 @@
 import { Elysia, t } from 'elysia';
-import { PERMISSIONS } from '#project/acl';
 import type { AppEnvironment } from '#project/config';
 import { loadEnv } from '#project/config';
 import type { DatabaseClient } from '#project/database';
@@ -7,24 +6,14 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
-  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
-import type { TelemetryRuntime } from '#project/telemetry';
 import { createLogsRoute } from './modules/logs/logs.route';
-import { createObservabilityRoute } from './modules/observability/observability.route';
 import { createAuthIdentityPlugin } from './shared/plugins/auth-identity.plugin';
 
 export interface LogsAppOptions {
   database?: DatabaseClient;
-  telemetryDatabase?: DatabaseClient;
-  telemetry?: TelemetryRuntime;
-  ingestionKeys?: ReadonlyMap<string, string>;
-  ingestionMaxBytes?: number;
-  ingestionClockSkewSeconds?: number;
-  observabilityQueryTimeoutMs?: number;
-  observabilityMaxSeries?: number;
 }
 
 export function createApp(
@@ -37,7 +26,6 @@ export function createApp(
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
-    .use(createTelemetryPlugin(options.telemetry))
     .use(createLoggerPlugin(logger, 'logs-logger'))
     .use(createErrorHandler('logs-error-handler', { logger }))
     .use(
@@ -67,34 +55,7 @@ export function createApp(
       createAuthIdentityPlugin(
         environment.INTERNAL_AUTH_SIGNING_SECRET,
         environment.AUTH_CLOCK_SKEW_SECONDS,
-        (pathname) =>
-          pathname === '/internal/observability/benchmark-ingestions'
-            ? null
-            : pathname.startsWith('/internal/observability/')
-              ? PERMISSIONS.observabilityTelemetryRead
-              : PERMISSIONS.logsLogRead,
-        (pathname) =>
-          pathname === '/internal/observability/benchmark-ingestions',
       ),
     )
-    .use(
-      createLogsRoute({
-        database: options.database,
-        telemetry: options.telemetry,
-      }),
-    )
-    .use(
-      createObservabilityRoute({
-        database: options.telemetryDatabase,
-        ingestionKeys: options.ingestionKeys,
-        ingestionMaxBytes: options.ingestionMaxBytes,
-        ingestionClockSkewSeconds: options.ingestionClockSkewSeconds,
-        queryTimeoutMs:
-          options.observabilityQueryTimeoutMs ??
-          environment.OBSERVABILITY_QUERY_TIMEOUT_MS,
-        maxSeries:
-          options.observabilityMaxSeries ??
-          environment.OBSERVABILITY_MAX_SERIES,
-      }),
-    );
+    .use(createLogsRoute({ database: options.database }));
 }

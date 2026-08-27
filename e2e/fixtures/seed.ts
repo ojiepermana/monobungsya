@@ -55,8 +55,7 @@ await db`
     ('jobs:job:list', 'JOBS_JOB_LIST', 'jobs', 'job', 'list', NULL, 'List jobs'),
     ('jobs:job:read', 'JOBS_JOB_READ', 'jobs', 'job', 'read', NULL, 'Read jobs'),
     ('jobs:job:retry', 'JOBS_JOB_RETRY', 'jobs', 'job', 'retry', NULL, 'Retry jobs'),
-    ('jobs:job:manage', 'JOBS_JOB_MANAGE', 'jobs', 'job', 'manage', NULL, 'Manage jobs'),
-    ('observability:telemetry:read', 'OBSERVABILITY_TELEMETRY_READ', 'observability', 'telemetry', 'read', NULL, 'Read observability evidence')
+    ('jobs:job:manage', 'JOBS_JOB_MANAGE', 'jobs', 'job', 'manage', NULL, 'Manage jobs')
   ON CONFLICT (code) DO UPDATE
   SET name = EXCLUDED.name,
       namespace = EXCLUDED.namespace,
@@ -87,21 +86,20 @@ await db`
   INSERT INTO "access"."permission_user" (permission_id, user_id)
   SELECT permission.id, ${adminUser.id}
   FROM "access"."permission" AS permission
-  WHERE permission.name IN ('logs:log:read', 'user:user:manage', 'jobs:job:list', 'jobs:job:read', 'jobs:job:retry', 'jobs:job:manage', 'observability:telemetry:read')
+  WHERE permission.name IN ('logs:log:read', 'user:user:manage', 'jobs:job:list', 'jobs:job:read', 'jobs:job:retry', 'jobs:job:manage')
   ON CONFLICT (permission_id, user_id) DO NOTHING
 `;
 
 await db`
   INSERT INTO notification.recipient_projection (
-    user_id, display_name, email, active, can_read_jobs, can_read_observability
+    user_id, display_name, email, active, can_read_jobs
   )
-  VALUES (${adminUser.id}, 'E2E admin', 'e2e-admin@local.test', true, true, true)
+  VALUES (${adminUser.id}, 'E2E admin', 'e2e-admin@local.test', true, true)
   ON CONFLICT (user_id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     email = EXCLUDED.email,
     active = EXCLUDED.active,
-    can_read_jobs = EXCLUDED.can_read_jobs,
-    can_read_observability = EXCLUDED.can_read_observability
+    can_read_jobs = EXCLUDED.can_read_jobs
 `;
 
 await db`

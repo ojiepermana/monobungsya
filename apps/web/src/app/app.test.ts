@@ -109,21 +109,12 @@ describe('App layout state', () => {
     sessionState.set('authenticated');
   }
 
-  interface AppInternals {
-    effectiveLayoutType(): string;
-    contentClass(): string;
-  }
-
-  function internals(fixture: { componentInstance: App }): AppInternals {
-    return fixture.componentInstance as unknown as AppInternals;
-  }
-
   function effectiveLayoutType(fixture: { componentInstance: App }): string {
-    return internals(fixture).effectiveLayoutType();
+    return fixture.componentInstance['effectiveLayoutType']();
   }
 
   function contentClass(fixture: { componentInstance: App }): string {
-    return internals(fixture).contentClass();
+    return fixture.componentInstance['contentClass']();
   }
 
   it('covers AC-13 and AC-14: restores the operator layout once the session gate resolves on a workspace route', async () => {

@@ -10,10 +10,8 @@ import {
   notificationCreateContract,
   notificationEmailDeliveryContract,
   notificationRecipientSyncContract,
-  observabilityAlertNotificationContract,
 } from '#project/jobs';
 import type { Logger } from '#project/logger';
-import type { Telemetry } from '#project/telemetry';
 import {
   type NotificationMailer,
   NotificationService,
@@ -23,7 +21,6 @@ export function startNotificationWorker(
   database: DatabaseClient,
   logger: Logger,
   mailer?: NotificationMailer,
-  telemetry?: Telemetry,
 ) {
   const registry = new JobRegistry();
   registry.registerContract(notificationCreateContract);
@@ -33,7 +30,6 @@ export function startNotificationWorker(
   registry.registerContract(notificationRecipientSyncContract);
   registry.registerContract(notificationEmailDeliveryContract);
   registry.registerContract(jobFailureNotificationContract);
-  registry.registerContract(observabilityAlertNotificationContract);
   const service = new NotificationService(database, mailer);
   registry.bind(notificationRecipientSyncContract, (payload) =>
     service.syncRecipient(payload),
@@ -56,16 +52,12 @@ export function startNotificationWorker(
   registry.bind(jobFailureNotificationContract, (payload) =>
     service.fanoutJobFailure(payload),
   );
-  registry.bind(observabilityAlertNotificationContract, (payload) =>
-    service.fanoutObservabilityAlert(payload),
-  );
   const worker = new DurableJobWorker(
-    new DurableJobRuntime(database, registry, { telemetry }),
+    new DurableJobRuntime(database, registry),
     registry,
     {
       workerId: `notification-${process.pid}`,
       targetService: 'notification',
-      telemetry,
       onEvent: (event) => {
         if (event.name === 'job.failed' && event.failure)
           logger.error('notification.job.failed', {

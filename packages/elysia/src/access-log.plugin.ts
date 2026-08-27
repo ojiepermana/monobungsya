@@ -10,7 +10,6 @@ import {
   normalizeClientRoute,
   type TraceSource,
 } from './request-id.plugin';
-import { getTelemetryContext } from './telemetry.plugin';
 
 export interface AccessLogContext {
   startedAt: number;
@@ -81,7 +80,6 @@ export function createAccessLogPlugin() {
       }
 
       const context = contexts.get(request);
-      const runtimeContext = getTelemetryContext(request);
       const status = responseStatus(responseValue, set.status);
       const routeName = context?.routeName ?? normalizeRouteName(path);
 
@@ -100,8 +98,6 @@ export function createAccessLogPlugin() {
         sessionId: context?.sessionId,
         requestId: context?.requestId,
         traceId: context?.traceId,
-        runtimeTraceId: runtimeContext?.traceId,
-        runtimeSpanId: runtimeContext?.spanId,
         path,
         routeName,
         method: request.method,

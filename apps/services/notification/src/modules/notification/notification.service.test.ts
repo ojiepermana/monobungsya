@@ -12,7 +12,6 @@ function createDatabase(
     recipientActive?: boolean;
     emailEnabled?: boolean;
     recipientRows?: Array<{ user_id: string; email: string; active: boolean }>;
-    observabilityRecipientRows?: Array<{ user_id: string }>;
   } = {},
 ) {
   const calls: Array<{ query: string; values: unknown[] }> = [];
@@ -36,11 +35,6 @@ function createDatabase(
     }
     if (query.includes('WHERE active = true AND can_read_jobs = true')) {
       return [{ user_id: userId }];
-    }
-    if (
-      query.includes('WHERE active = true AND can_read_observability = true')
-    ) {
-      return options.observabilityRecipientRows ?? [];
     }
     if (query.includes('INSERT INTO notification.notification (')) {
       return [
@@ -276,56 +270,5 @@ describe('NotificationService JSONB boundaries', () => {
         call.query.includes('INSERT INTO notification.notification ('),
       ),
     ).toBe(true);
-  });
-
-  test('fans out observability alerts only to current observability readers', async () => {
-    const { calls, database } = createDatabase({
-      observabilityRecipientRows: [{ user_id: userId }],
-    });
-    const service = new NotificationService(database);
-
-    await service.fanoutObservabilityAlert({
-      ruleId: 'telemetry.latency.p95',
-      ruleVersion: '0014.1',
-      severity: 'warning',
-      service: 'gateway',
-      transition: 'firing',
-      transitionSequence: 1,
-      evaluatedAt: '2026-08-25T00:00:00.000Z',
-    });
-
-    const notificationInsert = calls.find((call) =>
-      call.query.includes('INSERT INTO notification.notification ('),
-    );
-    expect(
-      calls.some((call) =>
-        call.query.includes(
-          'WHERE active = true AND can_read_observability = true',
-        ),
-      ),
-    ).toBe(true);
-    expect(notificationInsert?.values).toContainEqual({
-      ruleId: 'telemetry.latency.p95',
-      severity: 'warning',
-      service: 'gateway',
-      transition: 'firing',
-      evaluatedAt: '2026-08-25T00:00:00.000Z',
-    });
-
-    const revoked = createDatabase({ observabilityRecipientRows: [] });
-    await new NotificationService(revoked.database).fanoutObservabilityAlert({
-      ruleId: 'telemetry.latency.p95',
-      ruleVersion: '0014.1',
-      severity: 'warning',
-      service: 'gateway',
-      transition: 'firing',
-      transitionSequence: 2,
-      evaluatedAt: '2026-08-25T00:05:00.000Z',
-    });
-    expect(
-      revoked.calls.some((call) =>
-        call.query.includes('INSERT INTO notification.notification ('),
-      ),
-    ).toBe(false);
   });
 });

@@ -18,7 +18,6 @@ export function loadJobsEnv(
   source: Record<string, string | undefined> = Bun.env,
 ): JobsEnvironment {
   const jobsDatabaseUrl = source.JOBS_DATABASE_URL ?? source.DATABASE_URL;
-  const sharedDatabaseUrl = source.DATABASE_URL;
   const environment = loadEnv('jobs', {
     ...source,
     PORT: source.JOBS_SERVICE_PORT ?? '3105',
@@ -27,15 +26,6 @@ export function loadJobsEnv(
 
   return {
     ...environment,
-    TELEMETRY_DATABASE_URL:
-      source.TELEMETRY_DATABASE_URL?.trim() ||
-      sharedDatabaseUrl ||
-      environment.TELEMETRY_DATABASE_URL,
-    OBSERVABILITY_DATABASE_URL:
-      source.OBSERVABILITY_DATABASE_URL?.trim() ||
-      source.TELEMETRY_DATABASE_URL?.trim() ||
-      sharedDatabaseUrl ||
-      environment.OBSERVABILITY_DATABASE_URL,
     JOBS_SERVICE_PORT: positive(
       source.JOBS_SERVICE_PORT,
       3105,

@@ -154,18 +154,6 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: 'observability',
-    title: 'MONOBUNGSYA · Observability',
-    canActivate: [
-      authGuard,
-      permissionGuard(PERMISSIONS.observabilityTelemetryRead),
-    ],
-    loadComponent: () =>
-      import('../pages/observability/observability.page').then(
-        (m) => m.ObservabilityPage,
-      ),
-  },
-  {
     path: 'logs/audit',
     title: 'MONOBUNGSYA · Audit Logs',
     canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],

@@ -4,11 +4,9 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
-  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
-import type { TelemetryRuntime } from '#project/telemetry';
 import { loadAuthEnv } from './config/env';
 import {
   type AuthRouteOptions,
@@ -23,7 +21,6 @@ export function createApp(
   environment: AppEnvironment = loadAuthEnv(),
   authOptions: AuthRouteOptions = {},
   passkeyOptions: PasskeyRouteOptions = {},
-  telemetry?: TelemetryRuntime,
 ) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
     persist: environment.BEST_EFFORT_LOGGING_ENABLED,
@@ -31,7 +28,6 @@ export function createApp(
 
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
-    .use(createTelemetryPlugin(telemetry))
     .use(createLoggerPlugin(logger, 'auth-logger'))
     .use(createErrorHandler('auth-error-handler', { logger }))
     .use(

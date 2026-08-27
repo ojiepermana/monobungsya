@@ -5,19 +5,16 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
-  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
-import type { TelemetryRuntime } from '#project/telemetry';
 import type { GatewayEnvironment } from './config/env';
 import { loadGatewayEnv } from './config/env';
 import { createProxyRoute } from './routes/proxy.route';
 
 export interface GatewayAppOptions {
   messaging?: Subscriber;
-  telemetry?: TelemetryRuntime;
 }
 
 export function createApp(
@@ -43,7 +40,6 @@ export function createApp(
       }),
     )
     .use(requestIdPlugin)
-    .use(createTelemetryPlugin(options.telemetry))
     .use(createAccessLogPlugin())
     .use(createLoggerPlugin(logger, 'gateway-logger'))
     .use(createErrorHandler('gateway-error-handler', { logger }))
@@ -63,10 +59,6 @@ export function createApp(
           },
           { name: 'Users', description: 'Public users boundary' },
           { name: 'Logs', description: 'Public log viewer boundary' },
-          {
-            name: 'Observability',
-            description: 'Runtime telemetry and trace boundary',
-          },
           { name: 'Access', description: 'Public permission access boundary' },
           { name: 'Jobs', description: 'Authorized job operations boundary' },
         ],

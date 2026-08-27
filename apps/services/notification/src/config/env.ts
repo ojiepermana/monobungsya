@@ -17,7 +17,6 @@ export function loadNotificationEnv(
   source: Record<string, string | undefined> = Bun.env,
 ): NotificationEnvironment {
   const databaseUrl = source.NOTIFICATION_DATABASE_URL ?? source.DATABASE_URL;
-  const sharedDatabaseUrl = source.DATABASE_URL;
   const environment = loadEnv('notification', {
     ...source,
     PORT: source.NOTIFICATION_SERVICE_PORT ?? '3106',
@@ -26,15 +25,6 @@ export function loadNotificationEnv(
 
   return {
     ...environment,
-    TELEMETRY_DATABASE_URL:
-      source.TELEMETRY_DATABASE_URL?.trim() ||
-      sharedDatabaseUrl ||
-      environment.TELEMETRY_DATABASE_URL,
-    OBSERVABILITY_DATABASE_URL:
-      source.OBSERVABILITY_DATABASE_URL?.trim() ||
-      source.TELEMETRY_DATABASE_URL?.trim() ||
-      sharedDatabaseUrl ||
-      environment.OBSERVABILITY_DATABASE_URL,
     NOTIFICATION_SERVICE_PORT: positive(source.NOTIFICATION_SERVICE_PORT, 3106),
     NOTIFICATION_DATABASE_URL: databaseUrl ?? environment.DATABASE_URL,
     NOTIFICATION_RETENTION_DAYS: positive(

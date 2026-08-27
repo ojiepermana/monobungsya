@@ -48,36 +48,8 @@ const DEV_TARGETS: DevTarget[] = [
     entrypoint: 'apps/services/access/src/main.ts',
     port: 3104,
   },
-  {
-    script: 'dev:jobs',
-    entrypoint: 'apps/services/jobs/src/main.ts',
-    port: 3105,
-  },
-  {
-    script: 'dev:notification',
-    entrypoint: 'apps/services/notification/src/main.ts',
-    port: 3106,
-  },
 ];
-const DATABASE_SCHEMAS = [
-  'auth',
-  'access',
-  'user',
-  'logs',
-  'jobs',
-  'notification',
-  'telemetry',
-];
-const TELEMETRY_TABLES = [
-  'spans',
-  'metric_buckets',
-  'benchmark_runs',
-  'benchmark_baselines',
-  'benchmark_comparisons',
-  'alert_states',
-  'alert_rules',
-  'ingestion_receipts',
-];
+const DATABASE_SCHEMAS = ['auth', 'access', 'user', 'logs'];
 const HTTP_ENV_DEFAULTS: Record<string, string> = {
   CORS_ORIGIN: 'http://localhost:4200',
   PUBLIC_API_URL: 'http://localhost:3000',
@@ -86,8 +58,6 @@ const HTTP_ENV_DEFAULTS: Record<string, string> = {
   USER_SERVICE_URL: 'http://localhost:3102',
   LOGS_SERVICE_URL: 'http://localhost:3103',
   ACCESS_SERVICE_URL: 'http://localhost:3104',
-  JOBS_SERVICE_URL: 'http://localhost:3105',
-  NOTIFICATION_SERVICE_URL: 'http://localhost:3106',
 };
 
 let failures = 0;
@@ -387,89 +357,6 @@ async function checkDatabase(
   }
 }
 
-async function checkTelemetryTables(
-  connectionString: string,
-): Promise<Set<string> | undefined> {
-  let database: SQL | undefined;
-  try {
-    database = new SQL(connectionString, { connectionTimeout: 3 });
-    const rows = (await database`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'telemetry'
-        AND table_name = ANY(${database.array(TELEMETRY_TABLES, 'text')})
-    `) as Array<{ table_name: string }>;
-    return new Set(rows.map((row) => row.table_name));
-  } catch {
-    return undefined;
-  } finally {
-    await database?.close({ timeout: 1 }).catch(() => undefined);
-  }
-}
-
-type TelemetryPartitionCheck = {
-  spans_partitioned: boolean;
-  metric_buckets_partitioned: boolean;
-  spans_current_days: number;
-  metric_buckets_current_days: number;
-  maintenance_function: boolean;
-};
-
-async function checkTelemetryPartitions(
-  connectionString: string,
-): Promise<TelemetryPartitionCheck | undefined> {
-  let database: SQL | undefined;
-  try {
-    database = new SQL(connectionString, { connectionTimeout: 3 });
-    const [row] = (await database`
-      SELECT
-        EXISTS (
-          SELECT 1
-          FROM pg_class
-          JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
-          WHERE pg_namespace.nspname = 'telemetry'
-            AND pg_class.relname = 'spans'
-            AND pg_class.relkind = 'p'
-        ) AS spans_partitioned,
-        EXISTS (
-          SELECT 1
-          FROM pg_class
-          JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
-          WHERE pg_namespace.nspname = 'telemetry'
-            AND pg_class.relname = 'metric_buckets'
-            AND pg_class.relkind = 'p'
-        ) AS metric_buckets_partitioned,
-        (
-          SELECT count(*)::int
-          FROM pg_inherits
-          JOIN pg_class AS parent ON parent.oid = pg_inherits.inhparent
-          JOIN pg_class AS child ON child.oid = pg_inherits.inhrelid
-          JOIN pg_namespace ON pg_namespace.oid = parent.relnamespace
-          WHERE pg_namespace.nspname = 'telemetry'
-            AND parent.relname = 'spans_' || to_char(CURRENT_DATE, 'YYYY')
-            AND child.relname LIKE parent.relname || '_%'
-        ) AS spans_current_days,
-        (
-          SELECT count(*)::int
-          FROM pg_inherits
-          JOIN pg_class AS parent ON parent.oid = pg_inherits.inhparent
-          JOIN pg_class AS child ON child.oid = pg_inherits.inhrelid
-          JOIN pg_namespace ON pg_namespace.oid = parent.relnamespace
-          WHERE pg_namespace.nspname = 'telemetry'
-            AND parent.relname = 'metric_buckets_' || to_char(CURRENT_DATE, 'YYYY')
-            AND child.relname LIKE parent.relname || '_%'
-        ) AS metric_buckets_current_days,
-        to_regprocedure('telemetry.ensure_current_partitions()') IS NOT NULL
-          AS maintenance_function
-    `) as Array<TelemetryPartitionCheck>;
-    return row;
-  } catch {
-    return undefined;
-  } finally {
-    await database?.close({ timeout: 1 }).catch(() => undefined);
-  }
-}
-
 async function checkInfrastructure(): Promise<void> {
   const infrastructure = Bun.env.ENABLE_INFRASTRUCTURE;
   if (
@@ -527,43 +414,6 @@ async function checkInfrastructure(): Promise<void> {
         );
       } else {
         pass(`database schemas are migrated: ${DATABASE_SCHEMAS.join(', ')}`);
-        const telemetryTables = await checkTelemetryTables(databaseString);
-        if (!telemetryTables) {
-          fail('PostgreSQL telemetry schema cannot be inspected');
-        } else {
-          const missingTelemetryTables = TELEMETRY_TABLES.filter(
-            (table) => !telemetryTables.has(table),
-          );
-          if (missingTelemetryTables.length > 0) {
-            fail(
-              `PostgreSQL telemetry tables are missing: ${missingTelemetryTables.join(', ')}; run bun run db:migrate -- --service logs`,
-            );
-          } else {
-            pass(
-              `telemetry tables are migrated: ${TELEMETRY_TABLES.join(', ')}`,
-            );
-            const telemetryPartitions =
-              await checkTelemetryPartitions(databaseString);
-            if (!telemetryPartitions) {
-              fail('PostgreSQL telemetry partitions cannot be inspected');
-            } else if (
-              !telemetryPartitions.spans_partitioned ||
-              !telemetryPartitions.metric_buckets_partitioned ||
-              telemetryPartitions.spans_current_days < 365 ||
-              telemetryPartitions.metric_buckets_current_days < 365 ||
-              !telemetryPartitions.maintenance_function
-            ) {
-              fail(
-                'PostgreSQL telemetry daily partitions or maintenance function are incomplete; run bun run db:migrate -- --service logs',
-              );
-            } else {
-              pass(
-                `telemetry daily partitions are ready for the current year (${telemetryPartitions.spans_current_days} spans days, ${telemetryPartitions.metric_buckets_current_days} metric days)`,
-              );
-              pass('telemetry partition maintenance function is present');
-            }
-          }
-        }
       }
     }
   }

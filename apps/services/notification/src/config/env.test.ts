@@ -5,7 +5,6 @@ describe('notification environment', () => {
   test('AC-2 uses notification-specific overrides and safe defaults', () => {
     const environment = loadNotificationEnv({
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgres://shared@localhost/db',
       NOTIFICATION_DATABASE_URL: 'postgres://notification@localhost/db',
       NOTIFICATION_SERVICE_PORT: '3110',
       NOTIFICATION_RETENTION_DAYS: '90',
@@ -19,9 +18,6 @@ describe('notification environment', () => {
     expect(environment.serviceName).toBe('notification');
     expect(environment.NOTIFICATION_DATABASE_URL).toBe(
       'postgres://notification@localhost/db',
-    );
-    expect(environment.TELEMETRY_DATABASE_URL).toBe(
-      'postgres://shared@localhost/db',
     );
     expect(environment.NOTIFICATION_SERVICE_PORT).toBe(3110);
     expect(environment.NOTIFICATION_RETENTION_DAYS).toBe(90);
@@ -45,22 +41,6 @@ describe('notification environment', () => {
     expect(environment.NOTIFICATION_RETENTION_DAYS).toBe(365);
     expect(environment.NOTIFICATION_CENTER_ENABLED).toBe(true);
     expect(environment.SMTP_PORT).toBe(2525);
-  });
-
-  test('keeps telemetry storage separate from notification data', () => {
-    const environment = loadNotificationEnv({
-      NODE_ENV: 'test',
-      DATABASE_URL: 'postgres://shared@localhost/db',
-      NOTIFICATION_DATABASE_URL: 'postgres://notification@localhost/db',
-      TELEMETRY_DATABASE_URL: 'postgres://telemetry@localhost/db',
-    });
-
-    expect(environment.NOTIFICATION_DATABASE_URL).toBe(
-      'postgres://notification@localhost/db',
-    );
-    expect(environment.TELEMETRY_DATABASE_URL).toBe(
-      'postgres://telemetry@localhost/db',
-    );
   });
 
   test('AC-2 rejects non-positive numeric settings', () => {

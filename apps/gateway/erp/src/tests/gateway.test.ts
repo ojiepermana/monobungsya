@@ -156,50 +156,6 @@ describe('api gateway', () => {
     }
   });
 
-  it('forwards observability reads with their dedicated permission', async () => {
-    const app = createApp(
-      loadGatewayEnv({
-        NODE_ENV: 'test',
-        PORT: '3000',
-        AUTH_SERVICE_URL: 'http://auth.internal',
-        LOGS_SERVICE_URL: 'http://logs.internal',
-        ACCESS_SERVICE_URL: 'http://access.internal',
-        INTERNAL_AUTH_SIGNING_SECRET: SECRET,
-      }),
-    );
-    const originalFetch = globalThis.fetch;
-    let upstreamRequest: Request | undefined;
-    globalThis.fetch = Object.assign(
-      fetchFor(['observability:telemetry:read'], (request) => {
-        upstreamRequest = request;
-        return Response.json({
-          data: [],
-          nextCursor: null,
-          completeness: 'complete',
-        });
-      }),
-      { preconnect: originalFetch.preconnect },
-    );
-
-    try {
-      const response = await app.handle(
-        new Request('http://localhost/api/v1/observability/traces', {
-          headers: { cookie: 'project_session=session-value' },
-        }),
-      );
-      const identity = readAndVerifyAuthIdentity(
-        upstreamRequest?.headers ?? new Headers(),
-        'GET',
-        '/internal/observability/traces',
-        SECRET,
-      );
-      expect(response.status).toBe(200);
-      expect(identity?.permissions).toEqual(['observability:telemetry:read']);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
   it('uses the access cache for session responses and never exposes roles', async () => {
     const app = createApp(
       loadGatewayEnv({

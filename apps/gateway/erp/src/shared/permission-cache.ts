@@ -1,6 +1,5 @@
 import { normalizePermissions } from '#project/acl';
 import { ServiceUnavailableError } from '#project/errors';
-import type { Telemetry } from '#project/telemetry';
 
 interface PermissionCacheEntry {
   permissions: string[];
@@ -14,7 +13,6 @@ export class GatewayPermissionCache {
     private readonly serviceUrl: string,
     private readonly ttlMs: number,
     private readonly maxEntries: number,
-    private readonly telemetry?: Telemetry,
   ) {}
 
   async get(userId: string, requestId: string): Promise<string[]> {
@@ -29,18 +27,7 @@ export class GatewayPermissionCache {
         this.serviceUrl,
       );
       url.searchParams.set('userId', userId);
-      const lookup = () =>
-        fetch(url, { headers: { 'x-request-id': requestId } });
-      response = this.telemetry
-        ? await this.telemetry.withSpan(
-            {
-              resourceKind: 'http.client',
-              resourceName: `${new URL(this.serviceUrl).host}/internal/access/permissions/lookup`,
-              operation: 'GET',
-            },
-            lookup,
-          )
-        : await lookup();
+      response = await fetch(url, { headers: { 'x-request-id': requestId } });
     } catch {
       throw new ServiceUnavailableError(
         'Permission lookup service is unavailable',

@@ -479,7 +479,6 @@ describe('access service', () => {
       expect(enqueueValues[1]?.[2]).toEqual({
         userId: USER_ID,
         canReadJobs: true,
-        canReadObservability: false,
       });
       expect(lookupPermissions).toHaveBeenCalledWith(USER_ID);
     } finally {

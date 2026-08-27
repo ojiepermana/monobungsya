@@ -36,7 +36,7 @@ describe('auth security notification boundary', () => {
   test('AC-6 enqueues a typed auth event with normalized fields only', async () => {
     const calls: unknown[][] = [];
     const transaction = (async (
-      _strings: TemplateStringsArray,
+      strings: TemplateStringsArray,
       ...values: unknown[]
     ) => {
       calls.push(values);

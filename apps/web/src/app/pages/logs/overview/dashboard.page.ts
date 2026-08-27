@@ -3,8 +3,8 @@ import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
-  PageComponent,
   PageDashboardComponent,
+  PageComponent,
 } from '@ojiepermana/angular/theme/page';
 import { catchError, forkJoin, of } from 'rxjs';
 import {
@@ -197,9 +197,7 @@ export class DashboardPage {
   protected readonly loading = signal(true);
   protected readonly gatewayStatus = signal('Checking...');
   protected readonly unreadTotal = signal(0);
-  protected readonly unreadCategories = signal<
-    Record<NotificationCategory, number>
-  >({
+  protected readonly unreadCategories = signal<Record<NotificationCategory, number>>({
     ...EMPTY_NOTIFICATION_COUNTS,
   });
   protected readonly jobsTotal = signal(0);
@@ -210,9 +208,7 @@ export class DashboardPage {
   protected readonly permissionTotal = signal<number | null>(null);
   protected readonly auditRows = signal<AuditTrailItem[]>([]);
   protected readonly updatedAt = signal<string | null>(null);
-  protected readonly pulseView = signal<'notifications' | 'jobs'>(
-    'notifications',
-  );
+  protected readonly pulseView = signal<'notifications' | 'jobs'>('notifications');
 
   protected readonly pulseBars = computed(() => {
     if (this.pulseView() === 'notifications') {
@@ -250,9 +246,7 @@ export class DashboardPage {
       notifications: this.api
         .unreadNotificationCount()
         .pipe(catchError(() => of(null))),
-      jobs: this.api
-        .jobs({ page: 1, status: '' })
-        .pipe(catchError(() => of(null))),
+      jobs: this.api.jobs({ page: 1, status: '' }).pipe(catchError(() => of(null))),
       users: this.api
         .users({ search: '', status: '', page: 1 })
         .pipe(catchError(() => of(null))),

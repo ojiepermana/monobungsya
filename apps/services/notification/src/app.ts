@@ -4,25 +4,21 @@ import {
   createErrorHandler,
   createLoggerPlugin,
   createOpenApiPlugin,
-  createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
-import type { TelemetryRuntime } from '#project/telemetry';
 import type { NotificationEnvironment } from './config/env';
 import { createNotificationRoute } from './modules/notification/notification.route';
 
 export function createApp(
   environment: NotificationEnvironment,
   database?: DatabaseClient,
-  telemetry?: TelemetryRuntime,
 ) {
   const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
     persist: environment.BEST_EFFORT_LOGGING_ENABLED,
   });
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
-    .use(createTelemetryPlugin(telemetry))
     .use(createLoggerPlugin(logger, 'notification-logger'))
     .use(createErrorHandler('notification-error-handler', { logger }))
     .use(
