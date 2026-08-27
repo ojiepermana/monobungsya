@@ -6,9 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '../../../auth/auth.service';
 import { AuthService } from '../../../auth/auth.service';
 import {
-  type AccessLogsResponse,
   ApiService,
-  type ApplicationLogsResponse,
   type AuditTrailsResponse,
   type LogsMeta,
   type UserRecord,
@@ -57,24 +55,6 @@ function auditResponse(
   };
 }
 
-function accessResponse(): AccessLogsResponse {
-  return {
-    data: [],
-    meta: emptyMeta(),
-    filters: { search: '', event: '', outcome: '', traceId: '' },
-    options: { events: [], outcomes: [] },
-  };
-}
-
-function applicationResponse(): ApplicationLogsResponse {
-  return {
-    data: [],
-    meta: emptyMeta(),
-    filters: { search: '', level: '', module: '', event: '' },
-    options: { levels: [], modules: [], events: [] },
-  };
-}
-
 function createDetailPage(
   apiOverrides: Record<string, ReturnType<typeof vi.fn>> = {},
   id = 'user-1',
@@ -91,8 +71,6 @@ function createDetailPage(
     updateUser: vi.fn().mockReturnValue(of(testUser({ id }))),
     runUserStatusAction: vi.fn().mockReturnValue(of(testUser({ id }))),
     auditTrails: vi.fn().mockReturnValue(of(auditResponse())),
-    accessLogs: vi.fn().mockReturnValue(of(accessResponse())),
-    applicationLogs: vi.fn().mockReturnValue(of(applicationResponse())),
     ...apiOverrides,
   };
 
@@ -123,18 +101,16 @@ interface UserDetailPageInternals {
   loading(): boolean;
   error(): string | null;
   user(): UserRecord | null;
-  tab(): 'audit' | 'permissions' | 'access' | 'application';
+  tab(): 'audit' | 'permissions';
   logsLoading(): boolean;
   auditRows(): unknown[];
-  accessRows(): unknown[];
-  applicationRows(): unknown[];
   activeMeta(): LogsMeta;
   actions(): Array<{ action: string }>;
   editOpen(): boolean;
   editError(): string | null;
   actionOpen(): boolean;
   actionError(): string | null;
-  selectTab(tab: 'audit' | 'permissions' | 'access' | 'application'): void;
+  selectTab(tab: 'audit' | 'permissions'): void;
   goTo(page: number): void;
   openEdit(): void;
   submitEdit(payload: unknown): void;
@@ -198,76 +174,6 @@ describe('UserDetailPage page composition (spec docs/specs/0007-user-management,
       root.querySelector('pagecontent app-user-edit-dialog'),
     ).not.toBeNull();
     expect(fixture.nativeElement.querySelector('main')).toBeNull();
-  });
-});
-
-describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)', () => {
-  it('selecting the access tab calls accessLogs scoped to this user, not the other endpoints', () => {
-    const { api, component } = createDetailPage({}, 'user-7');
-    const page = internal(component);
-    api.auditTrails.mockClear();
-
-    page.selectTab('access');
-
-    expect(page.tab()).toBe('access');
-    expect(api.accessLogs).toHaveBeenCalledWith({
-      search: '',
-      event: '',
-      outcome: '',
-      traceId: '',
-      page: 1,
-      actorUserId: 'user-7',
-    });
-    expect(api.auditTrails).not.toHaveBeenCalled();
-  });
-
-  it('selecting the application tab calls applicationLogs scoped to this user', () => {
-    const { api, component } = createDetailPage({}, 'user-7');
-    const page = internal(component);
-
-    page.selectTab('application');
-
-    expect(api.applicationLogs).toHaveBeenCalledWith({
-      search: '',
-      level: '',
-      module: '',
-      event: '',
-      page: 1,
-      actorUserId: 'user-7',
-    });
-  });
-
-  it('goTo requests the next page of whichever tab is currently active', () => {
-    const { api, component } = createDetailPage({}, 'user-7');
-    const page = internal(component);
-    page.selectTab('access');
-    api.accessLogs.mockClear();
-
-    page.goTo(2);
-
-    expect(api.accessLogs).toHaveBeenCalledWith({
-      search: '',
-      event: '',
-      outcome: '',
-      traceId: '',
-      page: 2,
-      actorUserId: 'user-7',
-    });
-  });
-
-  it('activeMeta reflects the meta of whichever tab is selected', () => {
-    const distinctAccess = accessResponse();
-    distinctAccess.meta = { page: 1, perPage: 25, total: 9, totalPages: 1 };
-    const { component } = createDetailPage({
-      accessLogs: vi.fn().mockReturnValue(of(distinctAccess)),
-    });
-    const page = internal(component);
-
-    expect(page.activeMeta().total).toBe(0); // audit tab, still empty
-
-    page.selectTab('access');
-
-    expect(page.activeMeta().total).toBe(9);
   });
 });
 

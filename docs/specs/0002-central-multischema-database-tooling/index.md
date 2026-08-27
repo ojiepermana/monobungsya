@@ -176,7 +176,7 @@ The migration role from `DATABASE_MIGRATION_URL` may create and alter the allowl
 
 The provisioning contract uses these fixed role names: `project_migrator`, `project_auth_runtime`, `project_access_runtime`, `project_user_runtime`, `project_logs_writer`, `project_jobs_runtime`, and `project_notification_runtime`. DBA or infrastructure automation creates these roles and manages their credentials outside the repository. Migration grants only apply privileges and never create roles, passwords, or login attributes. All roles must exist before the migration set is applied.
 
-Each service runtime role receives usage and data privileges only on its owned schema. The logs scope grants `project_logs_writer` select and insert access to the three logging tables. The jobs and notification roles receive only their queue worker or notification service grants. No service runtime role receives unrestricted read or write access to another service schema. Grants are explicit in migration SQL or the controlled provisioning step and are not inferred from folder names. Default privileges for objects created by `project_migrator` must preserve the same scope grants for future tables.
+Each service runtime role receives usage and data privileges only on its owned schema. The logs scope grants `project_logs_writer` select and insert access to the Audit Trail table. The jobs and notification roles receive only their queue worker or notification service grants. No service runtime role receives unrestricted read or write access to another service schema. Grants are explicit in migration SQL or the controlled provisioning step and are not inferred from folder names. Default privileges for objects created by `project_migrator` must preserve the same scope grants for future tables.
 
 ### Enforcement
 
@@ -238,7 +238,7 @@ Tests must cover a fresh reset, a second idempotent migrate, a failed migration 
 - [x] Add `DATABASE_MIGRATION_URL` and `DATABASE_RESET_ALLOWED` to environment documentation and deployment configuration.
 - [x] Apply the UUIDv7 primary key rule to the canonical auth session model and all current application tables.
 - [x] Add the catalog validator and command tests, including checksum drift coverage.
-- [x] Keep `logs.logging`, `logs.audit_trails`, and `logs.access_logs` nonpartitioned until measured volume or retention requirements justify a separate architecture decision.
+- [x] Keep `logs.audit_trails` nonpartitioned until measured volume or retention requirements justify a separate architecture decision.
 - [x] Define fixed PostgreSQL role names and apply explicit runtime grants through migration `0007_database_grants`; role creation and credentials remain outside the repository.
 
 ## References

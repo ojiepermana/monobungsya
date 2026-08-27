@@ -11,11 +11,7 @@ import {
   securityContextFromRequest,
 } from './auth.notifications';
 import { AuthRepository } from './auth.repository';
-import {
-  readCookie,
-  recordAuthAccess,
-  serializeSessionCookie,
-} from './auth.route';
+import { readCookie, serializeSessionCookie } from './auth.route';
 import { PasskeyRepository } from './passkey.repository';
 import {
   passkeyCeremonyOptionsResponse,
@@ -121,34 +117,11 @@ export function createPasskeyRoute(options: PasskeyRouteOptions = {}) {
     .post(
       '/internal/auth/passkey/login/verify',
       async ({ body, request }) => {
-        let result: PasskeyLoginResult;
-        try {
-          result = await service.verifyLogin(
-            body.response as unknown as AuthenticationResponseJSON,
-            clientIp(request),
-            securityContextFromRequest(request, 'passkey'),
-          );
-        } catch (error) {
-          recordAuthAccess({
-            request,
-            method: 'passkey',
-            event: 'sign_in',
-            outcome: 'failure',
-            status: error instanceof UnauthorizedError ? 401 : 400,
-            failureReason: 'authentication_failed',
-          });
-          throw error;
-        }
-
-        recordAuthAccess({
-          request,
-          method: 'passkey',
-          event: 'sign_in',
-          outcome: 'success',
-          status: 200,
-          actor: result.user,
-          sessionId: result.session?.id,
-        });
+        const result: PasskeyLoginResult = await service.verifyLogin(
+          body.response as unknown as AuthenticationResponseJSON,
+          clientIp(request),
+          securityContextFromRequest(request, 'passkey'),
+        );
 
         if (result.status === 'mfa_required') {
           return Response.json(

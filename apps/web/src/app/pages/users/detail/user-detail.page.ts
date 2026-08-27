@@ -42,9 +42,7 @@ import {
 import { AuthService } from '../../../auth/auth.service';
 import { PERMISSIONS } from '../../../auth/permissions';
 import {
-  type AccessLogItem,
   ApiService,
-  type ApplicationLogItem,
   type AuditTrailItem,
   type LogsMeta,
   type UpdateUserPayload,
@@ -69,14 +67,12 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
 
 const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
-type TabKey = 'audit' | 'permissions' | 'access' | 'application';
+type TabKey = 'audit' | 'permissions';
 
 /**
  * User detail (spec docs/specs/0007-user-management, AC-9 and AC-10): the
  * profile with its derived status and timestamps, the same status actions the
- * list offers, and this user's audit, access, and application logs. Each tab
- * asks the matching logs endpoint with actorUserId set to the route id, so the
- * rows are only ever this user's.
+ * list offers, and this user's Audit Trail.
  */
 @Component({
   selector: 'app-user-detail-page',
@@ -192,8 +188,6 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             @if (canViewAccess()) {
               <button TabsTrigger value="permissions" (click)="selectTab('permissions')">Access</button>
             }
-            <button TabsTrigger value="access" (click)="selectTab('access')">Access Log</button>
-            <button TabsTrigger value="application" (click)="selectTab('application')">Application Log</button>
           </TabsList>
 
           <TabsContent value="audit">
@@ -233,61 +227,6 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             </TabsContent>
           }
 
-          <TabsContent value="access">
-            @if (accessRows().length === 0) {
-              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada access log untuk user ini.</p>
-            } @else {
-              <Table class="min-w-full bg-card text-xs">
-                <caption TableCaption class="sr-only">Access log user</caption>
-                <thead TableHeader class="text-xs uppercase text-muted-foreground">
-                  <tr TableRow>
-                    <th TableHead scope="col">Waktu</th>
-                    <th TableHead scope="col">Event</th>
-                    <th TableHead scope="col">Hasil</th>
-                    <th TableHead scope="col">Kegagalan</th>
-                  </tr>
-                </thead>
-                <tbody TableBody>
-                  @for (row of accessRows(); track row.accessedAt + row.event) {
-                    <tr TableRow class="align-top">
-                      <td TableCell class="whitespace-nowrap">{{ formatDate(row.accessedAt) }}</td>
-                      <td TableCell>{{ row.event }}</td>
-                      <td TableCell>{{ row.outcome }}</td>
-                      <td TableCell class="text-muted-foreground">{{ row.failureReason ?? '-' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </Table>
-            }
-          </TabsContent>
-
-          <TabsContent value="application">
-            @if (applicationRows().length === 0) {
-              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log untuk user ini.</p>
-            } @else {
-              <Table class="min-w-full bg-card text-xs">
-                <caption TableCaption class="sr-only">Application log user</caption>
-                <thead TableHeader class="text-xs uppercase text-muted-foreground">
-                  <tr TableRow>
-                    <th TableHead scope="col">Waktu</th>
-                    <th TableHead scope="col">Level</th>
-                    <th TableHead scope="col">Module</th>
-                    <th TableHead scope="col">Message</th>
-                  </tr>
-                </thead>
-                <tbody TableBody>
-                  @for (row of applicationRows(); track row.id) {
-                    <tr TableRow class="align-top">
-                      <td TableCell class="whitespace-nowrap">{{ formatDate(row.occurredAt) }}</td>
-                      <td TableCell>{{ row.level }}</td>
-                      <td TableCell>{{ row.module ?? '-' }}</td>
-                      <td TableCell class="text-muted-foreground">{{ row.message }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </Table>
-            }
-          </TabsContent>
         </Tabs>
 
         <app-user-edit-dialog
@@ -341,11 +280,7 @@ export class UserDetailPage {
   protected readonly tab = signal<TabKey>('audit');
   protected readonly logsLoading = signal(false);
   protected readonly auditRows = signal<AuditTrailItem[]>([]);
-  protected readonly accessRows = signal<AccessLogItem[]>([]);
-  protected readonly applicationRows = signal<ApplicationLogItem[]>([]);
   protected readonly auditMeta = signal<LogsMeta>(EMPTY_META);
-  protected readonly accessMeta = signal<LogsMeta>(EMPTY_META);
-  protected readonly applicationMeta = signal<LogsMeta>(EMPTY_META);
 
   protected readonly editOpen = signal(false);
   protected readonly saving = signal(false);
@@ -367,10 +302,6 @@ export class UserDetailPage {
     switch (this.tab()) {
       case 'permissions':
         return EMPTY_META;
-      case 'access':
-        return this.accessMeta();
-      case 'application':
-        return this.applicationMeta();
       default:
         return this.auditMeta();
     }
@@ -441,46 +372,6 @@ export class UserDetailPage {
 
       return;
     }
-
-    if (tab === 'access') {
-      this.api
-        .accessLogs({
-          search: '',
-          event: '',
-          outcome: '',
-          traceId: '',
-          page,
-          actorUserId,
-        })
-        .subscribe({
-          next: (response) => {
-            this.accessRows.set(response.data);
-            this.accessMeta.set(response.meta);
-            this.logsLoading.set(false);
-          },
-          error: () => this.logsLoading.set(false),
-        });
-
-      return;
-    }
-
-    this.api
-      .applicationLogs({
-        search: '',
-        level: '',
-        module: '',
-        event: '',
-        page,
-        actorUserId,
-      })
-      .subscribe({
-        next: (response) => {
-          this.applicationRows.set(response.data);
-          this.applicationMeta.set(response.meta);
-          this.logsLoading.set(false);
-        },
-        error: () => this.logsLoading.set(false),
-      });
   }
 
   protected openEdit(): void {

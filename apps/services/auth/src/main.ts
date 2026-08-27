@@ -22,9 +22,7 @@ const notificationSink = jobs
 const logDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.LOG_DATABASE_URL)
   : undefined;
-ActivityLog.configure(logDatabase, {
-  bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
-});
+ActivityLog.configure(logDatabase);
 // Login must not depend on the broker. Without messaging the service still
 // signs people in; only the invitation subscriber below is skipped.
 const messaging =
@@ -36,9 +34,7 @@ const messaging =
         );
       })
     : undefined;
-const logger = new Logger(env.serviceName, env.LOG_LEVEL, {
-  persist: env.BEST_EFFORT_LOGGING_ENABLED,
-});
+const logger = new Logger(env.serviceName, env.LOG_LEVEL);
 const mailer = env.ENABLE_INFRASTRUCTURE
   ? new SmtpAuthMailer({
       host: env.SMTP_HOST,
@@ -103,7 +99,6 @@ async function shutdown(signal: string): Promise<void> {
   await server.stop();
   await stopCleanupWorker();
   await messaging?.close();
-  await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (database) await closeDatabaseClient(database);
 }

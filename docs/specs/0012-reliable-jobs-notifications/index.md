@@ -213,7 +213,7 @@ Given an authorized operator, when they list or inspect jobs, then filters, timi
 
 ### AC-12 Audit and privacy
 
-Given a job or notification operation, when it is logged or audited, then no raw payload, token, cookie, credential, raw user agent, or unmasked IP is recorded. Job reads create ordinary access logs. Manual retry creates a strict audit record.
+Given a job or notification operation, when it is logged or audited, then no raw payload, token, cookie, credential, raw user agent, or unmasked IP is recorded. Manual retry creates a strict Audit Trail record.
 
 ### AC-13 Source integrations
 

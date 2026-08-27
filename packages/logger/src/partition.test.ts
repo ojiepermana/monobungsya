@@ -78,7 +78,7 @@ describe('isMissingLogPartitionError', () => {
     expect(
       isMissingLogPartitionError({
         code: '23514',
-        message: 'no partition of relation "logging" found for row',
+        message: 'no partition of relation "audit_trails" found for row',
       }),
     ).toBe(true);
   });
@@ -88,7 +88,7 @@ describe('isMissingLogPartitionError', () => {
       isMissingLogPartitionError({
         code: 'ERR_POSTGRES_SERVER_ERROR',
         errno: '23514',
-        message: 'no partition of relation "logging" found for row',
+        message: 'no partition of relation "audit_trails" found for row',
       }),
     ).toBe(true);
   });
@@ -97,7 +97,7 @@ describe('isMissingLogPartitionError', () => {
     expect(
       isMissingLogPartitionError({
         code: '23505',
-        message: 'no partition of relation "logging" found for row',
+        message: 'no partition of relation "audit_trails" found for row',
       }),
     ).toBe(false);
   });
@@ -121,13 +121,17 @@ describe('ensureLogPartition', () => {
   it('serializes with an advisory lock and creates the yearly child', async () => {
     const { database, queries } = createFakeDatabase();
 
-    await ensureLogPartition(database, 'logging', '2026-03-01T10:00:00.000Z');
+    await ensureLogPartition(
+      database,
+      'audit_trails',
+      '2026-03-01T10:00:00.000Z',
+    );
 
     expect(queries[0]?.text).toContain('pg_advisory_xact_lock');
-    expect(queries[0]?.values).toEqual(['logging_2026']);
+    expect(queries[0]?.values).toEqual(['audit_trails_2026']);
     expect(queries[1]?.text).toBe(
-      'CREATE TABLE IF NOT EXISTS "partition"."logging_2026" ' +
-        'PARTITION OF "logs"."logging" ' +
+      'CREATE TABLE IF NOT EXISTS "partition"."audit_trails_2026" ' +
+        'PARTITION OF "logs"."audit_trails" ' +
         "FOR VALUES FROM ('2025-12-31 17:00:00') TO ('2026-12-31 17:00:00')",
     );
   });
@@ -147,7 +151,7 @@ describe('ensureLogPartition', () => {
 
 describe('withLogPartitionRecovery', () => {
   const missingPartition = Object.assign(
-    new Error('no partition of relation "logging" found for row'),
+    new Error('no partition of relation "audit_trails" found for row'),
     { code: '23514' },
   );
 
@@ -156,7 +160,7 @@ describe('withLogPartitionRecovery', () => {
 
     const result = await withLogPartitionRecovery(
       database,
-      'logging',
+      'audit_trails',
       '2026-03-01T10:00:00.000Z',
       async () => 'inserted',
     );
@@ -170,7 +174,7 @@ describe('withLogPartitionRecovery', () => {
 
     const result = await withLogPartitionRecovery(
       database,
-      'logging',
+      'audit_trails',
       '2026-03-01T10:00:00.000Z',
       async () => {
         attempts += 1;
@@ -193,7 +197,7 @@ describe('withLogPartitionRecovery', () => {
     await expect(
       withLogPartitionRecovery(
         database,
-        'logging',
+        'audit_trails',
         '2026-03-01T10:00:00.000Z',
         async () => {
           attempts += 1;
@@ -210,7 +214,7 @@ describe('withLogPartitionRecovery', () => {
     await expect(
       withLogPartitionRecovery(
         database,
-        'logging',
+        'audit_trails',
         '2026-03-01T10:00:00.000Z',
         async () => {
           throw new Error('connection refused');

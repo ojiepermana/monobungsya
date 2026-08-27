@@ -6,9 +6,7 @@ import { type DatabaseClient, withTransaction } from '#project/database';
  * ever reaches SQL text.
  */
 export const LOG_TABLES = {
-  logging: 'occurred_at',
   audit_trails: 'audited_at',
-  access_logs: 'accessed_at',
 } as const;
 
 export type LogTable = keyof typeof LOG_TABLES;

@@ -14,9 +14,7 @@ export function createApp(
   environment: NotificationEnvironment,
   database?: DatabaseClient,
 ) {
-  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
-    persist: environment.BEST_EFFORT_LOGGING_ENABLED,
-  });
+  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
   return new Elysia({ name: environment.serviceName })
     .use(requestIdPlugin)
     .use(createLoggerPlugin(logger, 'notification-logger'))

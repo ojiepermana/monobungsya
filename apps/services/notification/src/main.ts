@@ -11,12 +11,8 @@ const database = env.ENABLE_INFRASTRUCTURE
 const logDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.LOG_DATABASE_URL)
   : undefined;
-ActivityLog.configure(logDatabase, {
-  bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
-});
-const logger = new Logger(env.serviceName, env.LOG_LEVEL, {
-  persist: env.BEST_EFFORT_LOGGING_ENABLED,
-});
+ActivityLog.configure(logDatabase);
+const logger = new Logger(env.serviceName, env.LOG_LEVEL);
 const mailer = env.ENABLE_INFRASTRUCTURE
   ? new SmtpNotificationMailer({
       host: env.SMTP_HOST,
@@ -59,7 +55,6 @@ async function shutdown(signal: string) {
   if (cleanupTimer) clearInterval(cleanupTimer);
   await server.stop();
   await stopWorker();
-  await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (database) await closeDatabaseClient(database);
 }

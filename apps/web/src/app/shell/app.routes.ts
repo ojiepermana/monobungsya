@@ -163,24 +163,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'logs/access',
-    title: 'MONOBUNGSYA · Access Logs',
-    canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],
-    loadComponent: () =>
-      import('../pages/logs/access/access-logs.page').then(
-        (m) => m.AccessLogsPage,
-      ),
-  },
-  {
-    path: 'logs/application',
-    title: 'MONOBUNGSYA · Application Logs',
-    canActivate: [authGuard, permissionGuard(PERMISSIONS.logsLogRead)],
-    loadComponent: () =>
-      import('../pages/logs/application/application-logs.page').then(
-        (m) => m.ApplicationLogsPage,
-      ),
-  },
-  {
     path: '**',
     title: 'MONOBUNGSYA · Page Not Found',
     canActivate: [authGuard],

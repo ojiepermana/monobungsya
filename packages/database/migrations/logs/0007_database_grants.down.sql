@@ -1,5 +1,4 @@
-REVOKE SELECT ON "logs"."logging", "logs"."audit_trails", "logs"."access_logs" FROM "project_logs_writer";
-REVOKE INSERT ON "logs"."logging", "logs"."audit_trails", "logs"."access_logs" FROM "project_logs_writer";
+REVOKE SELECT, INSERT ON "logs"."audit_trails" FROM "project_logs_writer";
 REVOKE USAGE ON SCHEMA "logs" FROM "project_logs_writer";
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "project_migrator" IN SCHEMA "logs"

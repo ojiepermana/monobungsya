@@ -142,8 +142,8 @@ Spec [0006](../specs/0006-auth-passkey-login/index.md) · code in `apps/services
 
 ### 6. Log subsystem · done
 
-Partitioned log storage in PostgreSQL (application logging, audit trails, access logs), a shared `ActivityLog` writer every service can use, a read only logs service behind the gateway, and three Angular viewer pages.
-**Done when:** Log rows land in yearly partitions automatically, audit writes fail visibly while application log writes never block a request, and an admin or manager can browse, search, filter, and page all three log types in the web UI.
+Partitioned Audit Trail storage in PostgreSQL, a shared strict `ActivityLog` writer every service can use, a read only logs service behind the gateway, and one Angular viewer page.
+**Done when:** Audit Trail rows land in yearly partitions automatically, failed audit writes fail visibly, and an authorized operator can browse, search, filter, and page Audit Trail rows in the web UI.
 
 - [x] Design it (spec): imported reference design, adapted to this repo
 - [x] Build it: `/develop log subsystem`
@@ -216,7 +216,7 @@ Spec [0009](../specs/0009-totp-two-factor-auth/index.md) · code in `apps/servic
 ### 7. User lifecycle management · done
 
 Full user management owned by the user service: create and update users, suspend, block, soft delete with restore, client generated UUIDv7 ids, and web pages for the user list and a detail view showing the user's logs.
-**Done when:** An operator with user management permission can create a user who receives an invitation email and can log in, update the user's name, manage direct permissions through the access surface, suspend, block, soft delete, and restore with mandatory reasons and audit trails, and open a detail page showing the profile plus that user's audit, access, and application logs; no user row is ever hard deleted.
+**Done when:** An operator with user management permission can create a user who receives an invitation email and can log in, update the user's name, manage direct permissions through the access surface, suspend, block, soft delete, and restore with mandatory reasons and Audit Trail entries, and open a detail page showing the profile plus that user's Audit Trail; no user row is ever hard deleted.
 
 - [x] Design it (spec): `/architect user lifecycle management`
 - [x] Build it: `/develop user lifecycle management`

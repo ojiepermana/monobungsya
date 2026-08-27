@@ -1,1 +1,2 @@
+DROP TABLE IF EXISTS "logs"."audit_trails";
 DROP SCHEMA IF EXISTS "logs" CASCADE;

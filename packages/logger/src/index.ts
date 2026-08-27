@@ -1,16 +1,8 @@
 export {
-  type AccessLogRecord,
-  type AccessMetadataV1,
   type ActivityActor,
   ActivityLog,
-  type ApplicationLogRecord,
   type AuditTrailRecord,
-  type AuthSessionDetail,
-  type SessionObservationReason,
-  type SessionObservationState,
-  type WriteAccessInput,
   type WriteAuditInput,
-  type WriteLogInput,
 } from './activity-log';
 export { isoFromDbTimestamp } from './db-timestamp';
 export {
@@ -29,7 +21,6 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export type LogContext = Record<string, unknown>;
 
-import { ActivityLog } from './activity-log';
 import { sanitizeLogContext } from './sanitize';
 
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'session', 'code', 'secret']);
@@ -61,7 +52,6 @@ export class Logger {
   constructor(
     private readonly serviceName: string,
     private readonly minimumLevel: LogLevel = 'info',
-    private readonly options: { persist?: boolean } = {},
   ) {}
 
   debug(message: string, context: LogContext = {}): void {
@@ -126,29 +116,7 @@ export class Logger {
         ...errorDetails,
       }),
     );
-
-    if (this.options.persist) {
-      ActivityLog.writeLog({
-        level: level === 'warn' ? 'warning' : level,
-        message,
-        event: message,
-        module: this.serviceName,
-        context: sanitizedContext,
-        exceptionClass: errorDetails.exceptionClass,
-        exceptionMessage: errorDetails.exceptionMessage,
-        stackTrace: errorDetails.stackTrace,
-        requestId: stringValue(context.requestId),
-        traceId: stringValue(context.traceId ?? context.correlationId),
-        sessionId: stringValue(context.sessionId),
-        ipAddress: stringValue(context.ipAddress),
-        userAgent: stringValue(context.userAgent),
-      });
-    }
   }
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
 }
 
 function isSafeErrorEnvelope(value: unknown): value is Record<string, unknown> {

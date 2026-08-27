@@ -1,7 +1,7 @@
 /**
  * E2E fixture seeder, run with bun (never imported by Playwright directly).
  * Creates two users, a fresh magic-link token for each, and
- * enough tagged log rows to exercise paging. Prints one JSON line to stdout:
+ * a tagged Audit Trail row. Prints one JSON line to stdout:
  * { adminToken, staffToken }. cleanup.ts removes everything created here.
  */
 import { createHash, randomBytes } from 'node:crypto';
@@ -32,9 +32,7 @@ async function mintToken(email: string, label: string): Promise<string> {
 }
 
 // Idempotent: a crashed earlier run may have left rows behind.
-await db`DELETE FROM logs.logging WHERE module = 'e2e'`;
 await db`DELETE FROM logs.audit_trails WHERE module = 'e2e'`;
-await db`DELETE FROM logs.access_logs WHERE guard = 'e2e'`;
 
 const adminToken = await mintToken('e2e-admin@local.test', 'admin');
 const staffToken = await mintToken('e2e-staff@local.test', 'staff');
@@ -112,15 +110,6 @@ await db`
 
 ActivityLog.configure(db);
 
-// 30 application rows: more than one 25-row page, so paging is walkable.
-for (let i = 1; i <= 30; i++) {
-  ActivityLog.writeLog({
-    level: i % 3 === 0 ? 'error' : i % 2 === 0 ? 'warning' : 'info',
-    message: `e2e seed row ${i}`,
-    module: 'e2e',
-    event: 'e2e.seed',
-  });
-}
 await ActivityLog.writeAudit({
   action: 'create',
   module: 'e2e',
@@ -128,13 +117,5 @@ await ActivityLog.writeAudit({
   entityId: 'e2e-1',
   changeSummary: 'e2e seeded audit row',
 });
-ActivityLog.writeAccess({
-  event: 'sign_in',
-  guard: 'e2e',
-  authenticationMethod: 'magic_link',
-});
-ActivityLog.writeAccess({ event: 'sign_out', guard: 'e2e' });
-await ActivityLog.flush();
-
 console.log(JSON.stringify({ adminToken, staffToken }));
 await closeDatabaseClient(db);

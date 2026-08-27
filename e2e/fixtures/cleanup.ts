@@ -9,9 +9,7 @@ const db = createDatabaseClient(
   process.env.DATABASE_URL ?? 'postgres://root@127.0.0.1:5432/monobungsia',
 );
 
-await db`DELETE FROM logs.logging WHERE module = 'e2e'`;
 await db`DELETE FROM logs.audit_trails WHERE module = 'e2e'`;
-await db`DELETE FROM logs.access_logs WHERE guard = 'e2e'`;
 await db`
   DELETE FROM jobs.job
   WHERE actor_user_id IN (

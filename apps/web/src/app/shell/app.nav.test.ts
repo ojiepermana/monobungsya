@@ -23,8 +23,6 @@ describe('application navigation authorization', () => {
       'permissions',
       'groups',
       'logs-audit',
-      'logs-access',
-      'logs-application',
     ]);
   });
 
@@ -38,13 +36,9 @@ describe('application navigation authorization', () => {
     const ids = navigationIds(appNavigationFor([PERMISSIONS.userUserManage]));
 
     expect(ids).not.toContain('logs-audit');
-    expect(ids).not.toContain('logs-access');
-    expect(ids).not.toContain('logs-application');
 
     const unprivileged = navigationIds(appNavigationFor([]));
     expect(unprivileged).not.toContain('logs-audit');
-    expect(unprivileged).not.toContain('logs-access');
-    expect(unprivileged).not.toContain('logs-application');
   });
 
   it('lets every signed in user manage their own passkeys', () => {

@@ -13,7 +13,6 @@ import {
 import {
   normalizeClientCorrelation,
   normalizeClientRoute,
-  updateAccessLogContext,
 } from '#project/elysia';
 import {
   AppError,
@@ -22,7 +21,6 @@ import {
   toErrorResponse,
   UnauthorizedError,
 } from '#project/errors';
-import type { AuthSessionDetail } from '#project/logger';
 import type { Subscriber } from '#project/messaging';
 import {
   grantMutationResponse,
@@ -55,11 +53,7 @@ import {
   jobsListQuery,
   jobsListResponse,
 } from '../../../../services/jobs/src/modules/jobs/jobs.schema';
-import {
-  accessLogsResponse,
-  applicationLogsResponse,
-  auditTrailsResponse,
-} from '../../../../services/logs/src/modules/logs/logs.schema';
+import { auditTrailsResponse } from '../../../../services/logs/src/modules/logs/logs.schema';
 import {
   notificationIdParams,
   notificationResponse,
@@ -100,10 +94,6 @@ async function forwardRequest(
     `${internalPrefix}${suffix}${incomingUrl.search}`,
     serviceUrl,
   );
-  updateAccessLogContext(request, {
-    routeName: normalizeRouteName(incomingUrl.pathname),
-    requiredPermission: requiredPermissions[0] ?? null,
-  });
   const headers = new Headers(request.headers);
   const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
   const correlation = normalizeClientCorrelation(
@@ -154,9 +144,6 @@ async function forwardRequest(
     });
     return transformResponse ? transformResponse(response) : response;
   } catch (error) {
-    updateAccessLogContext(request, {
-      failureReason: 'service_unavailable',
-    });
     const mapped = toErrorResponse(
       error instanceof AppError
         ? error
@@ -194,16 +181,6 @@ async function mapPublicSessionResponse(
       );
       body.user.permissions = effectivePermissions;
     } catch (error) {
-      updateAccessLogContext(request, {
-        actor: {
-          id: body.user.id,
-          name: body.user.name,
-          email: body.user.email,
-        },
-        sessionId: body.session?.id ?? null,
-        failureReason: 'permission_lookup_failed',
-        details: null,
-      });
       const mapped = toErrorResponse(
         error,
         request.headers.get('x-request-id') ?? undefined,
@@ -214,32 +191,6 @@ async function mapPublicSessionResponse(
       });
     }
   }
-  const observation = body.sessionObservation;
-  if (isSessionObservation(observation)) {
-    const detail: AuthSessionDetail = {
-      kind: 'auth_session',
-      state: observation.state,
-      reason: observation.reason,
-      permissionCount:
-        observation.state === 'authenticated' ? effectivePermissions.length : 0,
-    };
-    updateAccessLogContext(request, {
-      details: detail,
-      actor:
-        observation.state === 'authenticated' && body.user
-          ? {
-              id: body.user.id,
-              name: body.user.name,
-              email: body.user.email,
-            }
-          : null,
-      sessionId:
-        observation.state === 'authenticated'
-          ? (body.session?.id ?? null)
-          : null,
-    });
-  }
-
   const publicBody = publicSessionBody(body);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
@@ -261,10 +212,6 @@ interface InternalSessionResponse {
     id: string;
     idleExpiresAt?: string;
     absoluteExpiresAt?: string;
-  };
-  sessionObservation?: {
-    state: 'authenticated' | 'anonymous' | 'invalid';
-    reason: AuthSessionDetail['reason'];
   };
 }
 
@@ -299,17 +246,6 @@ function publicSessionBody(
   return publicBody;
 }
 
-function isSessionObservation(
-  value: InternalSessionResponse['sessionObservation'],
-): value is NonNullable<InternalSessionResponse['sessionObservation']> {
-  return Boolean(
-    value &&
-      (value.state === 'authenticated' ||
-        value.state === 'anonymous' ||
-        value.state === 'invalid'),
-  );
-}
-
 async function addIdentityHeaders(
   request: Request,
   headers: Headers,
@@ -336,9 +272,6 @@ async function addIdentityHeaders(
       },
     );
   } catch {
-    updateAccessLogContext(request, {
-      failureReason: 'auth_service_unavailable',
-    });
     return mappedGatewayError(
       new ServiceUnavailableError('Authentication service is unavailable'),
       requestId,
@@ -346,9 +279,6 @@ async function addIdentityHeaders(
   }
 
   if (!response.ok) {
-    updateAccessLogContext(request, {
-      failureReason: 'auth_service_unavailable',
-    });
     return mappedGatewayError(
       new ServiceUnavailableError('Authentication service is unavailable'),
       requestId,
@@ -371,9 +301,6 @@ async function addIdentityHeaders(
     ) ||
     !session.session?.absoluteExpiresAt
   ) {
-    updateAccessLogContext(request, {
-      failureReason: 'authentication_required',
-    });
     return mappedGatewayError(
       new UnauthorizedError('Authentication is required'),
       requestId,
@@ -387,9 +314,6 @@ async function addIdentityHeaders(
     !Number.isFinite(expiry) ||
     expiry <= Date.now() - environment.AUTH_CLOCK_SKEW_SECONDS * 1000
   ) {
-    updateAccessLogContext(request, {
-      failureReason: 'authentication_required',
-    });
     return mappedGatewayError(
       new UnauthorizedError('Authentication session has expired'),
       requestId,
@@ -414,9 +338,6 @@ async function addIdentityHeaders(
   try {
     effectivePermissions = await cache.get(identity.userId, requestId);
   } catch (error) {
-    updateAccessLogContext(request, {
-      failureReason: 'permission_lookup_failed',
-    });
     return mappedGatewayError(error, requestId);
   }
 
@@ -426,9 +347,6 @@ async function addIdentityHeaders(
     requiredPermissions.length > 0 &&
     !hasAnyRequiredPermission(identity.permissions, requiredPermissions)
   ) {
-    updateAccessLogContext(request, {
-      failureReason: 'permission_denied',
-    });
     return mappedGatewayError(
       new ForbiddenError(
         'The current identity does not have the required permission',
@@ -450,18 +368,6 @@ async function addIdentityHeaders(
   headers.set('x-auth-permissions', identity.permissions.join(','));
   headers.set('x-auth-expires-at', identity.expiresAt);
   headers.set('x-auth-signature', signature);
-  updateAccessLogContext(request, {
-    actor: { id: identity.userId, email: identity.email },
-    authenticationMethod: 'session_cookie',
-    sessionId: session.session?.id ?? null,
-  });
-}
-
-function normalizeRouteName(path: string): string {
-  return path.replace(
-    /\/(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?=\/|$)/gi,
-    '/:id',
-  );
 }
 
 function mappedGatewayError(error: unknown, requestId: string): Response {
@@ -1281,66 +1187,6 @@ export function createProxyRoute(
         detail: {
           tags: ['Logs'],
           summary: 'List audit trails (requires logs:log:read)',
-        },
-      },
-    )
-    .get(
-      '/api/v1/logs/access-logs',
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.logs,
-          '/api/v1/logs',
-          '/internal/logs',
-          environment,
-          true,
-          undefined,
-          [PERMISSIONS.logsLogRead],
-          permissionCache,
-        ),
-      {
-        response: { 200: accessLogsResponse },
-        query: t.Object({
-          search: t.Optional(t.String()),
-          event: t.Optional(t.String()),
-          outcome: t.Optional(t.String()),
-          traceId: t.Optional(t.String()),
-          actorUserId: t.Optional(t.String({ format: 'uuid' })),
-          page: t.Optional(t.String()),
-        }),
-        detail: {
-          tags: ['Logs'],
-          summary: 'List access logs (requires logs:log:read)',
-        },
-      },
-    )
-    .get(
-      '/api/v1/logs/application-logs',
-      ({ request }) =>
-        forwardRequest(
-          request,
-          environment.serviceUrls.logs,
-          '/api/v1/logs',
-          '/internal/logs',
-          environment,
-          true,
-          undefined,
-          [PERMISSIONS.logsLogRead],
-          permissionCache,
-        ),
-      {
-        response: { 200: applicationLogsResponse },
-        query: t.Object({
-          search: t.Optional(t.String()),
-          level: t.Optional(t.String()),
-          module: t.Optional(t.String()),
-          event: t.Optional(t.String()),
-          actorUserId: t.Optional(t.String({ format: 'uuid' })),
-          page: t.Optional(t.String()),
-        }),
-        detail: {
-          tags: ['Logs'],
-          summary: 'List application logs (requires logs:log:read)',
         },
       },
     )

@@ -5,7 +5,7 @@ This glossary names the operational evidence and state used across Monobungsia. 
 ## Language
 
 **Observability Signal**:
-An append oriented diagnostic measurement whose partial loss reduces operational visibility but must not change a business outcome. Application logs, access logs, spans, and metric buckets are Observability Signals.
+An append oriented diagnostic measurement whose partial loss reduces operational visibility but must not change a business outcome. Audit Trail is the retained business history; other diagnostic signal features are not part of the current product.
 _Avoid_: Signal data, telemetry data, logs
 
 **Observability Control**:

@@ -32,7 +32,7 @@ Otorisasi di seluruh sistem pindah dari role global ke daftar permission per use
 - **AC-12**: `GET /api/v1/auth/session` returns the user's effective permissions, filled by the gateway from the same lookup path, and no longer returns a role. The web `AuthUser` model, guards, and navigation gate on permission names imported from `packages/acl`.
 - **AC-13**: Every previously protected gateway route (users, logs) now requires the matching new permission; the capability enum, `canAccessAuthCapability`, and `permissionsForRole` are deleted from the codebase.
 - **AC-14**: The web app has permission catalog pages (list with search, create, edit description, delete with cascade warning) and the user detail page has an access tab with multi select granting grouped by namespace, revoking, and a copy grants from another user action; all gated by `access:*` permissions. The catalog list composes the `Page` stacked scaffold with header, `PageFilter`, content, and footer slots. Its filter is `collapsible`, closed by default, and controlled by the `Filter` toggle in the page header. Header primary actions and table row actions use `Button size="xs"`.
-- **AC-15**: Every catalog mutation, grant, and revoke writes an awaited audit trail via `ActivityLog.writeAudit`, and the access service implements the full mandatory logging contract (request id plugin, logger plugin, error handler, redaction, best effort application logs, flush on shutdown).
+- **AC-15**: Every catalog mutation, grant, and revoke writes an awaited Audit Trail entry via `ActivityLog.writeAudit`, and the access service implements the logger plugin, error handler, and redaction contract.
 - **AC-16**: OpenAPI specs and the Angular SDK are regenerated and committed; `bun run check:dependencies`, `bun run lint`, and `bun run typecheck` pass; every new env var is documented in `.env.example`.
 
 ## Decision
@@ -146,7 +146,7 @@ The manage wildcard rule: holding `namespace:resource:manage` satisfies any requ
 - `GATEWAY_PERMISSION_CACHE_MAX_ENTRIES`: gateway cache bound, default 1000
 - `ACCESS_PERMISSION_CACHE_TTL_MS`: access service internal lookup cache TTL, default 300000
 - `ACCESS_PERMISSION_CACHE_MAX_ENTRIES`: access service cache bound, default 1000
-- Reused, not new: `INTERNAL_AUTH_SIGNING_SECRET`, `NATS_URL`, `DATABASE_URL`, `LOG_DATABASE_URL`, `LOG_LEVEL`, `BEST_EFFORT_LOGGING_ENABLED`, `LOG_FLUSH_TIMEOUT_MS`, `ENABLE_INFRASTRUCTURE`
+- Reused, not new: `INTERNAL_AUTH_SIGNING_SECRET`, `NATS_URL`, `DATABASE_URL`, `LOG_DATABASE_URL`, `LOG_LEVEL`, `ENABLE_INFRASTRUCTURE`
 
 **Critical test scenarios** (each maps to an acceptance criterion):
 

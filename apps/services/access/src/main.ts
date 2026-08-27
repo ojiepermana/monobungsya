@@ -20,9 +20,7 @@ if (jobs) {
   jobs.registerContract(accessNotificationCreateContract);
   jobs.registerContract(accessNotificationRecipientCapabilitySyncContract);
 }
-ActivityLog.configure(logDatabase, {
-  bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
-});
+ActivityLog.configure(logDatabase);
 const messaging = env.ENABLE_INFRASTRUCTURE
   ? await tryConnectMessaging(env.NATS_URL, env.serviceName, (error) => {
       console.warn(
@@ -51,7 +49,6 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`${env.serviceName} received ${signal}, shutting down`);
   await server.stop();
   await messaging?.close();
-  await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (database) await closeDatabaseClient(database);
 }

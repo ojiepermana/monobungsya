@@ -103,20 +103,6 @@ export interface AuditTrailsResponse {
   };
 }
 
-export interface AccessLogFilters {
-  search: string;
-  event: string;
-  outcome: string;
-  traceId: string;
-  page: number;
-}
-
-export interface SessionSummary {
-  state: 'authenticated' | 'anonymous' | 'invalid';
-  reason: string | null;
-  permissionCount: number;
-}
-
 export interface PermissionRecord {
   id: string;
   name: AuthPermission;
@@ -149,72 +135,6 @@ export type PermissionGrantResponse = PermissionGrant[];
 export interface PermissionMutationResponse {
   granted: PermissionRecord[];
   skipped: string[];
-}
-
-export interface AccessLogItem {
-  event: string;
-  outcome: string;
-  routeName: string | null;
-  path: string | null;
-  method: string | null;
-  httpStatus: number | null;
-  requestId: string | null;
-  traceId: string | null;
-  traceSource: 'client_header' | 'request_id' | null;
-  clientRoute: string | null;
-  sessionId: string | null;
-  sessionSummary: SessionSummary | null;
-  actorEmail: string | null;
-  failureReason: string | null;
-  accessedAt: string;
-}
-
-export interface AccessLogsResponse {
-  data: AccessLogItem[];
-  meta: LogsMeta;
-  filters: Omit<AccessLogFilters, 'page'>;
-  options: {
-    events: string[];
-    outcomes: string[];
-  };
-}
-
-export interface ApplicationLogFilters {
-  search: string;
-  level: string;
-  module: string;
-  event: string;
-  page: number;
-}
-
-export interface ApplicationLogItem {
-  id: string;
-  level: string;
-  channel: string;
-  category: string;
-  event: string | null;
-  module: string | null;
-  message: string;
-  context: unknown;
-  exceptionClass: string | null;
-  exceptionMessage: string | null;
-  stackTrace: string | null;
-  actorUserId: string | null;
-  actorName: string | null;
-  actorEmail: string | null;
-  occurredAt: string;
-  createdAt: string;
-}
-
-export interface ApplicationLogsResponse {
-  data: ApplicationLogItem[];
-  meta: LogsMeta;
-  filters: Omit<ApplicationLogFilters, 'page'>;
-  options: {
-    levels: string[];
-    modules: string[];
-    events: string[];
-  };
 }
 
 export type NotificationCategory =
@@ -491,46 +411,6 @@ export class ApiService {
             search: filters.search,
             module: filters.module,
             action: filters.action,
-            page: String(filters.page),
-            actorUserId: filters.actorUserId,
-          },
-          throwOnError: true,
-        }),
-      ),
-    );
-  }
-
-  accessLogs(
-    filters: AccessLogFilters & ActorScope,
-  ): Observable<AccessLogsResponse> {
-    return defer(() =>
-      sdkRequest<AccessLogsResponse>(() =>
-        sdk.getApiV1LogsAccessLogs({
-          query: {
-            search: filters.search,
-            event: filters.event,
-            outcome: filters.outcome,
-            traceId: filters.traceId,
-            page: String(filters.page),
-            actorUserId: filters.actorUserId,
-          },
-          throwOnError: true,
-        }),
-      ),
-    );
-  }
-
-  applicationLogs(
-    filters: ApplicationLogFilters & ActorScope,
-  ): Observable<ApplicationLogsResponse> {
-    return defer(() =>
-      sdkRequest<ApplicationLogsResponse>(() =>
-        sdk.getApiV1LogsApplicationLogs({
-          query: {
-            search: filters.search,
-            level: filters.level,
-            module: filters.module,
-            event: filters.event,
             page: String(filters.page),
             actorUserId: filters.actorUserId,
           },

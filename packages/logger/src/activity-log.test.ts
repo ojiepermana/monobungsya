@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, spyOn } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import type { DatabaseClient } from '#project/database';
 import { ActivityLog } from './activity-log';
 
@@ -26,108 +26,8 @@ function createFakeDatabase(
   return { database: fake as unknown as DatabaseClient, queries };
 }
 
-afterEach(async () => {
-  await ActivityLog.flush();
+afterEach(() => {
   ActivityLog.configure(undefined);
-});
-
-describe('ActivityLog.writeLog', () => {
-  it('returns the record synchronously and inserts asynchronously', async () => {
-    const { database, queries } = createFakeDatabase();
-    ActivityLog.configure(database);
-
-    const record = ActivityLog.writeLog({
-      level: 'info',
-      message: 'invoice posted',
-      module: 'billing',
-      context: { invoiceId: 42 },
-    });
-
-    expect(record.id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(record.channel).toBe('application');
-    expect(record.category).toBe('application');
-    expect(record.occurredAt.endsWith('Z')).toBe(true);
-    expect(queries).toHaveLength(0);
-
-    await ActivityLog.flush();
-
-    expect(queries).toHaveLength(1);
-    expect(queries[0]?.text).toContain('INSERT INTO "logs"."logging"');
-    expect(queries[0]?.values).toContain('{"invoiceId":42}');
-  });
-
-  it('encodes a missing context as SQL NULL', async () => {
-    const { database, queries } = createFakeDatabase();
-    ActivityLog.configure(database);
-
-    ActivityLog.writeLog({ level: 'info', message: 'no context' });
-    await ActivityLog.flush();
-
-    expect(queries[0]?.values[7]).toBeNull();
-  });
-
-  it('never fails the caller when the insert fails, and logs the error', async () => {
-    const consoleError = spyOn(console, 'error').mockImplementation(() => {});
-    const { database } = createFakeDatabase(() => {
-      throw new Error('connection refused');
-    });
-    ActivityLog.configure(database);
-
-    const record = ActivityLog.writeLog({ level: 'error', message: 'boom' });
-
-    expect(record.message).toBe('boom');
-    await ActivityLog.flush();
-
-    expect(consoleError).toHaveBeenCalled();
-    expect(String(consoleError.mock.calls[0]?.[0])).toContain(
-      '[activity-log] write failed:',
-    );
-    consoleError.mockRestore();
-  });
-
-  it('keeps the queue alive after a failed write', async () => {
-    const consoleError = spyOn(console, 'error').mockImplementation(() => {});
-    let failNext = true;
-    const { database, queries } = createFakeDatabase(() => {
-      if (failNext) {
-        failNext = false;
-        throw new Error('transient failure');
-      }
-      return [];
-    });
-    ActivityLog.configure(database);
-
-    ActivityLog.writeLog({ level: 'error', message: 'first fails' });
-    ActivityLog.writeLog({ level: 'info', message: 'second lands' });
-    await ActivityLog.flush();
-
-    expect(queries).toHaveLength(2);
-    consoleError.mockRestore();
-  });
-
-  it('skips the insert when no database is configured', async () => {
-    ActivityLog.configure(undefined);
-
-    const record = ActivityLog.writeLog({ level: 'info', message: 'offline' });
-
-    expect(record.level).toBe('info');
-    await ActivityLog.flush();
-  });
-});
-
-describe('ActivityLog.writeAccess', () => {
-  it('queues the insert with the success outcome default', async () => {
-    const { database, queries } = createFakeDatabase();
-    ActivityLog.configure(database);
-
-    const record = ActivityLog.writeAccess({ event: 'sign_in' });
-
-    expect(record.outcome).toBe('success');
-    await ActivityLog.flush();
-
-    expect(queries[0]?.text).toContain('INSERT INTO "logs"."access_logs"');
-    expect(queries[0]?.values).toContain('sign_in');
-  });
 });
 
 describe('ActivityLog.writeAudit', () => {

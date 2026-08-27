@@ -842,6 +842,7 @@ export type GetApiV1JobsData = {
     path?: never;
     query?: {
         page?: string;
+        pageSize?: string;
         status?: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
         type?: string;
         sourceService?: string;
@@ -1032,6 +1033,7 @@ export type GetApiV1NotificationsData = {
     path?: never;
     query?: {
         page?: string;
+        pageSize?: string;
         category?: string;
         unreadOnly?: string;
     };
@@ -1235,126 +1237,6 @@ export type GetApiV1LogsAuditTrailsResponses = {
 };
 
 export type GetApiV1LogsAuditTrailsResponse = GetApiV1LogsAuditTrailsResponses[keyof GetApiV1LogsAuditTrailsResponses];
-
-export type GetApiV1LogsAccessLogsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        search?: string;
-        event?: string;
-        outcome?: string;
-        traceId?: string;
-        actorUserId?: string;
-        page?: string;
-    };
-    url: '/api/v1/logs/access-logs';
-};
-
-export type GetApiV1LogsAccessLogsResponses = {
-    /**
-     * Response for status 200
-     */
-    200: {
-        data: Array<{
-            event: string;
-            outcome: string;
-            routeName: string | unknown;
-            path: string | unknown;
-            method: string | unknown;
-            httpStatus: string | number | unknown;
-            requestId: string | unknown;
-            traceId: string | unknown;
-            traceSource: string | unknown;
-            clientRoute: string | unknown;
-            sessionId: string | unknown;
-            sessionSummary: {
-                state: string;
-                reason: string | unknown;
-                permissionCount: string | number;
-            } | unknown;
-            actorEmail: string | unknown;
-            failureReason: string | unknown;
-            accessedAt: string;
-        }>;
-        meta: {
-            page: string | number;
-            perPage: string | number;
-            total: string | number;
-            totalPages: string | number;
-        };
-        filters: {
-            search: string;
-            event: string;
-            outcome: string;
-            traceId: string;
-        };
-        options: {
-            events: Array<string>;
-            outcomes: Array<string>;
-        };
-    };
-};
-
-export type GetApiV1LogsAccessLogsResponse = GetApiV1LogsAccessLogsResponses[keyof GetApiV1LogsAccessLogsResponses];
-
-export type GetApiV1LogsApplicationLogsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        search?: string;
-        level?: string;
-        module?: string;
-        event?: string;
-        actorUserId?: string;
-        page?: string;
-    };
-    url: '/api/v1/logs/application-logs';
-};
-
-export type GetApiV1LogsApplicationLogsResponses = {
-    /**
-     * Response for status 200
-     */
-    200: {
-        data: Array<{
-            id: string;
-            level: string;
-            channel: string;
-            category: string;
-            event: string | unknown;
-            module: string | unknown;
-            message: string;
-            context: unknown;
-            exceptionClass: string | unknown;
-            exceptionMessage: string | unknown;
-            stackTrace: string | unknown;
-            actorUserId: string | unknown;
-            actorName: string | unknown;
-            actorEmail: string | unknown;
-            occurredAt: string;
-            createdAt: string;
-        }>;
-        meta: {
-            page: string | number;
-            perPage: string | number;
-            total: string | number;
-            totalPages: string | number;
-        };
-        filters: {
-            search: string;
-            level: string;
-            module: string;
-            event: string;
-        };
-        options: {
-            levels: Array<string>;
-            modules: Array<string>;
-            events: Array<string>;
-        };
-    };
-};
-
-export type GetApiV1LogsApplicationLogsResponse = GetApiV1LogsApplicationLogsResponses[keyof GetApiV1LogsApplicationLogsResponses];
 
 export type GetApiV1AccessPermissionsData = {
     body?: never;

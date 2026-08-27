@@ -148,25 +148,8 @@ export function createAuthRoute(
                 cookieSecure,
               ),
             );
-            recordAuthAccess({
-              request,
-              method: 'magic_link',
-              event: 'sign_in',
-              outcome: 'success',
-              status: 302,
-              actor: result.user,
-            });
             return new Response(null, { status: 302, headers });
           }
-          recordAuthAccess({
-            request,
-            method: 'magic_link',
-            event: 'sign_in',
-            outcome: 'success',
-            status: 302,
-            actor: result.user,
-            sessionId: result.session.sessionId,
-          });
           const headers = new Headers({
             Location: service.createVerifyRedirect(),
           });
@@ -182,14 +165,6 @@ export function createAuthRoute(
           return new Response(null, { status: 302, headers });
         } catch (error) {
           if (error instanceof UnauthorizedError) {
-            recordAuthAccess({
-              request,
-              method: 'magic_link',
-              event: 'sign_in',
-              outcome: 'failure',
-              status: 401,
-              failureReason: 'authentication_failed',
-            });
             return Response.redirect(service.createVerifyErrorRedirect(), 302);
           }
           throw error;
@@ -226,20 +201,10 @@ export function createAuthRoute(
           request.headers.get('cookie'),
           cookieName,
         );
-        const session = await service.getSession(sessionToken);
         await service.logout(
           sessionToken,
           securityContextFromRequest(request, 'session_cookie'),
         );
-        recordAuthAccess({
-          request,
-          method: 'session_cookie',
-          event: 'sign_out',
-          outcome: 'success',
-          status: 204,
-          actor: session.user,
-          sessionId: session.session?.id,
-        });
         return new Response(null, {
           status: 204,
           headers: {
@@ -338,15 +303,6 @@ export function createAuthRoute(
             body.recoveryCode ? 'recovery_code' : 'totp',
           ),
         );
-        recordAuthAccess({
-          request,
-          method: 'totp',
-          event: 'sign_in',
-          outcome: 'success',
-          status: 200,
-          actor: result.user,
-          sessionId: result.session.sessionId,
-        });
         if (body.recoveryCode)
           await writeTotpAudit(
             request,
@@ -484,40 +440,6 @@ export function createAuthRoute(
         detail: { tags: ['Auth'], summary: 'Reset a user TOTP credential' },
       },
     );
-}
-
-export function recordAuthAccess(input: {
-  request: Request;
-  method: 'magic_link' | 'passkey' | 'totp' | 'session_cookie';
-  event: 'sign_in' | 'sign_out';
-  outcome: 'success' | 'failure';
-  status: number;
-  actor?: ActivityActor | null;
-  sessionId?: string | null;
-  failureReason?: string | null;
-}): void {
-  const url = new URL(input.request.url);
-  ActivityLog.writeAccess({
-    event: input.event,
-    outcome: input.outcome,
-    authenticationMethod: input.method,
-    accessChannel: 'web',
-    guard: 'auth',
-    actor: input.actor,
-    sessionId: input.sessionId,
-    requestId: input.request.headers.get('x-request-id'),
-    traceId:
-      input.request.headers.get('x-correlation-id') ??
-      input.request.headers.get('x-request-id'),
-    ipAddress: input.request.headers.get('x-real-ip'),
-    forwardedIp: input.request.headers.get('x-forwarded-for'),
-    userAgent: input.request.headers.get('user-agent'),
-    routeName: url.pathname,
-    path: url.pathname,
-    method: input.request.method,
-    httpStatus: input.status,
-    failureReason: input.failureReason,
-  });
 }
 
 export function readCookie(

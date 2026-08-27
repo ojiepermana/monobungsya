@@ -62,29 +62,13 @@ export function appNavigationFor(
 
   const logItems: NavigationItem[] = [];
   if (hasResolvedPermission(permissions, PERMISSIONS.logsLogRead)) {
-    logItems.push(
-      {
-        id: 'logs-audit',
-        type: 'item',
-        title: 'Audit Logs',
-        icon: 'history',
-        link: '/logs/audit',
-      },
-      {
-        id: 'logs-access',
-        type: 'item',
-        title: 'Access Logs',
-        icon: 'login',
-        link: '/logs/access',
-      },
-      {
-        id: 'logs-application',
-        type: 'item',
-        title: 'Application Logs',
-        icon: 'terminal',
-        link: '/logs/application',
-      },
-    );
+    logItems.push({
+      id: 'logs-audit',
+      type: 'item',
+      title: 'Audit Logs',
+      icon: 'history',
+      link: '/logs/audit',
+    });
   }
 
   const accessItems: NavigationItem[] = [];

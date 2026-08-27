@@ -27,9 +27,6 @@ export function createApp(
   const logger = new Logger(
     accessEnvironment.serviceName,
     accessEnvironment.LOG_LEVEL,
-    {
-      persist: accessEnvironment.BEST_EFFORT_LOGGING_ENABLED,
-    },
   );
 
   return new Elysia({ name: accessEnvironment.serviceName })

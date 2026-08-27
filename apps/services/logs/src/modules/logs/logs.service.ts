@@ -1,10 +1,5 @@
 import { LOGS_PER_PAGE, type LogsRepository } from './logs.repository';
-import type {
-  AccessLogsResult,
-  ApplicationLogsResult,
-  AuditTrailsResult,
-  LogsMeta,
-} from './logs.types';
+import type { AuditTrailsResult, LogsMeta } from './logs.types';
 
 /** Collapse repeated whitespace and trim, so filters match stored values. */
 function squish(value: string | undefined): string {
@@ -59,64 +54,6 @@ export class LogsService {
       meta: buildMeta(page, total),
       filters,
       options: await this.repository.auditTrailOptions(),
-    };
-  }
-
-  async getAccessLogs(query: {
-    search?: string;
-    event?: string;
-    outcome?: string;
-    traceId?: string;
-    actorUserId?: string;
-    page?: string;
-  }): Promise<AccessLogsResult> {
-    const filters = {
-      search: squish(query.search),
-      event: squish(query.event),
-      outcome: squish(query.outcome),
-      traceId: squish(query.traceId),
-    };
-    const page = parsePage(query.page);
-    const { items, total } = await this.repository.listAccessLogs({
-      ...filters,
-      actorUserId: squish(query.actorUserId),
-      page,
-    });
-
-    return {
-      data: items,
-      meta: buildMeta(page, total),
-      filters,
-      options: await this.repository.accessLogOptions(),
-    };
-  }
-
-  async getApplicationLogs(query: {
-    search?: string;
-    level?: string;
-    module?: string;
-    event?: string;
-    actorUserId?: string;
-    page?: string;
-  }): Promise<ApplicationLogsResult> {
-    const filters = {
-      search: squish(query.search),
-      level: squish(query.level),
-      module: squish(query.module),
-      event: squish(query.event),
-    };
-    const page = parsePage(query.page);
-    const { items, total } = await this.repository.listApplicationLogs({
-      ...filters,
-      actorUserId: squish(query.actorUserId),
-      page,
-    });
-
-    return {
-      data: items,
-      meta: buildMeta(page, total),
-      filters,
-      options: await this.repository.applicationLogOptions(),
     };
   }
 }

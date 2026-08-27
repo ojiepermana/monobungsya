@@ -22,9 +22,7 @@ export function createApp(
   environment: JobsEnvironment = loadJobsEnv(),
   options: JobsAppOptions = {},
 ) {
-  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL, {
-    persist: environment.BEST_EFFORT_LOGGING_ENABLED,
-  });
+  const logger = new Logger(environment.serviceName, environment.LOG_LEVEL);
   const registry = options.registry ?? new JobRegistry();
 
   return new Elysia({ name: environment.serviceName })
