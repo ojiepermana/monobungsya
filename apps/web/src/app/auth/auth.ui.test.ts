@@ -116,6 +116,31 @@ describe('auth UI', () => {
           button.style.height === '32px' && button.style.width === '32px',
       ),
     ).toBe(true);
+    expect(
+      providerButtons.every(
+        (button) => button.getAttribute('data-variant') === 'ghost',
+      ),
+    ).toBe(true);
+    expect(
+      providerButtons.map((button) =>
+        button
+          .querySelector('svg')
+          ?.style.getPropertyValue('--provider-brand-color'),
+      ),
+    ).toEqual([
+      '#4285f4',
+      '#00a4ef',
+      '#1d1d1f',
+      '#24292f',
+      '#1877f2',
+      '#000000',
+      '#6001d2',
+    ]);
+    expect(
+      providerButtons.every((button) =>
+        button.querySelector('svg')?.classList.contains('!size-5'),
+      ),
+    ).toBe(true);
     expect(providerButtons[0].parentElement?.classList.contains('gap-2')).toBe(
       true,
     );

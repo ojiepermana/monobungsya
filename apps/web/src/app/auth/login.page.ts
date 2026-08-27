@@ -36,13 +36,23 @@ import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
 
 const SOCIAL_PROVIDERS = [
-  { label: 'Google', icon: faGoogle, iconScale: 1 },
-  { label: 'Microsoft', icon: faMicrosoft, iconScale: 1.11 },
-  { label: 'Apple', icon: faApple, iconScale: 1.11 },
-  { label: 'GitHub', icon: faGithub, iconScale: 1 },
-  { label: 'Facebook', icon: faFacebook, iconScale: 0.97 },
-  { label: 'X', icon: faXTwitter, iconScale: 1.19 },
-  { label: 'Yahoo', icon: faYahoo, iconScale: 1.11 },
+  { label: 'Google', icon: faGoogle, iconScale: 1, brandColor: '#4285f4' },
+  {
+    label: 'Microsoft',
+    icon: faMicrosoft,
+    iconScale: 1.11,
+    brandColor: '#00a4ef',
+  },
+  { label: 'Apple', icon: faApple, iconScale: 1.11, brandColor: '#1d1d1f' },
+  { label: 'GitHub', icon: faGithub, iconScale: 1, brandColor: '#24292f' },
+  {
+    label: 'Facebook',
+    icon: faFacebook,
+    iconScale: 0.97,
+    brandColor: '#1877f2',
+  },
+  { label: 'X', icon: faXTwitter, iconScale: 1.19, brandColor: '#000000' },
+  { label: 'Yahoo', icon: faYahoo, iconScale: 1.11, brandColor: '#6001d2' },
 ] as const;
 
 type LoginState =
@@ -72,6 +82,23 @@ type LoginState =
     PageContentComponent,
     PageFooterComponent,
     PageHeaderComponent,
+  ],
+  styles: [
+    `
+      .social-provider-icon {
+        color: hsl(var(--muted-foreground));
+      }
+
+      .social-provider-button:hover,
+      .social-provider-button:focus-visible {
+        background-color: transparent !important;
+      }
+
+      .social-provider-button:hover .social-provider-icon,
+      .social-provider-button:focus-visible .social-provider-icon {
+        color: var(--provider-brand-color) !important;
+      }
+    `,
   ],
   template: `
     <Page
@@ -162,8 +189,8 @@ type LoginState =
                 </div>
                 <div class="flex items-center justify-between gap-2">
                   @for (provider of socialProviders; track provider.label) {
-                    <button Button size="xs" type="button" class="shrink-0 p-0" [style.height.px]="32" [style.width.px]="32" [attr.aria-label]="'Login dengan ' + provider.label" [title]="'Login dengan ' + provider.label">
-                      <svg class="size-4 shrink-0" [style.transform]="'scale(' + provider.iconScale + ')'" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
+                    <button Button variant="ghost" size="xs" type="button" class="social-provider-button shrink-0 p-0" [style.height.px]="32" [style.width.px]="32" [attr.aria-label]="'Login dengan ' + provider.label" [title]="'Login dengan ' + provider.label">
+                      <svg class="social-provider-icon !size-5 shrink-0 transition-colors" [style.--provider-brand-color]="provider.brandColor" [style.transform]="'scale(' + provider.iconScale + ')'" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
                         <path [attr.d]="provider.icon.icon[4]"></path>
                       </svg>
                     </button>
