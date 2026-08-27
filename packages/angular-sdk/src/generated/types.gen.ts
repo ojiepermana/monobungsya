@@ -1394,13 +1394,7 @@ export type GetApiV1ObservabilityTracesResponses = {
             requestId: string | unknown;
             runId: string | unknown;
         }>;
-        prevCursor: string | unknown;
         nextCursor: string | unknown;
-        options: {
-            services: Array<string>;
-            resourceKinds: Array<string>;
-            resourceNames: Array<string>;
-        };
         completeness: 'complete' | 'partial';
         storageStatus: 'available' | 'blind_spot';
     };
@@ -1491,11 +1485,6 @@ export type GetApiV1ObservabilityMetricsResponses = {
             missingBuckets: string | number;
             storageStatus: 'available' | 'blind_spot';
         };
-        options: {
-            metrics: Array<string>;
-            services: Array<string>;
-            resourceKinds: Array<string>;
-        };
     };
 };
 
@@ -1534,13 +1523,7 @@ export type GetApiV1ObservabilityBenchmarksRunsResponses = {
             createdAt: string;
             comparisonStatus: string | unknown;
         }>;
-        prevCursor: string | unknown;
         nextCursor: string | unknown;
-        options: {
-            scenarioIds: Array<string>;
-            statuses: Array<string>;
-            bunVersions: Array<string>;
-        };
         storageStatus: 'available' | 'blind_spot';
     };
 };
@@ -1611,7 +1594,6 @@ export type GetApiV1ObservabilityBenchmarksBaselinesData = {
         scenarioVersion?: string;
         fixtureVersion?: string;
         environment?: string;
-        cursor?: string;
     };
     url: '/api/v1/observability/benchmarks/baselines';
 };
@@ -1634,13 +1616,6 @@ export type GetApiV1ObservabilityBenchmarksBaselinesResponses = {
             active: boolean;
             promotedAt: string;
         }>;
-        prevCursor: string | unknown;
-        nextCursor: string | unknown;
-        options: {
-            scenarioIds: Array<string>;
-            environments: Array<string>;
-            fixtureVersions: Array<string>;
-        };
         storageStatus: 'available' | 'blind_spot';
     };
 };
@@ -1689,12 +1664,7 @@ export type GetApiV1ObservabilityAlertsResponses = {
             windowSeconds?: string | number;
             ruleChecksum?: string;
         }>;
-        prevCursor: string | unknown;
         nextCursor: string | unknown;
-        options: {
-            ruleIds: Array<string>;
-            services: Array<string>;
-        };
         storageStatus: 'available' | 'blind_spot';
     };
 };
@@ -1740,12 +1710,7 @@ export type GetApiV1ObservabilityAlertsByRuleIdResponses = {
             windowSeconds?: string | number;
             ruleChecksum?: string;
         }>;
-        prevCursor: string | unknown;
         nextCursor: string | unknown;
-        options: {
-            ruleIds: Array<string>;
-            services: Array<string>;
-        };
         storageStatus: 'available' | 'blind_spot';
     };
 };

@@ -3814,7 +3814,7 @@ paths:
     get:
       tags:
         - Observability
-      summary: List runtime traces (requires observability:trace:read)
+      summary: List runtime traces (requires observability:telemetry:read)
       parameters:
         - name: from
           in: query
@@ -3886,9 +3886,7 @@ paths:
                 type: object
                 required:
                   - data
-                  - prevCursor
                   - nextCursor
-                  - options
                   - completeness
                   - storageStatus
                 properties:
@@ -3951,33 +3949,10 @@ paths:
                           anyOf:
                             - type: string
                             - type: "null"
-                  prevCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
                   nextCursor:
                     anyOf:
                       - type: string
                       - type: "null"
-                  options:
-                    type: object
-                    required:
-                      - services
-                      - resourceKinds
-                      - resourceNames
-                    properties:
-                      services:
-                        type: array
-                        items:
-                          type: string
-                      resourceKinds:
-                        type: array
-                        items:
-                          type: string
-                      resourceNames:
-                        type: array
-                        items:
-                          type: string
                   completeness:
                     type: string
                     enum:
@@ -3993,7 +3968,7 @@ paths:
     get:
       tags:
         - Observability
-      summary: Read a runtime trace (requires observability:trace:read)
+      summary: Read a runtime trace (requires observability:telemetry:read)
       parameters:
         - name: traceId
           in: path
@@ -4102,7 +4077,7 @@ paths:
     get:
       tags:
         - Observability
-      summary: Read runtime metrics (requires observability:metric:read)
+      summary: Read runtime metrics (requires observability:telemetry:read)
       parameters:
         - name: from
           in: query
@@ -4171,7 +4146,6 @@ paths:
                   - statistic
                   - stepSeconds
                   - coverage
-                  - options
                 properties:
                   data:
                     type: array
@@ -4253,25 +4227,6 @@ paths:
                         enum:
                           - available
                           - blind_spot
-                  options:
-                    type: object
-                    required:
-                      - metrics
-                      - services
-                      - resourceKinds
-                    properties:
-                      metrics:
-                        type: array
-                        items:
-                          type: string
-                      services:
-                        type: array
-                        items:
-                          type: string
-                      resourceKinds:
-                        type: array
-                        items:
-                          type: string
       operationId: getApiV1ObservabilityMetrics
   /api/v1/observability/benchmarks/runs:
     get:
@@ -4318,9 +4273,7 @@ paths:
                 type: object
                 required:
                   - data
-                  - prevCursor
                   - nextCursor
-                  - options
                   - storageStatus
                 properties:
                   data:
@@ -4373,33 +4326,10 @@ paths:
                           anyOf:
                             - type: string
                             - type: "null"
-                  prevCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
                   nextCursor:
                     anyOf:
                       - type: string
                       - type: "null"
-                  options:
-                    type: object
-                    required:
-                      - scenarioIds
-                      - statuses
-                      - bunVersions
-                    properties:
-                      scenarioIds:
-                        type: array
-                        items:
-                          type: string
-                      statuses:
-                        type: array
-                        items:
-                          type: string
-                      bunVersions:
-                        type: array
-                        items:
-                          type: string
                   storageStatus:
                     type: string
                     enum:
@@ -4599,12 +4529,6 @@ paths:
           schema:
             maxLength: 50
             type: string
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            maxLength: 512
-            type: string
       responses:
         "200":
           description: Response for status 200
@@ -4614,9 +4538,6 @@ paths:
                 type: object
                 required:
                   - data
-                  - prevCursor
-                  - nextCursor
-                  - options
                   - storageStatus
                 properties:
                   data:
@@ -4659,33 +4580,6 @@ paths:
                         active:
                           type: boolean
                         promotedAt:
-                          type: string
-                  prevCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
-                  nextCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
-                  options:
-                    type: object
-                    required:
-                      - scenarioIds
-                      - environments
-                      - fixtureVersions
-                    properties:
-                      scenarioIds:
-                        type: array
-                        items:
-                          type: string
-                      environments:
-                        type: array
-                        items:
-                          type: string
-                      fixtureVersions:
-                        type: array
-                        items:
                           type: string
                   storageStatus:
                     type: string
@@ -4750,9 +4644,7 @@ paths:
                 type: object
                 required:
                   - data
-                  - prevCursor
                   - nextCursor
-                  - options
                   - storageStatus
                 properties:
                   data:
@@ -4850,28 +4742,10 @@ paths:
                             - type: integer
                         ruleChecksum:
                           type: string
-                  prevCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
                   nextCursor:
                     anyOf:
                       - type: string
                       - type: "null"
-                  options:
-                    type: object
-                    required:
-                      - ruleIds
-                      - services
-                    properties:
-                      ruleIds:
-                        type: array
-                        items:
-                          type: string
-                      services:
-                        type: array
-                        items:
-                          type: string
                   storageStatus:
                     type: string
                     enum:
@@ -4905,9 +4779,7 @@ paths:
                 type: object
                 required:
                   - data
-                  - prevCursor
                   - nextCursor
-                  - options
                   - storageStatus
                 properties:
                   data:
@@ -5005,28 +4877,10 @@ paths:
                             - type: integer
                         ruleChecksum:
                           type: string
-                  prevCursor:
-                    anyOf:
-                      - type: string
-                      - type: "null"
                   nextCursor:
                     anyOf:
                       - type: string
                       - type: "null"
-                  options:
-                    type: object
-                    required:
-                      - ruleIds
-                      - services
-                    properties:
-                      ruleIds:
-                        type: array
-                        items:
-                          type: string
-                      services:
-                        type: array
-                        items:
-                          type: string
                   storageStatus:
                     type: string
                     enum:

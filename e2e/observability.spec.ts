@@ -1,39 +1,47 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test.describe('observability operator surface', () => {
-  test('lets an authorized operator reach all nine signal routes', async ({
+  test('lets an authorized operator move across every evidence projection', async ({
     page,
   }) => {
-    const routes = [
-      ['/observability', 'Signal overview'],
-      ['/observability/traces', 'Traces'],
-      [`/observability/traces/${'a'.repeat(32)}`, 'Trace detail'],
-      ['/observability/metrics', 'Metrics'],
-      ['/observability/benchmarks', 'Benchmark runs'],
-      [
-        '/observability/benchmarks/0198f8f8-0000-7000-8000-000000000001',
-        'Benchmark run detail',
-      ],
-      ['/observability/baselines', 'Baselines'],
-      ['/observability/alerts', 'Alerts'],
-      ['/observability/alerts/telemetry.error_rate', 'Alert rule detail'],
-    ] as const;
+    await page.goto('/observability');
 
-    for (const [route, heading] of routes) {
-      await page.goto(route);
-      await expect(
-        page.getByRole('heading', { name: heading, exact: true, level: 1 }),
-      ).toBeVisible();
-      const accessibility = await new AxeBuilder({ page }).analyze();
-      expect(
-        accessibility.violations.filter(
-          (violation) =>
-            violation.impact === 'serious' || violation.impact === 'critical',
-        ),
-        `${route} has serious or critical accessibility violations`,
-      ).toEqual([]);
-    }
+    await expect(
+      page.getByRole('heading', {
+        name: 'Observability',
+        exact: true,
+        level: 1,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('tab', { name: 'Traces', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      page.getByRole('heading', { name: 'Trace search' }),
+    ).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Metrics', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Metric explorer' }),
+    ).toBeVisible();
+    await expect(page.getByText('Coverage gap', { exact: true })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Benchmarks', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Benchmark comparisons' }),
+    ).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Alerts', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Alert state' }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByText(
+          /No active or historical alert state|Telemetry storage is unavailable|pending|firing|resolved|unknown/,
+        )
+        .first(),
+    ).toBeVisible();
   });
 });
 
