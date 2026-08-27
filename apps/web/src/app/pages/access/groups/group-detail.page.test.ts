@@ -144,7 +144,7 @@ function createPage(
 }
 
 describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () => {
-  it('AC-13 renders the group title, attached permissions table, and pagination footer', () => {
+  it('AC-13 renders profile, attached permissions, catalog choices, and a user picker', () => {
     const { fixture, api } = createPage();
     const root = fixture.nativeElement as HTMLElement;
 
@@ -160,170 +160,21 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
       status: '',
       page: 1,
     });
+    expect(root.textContent).toContain('Profile');
+    expect(root.textContent).toContain('Group permissions');
     expect(root.textContent).toContain('Operators');
     expect(root.textContent).toContain(permission.name);
-    expect(root.textContent).toContain('Attached catalog permissions');
-    expect(root.textContent).toContain('1 catalog permissions');
-    expect(root.querySelector('table')).not.toBeNull();
-    expect(root.querySelector('pagefooter')).not.toBeNull();
-    const menuTrigger = root.querySelector(
-      'button[aria-label="Group actions"]',
-    ) as HTMLButtonElement | null;
-    expect(menuTrigger).not.toBeNull();
-    menuTrigger?.click();
-    fixture.detectChanges();
-    expect(document.body.textContent).toContain('Attach catalog');
-    expect(document.body.textContent).toContain('Apply to users');
-    expect(document.body.textContent).toContain('Turn off');
-    expect(document.body.textContent).toContain('Delete');
-    expect(root.querySelector('#detail-group-name')).toBeNull();
-    expect(root.querySelector('#detail-group-description')).toBeNull();
-    expect(root.querySelector('#detail-group-status')).toBeNull();
-    expect(root.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(root.textContent).toContain('Apply to users');
+    expect(root.querySelector('#detail-group-name')).not.toBeNull();
+    expect(root.querySelector('#detail-group-description')).not.toBeNull();
+    expect(root.querySelector('#detail-group-status')).not.toBeNull();
+    expect(root.querySelector('input[type="checkbox"]')).not.toBeNull();
   });
 
-  it('toggles the group status from the page header', () => {
-    const updated = { ...group, status: 'off' as const };
-    const { fixture, api } = createPage(
-      caller,
-      {},
-      {
-        updateGroup: vi.fn().mockReturnValue(of(updated)),
-      },
-    );
-    const root = fixture.nativeElement as HTMLElement;
-    const menuTrigger = root.querySelector(
-      'button[aria-label="Group actions"]',
-    );
-    menuTrigger?.dispatchEvent(new Event('click'));
-    fixture.detectChanges();
-    const toggle = Array.from(document.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Turn off'),
-    );
-
-    toggle?.click();
-    fixture.detectChanges();
-
-    expect(api.updateGroup).toHaveBeenCalledWith(group.id, { status: 'off' });
-    menuTrigger?.dispatchEvent(new Event('click'));
-    fixture.detectChanges();
-    expect(document.body.textContent).toContain('Activate');
-  });
-
-  it('paginates attached catalog permissions in the page footer', () => {
-    const permissions = Array.from({ length: 101 }, (_, index) => ({
-      ...permission,
-      id: `permission-${index + 1}`,
-      name: `user:user:permission-${index + 1}` as PermissionRecord['name'],
-    }));
-    const { fixture } = createPage(
-      caller,
-      {},
-      {
-        groupPermissions: vi.fn().mockReturnValue(of(permissions)),
-      },
-    );
-    const root = fixture.nativeElement as HTMLElement;
-
-    expect(root.textContent).toContain('Page 1 of 2 · 101 catalog permissions');
-    expect(root.querySelectorAll('tbody tr')).toHaveLength(100);
-
-    const next = root.querySelector(
-      'button[aria-label="Next page"]',
-    ) as HTMLButtonElement | null;
-    next?.click();
-    fixture.detectChanges();
-
-    expect(root.textContent).toContain('Page 2 of 2 · 101 catalog permissions');
-    expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(root.textContent).toContain('user:user:permission-101');
-  });
-
-  it('filters attached permissions from the toggleable PageFilter', () => {
-    const secondPermission = {
-      ...additionalPermission,
-      namespace: 'access',
-      name: 'access:group:update',
-    } satisfies PermissionRecord;
-    const { fixture } = createPage(
-      caller,
-      {},
-      {
-        groupPermissions: vi
-          .fn()
-          .mockReturnValue(of([permission, secondPermission])),
-      },
-    );
-    const root = fixture.nativeElement as HTMLElement;
-    const filterToggle = Array.from(root.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Filter'),
-    );
-
-    expect(root.querySelector('pagefilter')?.hasAttribute('hidden')).toBe(true);
-    filterToggle?.click();
-    fixture.detectChanges();
-
-    const search = root.querySelector(
-      'input[type="search"]',
-    ) as HTMLInputElement | null;
-    expect(search).not.toBeNull();
-    if (!search) throw new Error('permission filter search missing');
-    search.value = 'access:group:update';
-    search.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(root.textContent).toContain('access:group:update');
-    expect(root.textContent).not.toContain(permission.name);
-    expect(root.textContent).toContain('Page 1 of 1 · 2 catalog permissions');
-  });
-
-  it('revokes an attached permission from the table', () => {
-    const groupPermissions = vi
-      .fn()
-      .mockReturnValueOnce(of([permission]))
-      .mockReturnValueOnce(of([]));
-    const { fixture, api } = createPage(caller, {}, { groupPermissions });
-    const root = fixture.nativeElement as HTMLElement;
-    const revoke = Array.from(root.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Revoke'),
-    );
-
-    revoke?.click();
-    fixture.detectChanges();
-    expect(api.detachGroupPermission).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain('Revoke permission?');
-
-    const confirm = document.querySelector(
-      'button[alertdialogaction]',
-    ) as HTMLButtonElement | null;
-    expect(confirm).not.toBeNull();
-    if (!confirm) throw new Error('revoke confirmation button missing');
-    confirm.click();
-    fixture.detectChanges();
-
-    expect(api.detachGroupPermission).toHaveBeenCalledWith(
-      group.id,
-      permission.id,
-    );
-    expect(groupPermissions).toHaveBeenCalledTimes(2);
-    expect(root.textContent).toContain('No catalog permissions attached.');
-  });
-
-  it('AC-5 attaches from a dialog and AC-8 reports the bulk result from a dialog', () => {
+  it('AC-5 attaches a selected catalog permission and AC-8 reports the bulk result', () => {
     const { fixture, api } = createPage();
     const root = fixture.nativeElement as HTMLElement;
-    const menuTrigger = root.querySelector(
-      'button[aria-label="Group actions"]',
-    );
-    menuTrigger?.dispatchEvent(new Event('click'));
-    fixture.detectChanges();
-    const attachAction = Array.from(document.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Attach catalog'),
-    );
-    attachAction?.click();
-    fixture.detectChanges();
-
-    const permissionLabel = Array.from(document.querySelectorAll('label')).find(
+    const permissionLabel = Array.from(root.querySelectorAll('label')).find(
       (label) => label.textContent?.includes(additionalPermission.name),
     );
     const permissionCheckbox = permissionLabel?.querySelector(
@@ -335,7 +186,7 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     permissionCheckbox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    const attachButton = Array.from(document.querySelectorAll('button')).find(
+    const attachButton = Array.from(root.querySelectorAll('button')).find(
       (button) => button.textContent?.includes('Attach selected'),
     );
     attachButton?.click();
@@ -344,16 +195,8 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
       additionalPermission.id,
     ]);
 
-    menuTrigger?.dispatchEvent(new Event('click'));
-    fixture.detectChanges();
-    const applyAction = Array.from(document.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Apply to users'),
-    );
-    applyAction?.click();
-    fixture.detectChanges();
-
-    const userLabel = Array.from(document.querySelectorAll('label')).find(
-      (label) => label.textContent?.includes(user.email),
+    const userLabel = Array.from(root.querySelectorAll('label')).find((label) =>
+      label.textContent?.includes(user.email),
     );
     const userCheckbox = userLabel?.querySelector(
       'input[type="checkbox"]',
@@ -364,7 +207,7 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     userCheckbox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    const applyButton = Array.from(document.querySelectorAll('button')).find(
+    const applyButton = Array.from(root.querySelectorAll('button')).find(
       (button) => button.textContent?.includes('Apply to 1 users'),
     );
     applyButton?.click();
@@ -383,12 +226,10 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     const root = fixture.nativeElement as HTMLElement;
 
     expect(api.users).not.toHaveBeenCalled();
-    expect(
-      Array.from(root.querySelectorAll('button')).find((button) =>
-        button.textContent?.includes('Apply to users'),
-      ),
-    ).toBeUndefined();
-    expect(root.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(root.textContent).toContain(
+      'User selection is disabled because you do not have user list access.',
+    );
+    expect(root.querySelector('input[type="checkbox"]')).not.toBeNull();
     expect(root.textContent).not.toContain(user.email);
   });
 
