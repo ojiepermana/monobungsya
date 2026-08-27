@@ -11,7 +11,7 @@ Empat Observability Signal memakai satu deep module dan satu canonical record pe
 * Canonical discriminated union untuk Span, Metric Bucket, Application Log, dan Access Log.
 * Interface `ObservabilitySignalStore` serta adapter contract test.
 * Queue byte accounting, priority reserve, fair scheduling, batching, retry, poison isolation, insert token, flush, shutdown, dan diagnostics.
-* PostgreSQL adapter sementara, ClickHouse HTTP adapter target, fake untuk unit test, ClickHouse migration, version manifest, dan local runner.
+* ClickHouse HTTP adapter sebagai satu satunya implementasi runtime, fake untuk unit test, ClickHouse migration, version manifest, dan local runner. Tidak ada adapter PostgreSQL Signal dan tidak ada mekanisme untuk menambah target kedua melalui configuration.
 
 `packages/telemetry` tetap memiliki context, propagation, sampling, Span lifecycle, runtime probe, dan Metric aggregation. `packages/logger` tetap memiliki sanitization, Application Log serta Access Log creation, dan strict Audit Trail. Kedua package mengirim canonical Signal melalui interface yang diinjeksi composition root.
 
@@ -53,17 +53,8 @@ interface SignalStoreDiagnostics {
   lastAcknowledgedAt: string | null;
   schemaVersion: number;
   failureCode: string | null;
-  targets: Readonly<
-    Record<
-      string,
-      {
-        written: number;
-        dropped: number;
-        lastAcknowledgedAt: string | null;
-        failureCode: string | null;
-      }
-    >
-  >;
+  written: number;
+  dropped: number;
 }
 
 interface ObservabilitySignalStore {
@@ -74,7 +65,7 @@ interface ObservabilitySignalStore {
 }
 ```
 
-`append` hanya melakukan canonical validation, serialized byte measurement, priority classification, dan enqueue. Ia tidak menunggu network atau storage dan tidak melempar storage error. `flush` serta `shutdown` selalu bounded dan mengembalikan hasil. Dalam single mode, `written` berarti row mendapat ACK dari active target. Dalam dual mode, `written` berarti row mendapat ACK dari kedua target dan `dropped` mencakup row yang gagal pada salah satunya. Per target count tetap tersedia di diagnostics. `shutdown` menghentikan intake sebelum drain.
+`append` hanya melakukan canonical validation, serialized byte measurement, priority classification, dan enqueue. Ia tidak menunggu network atau storage dan tidak melempar storage error. `flush` serta `shutdown` selalu bounded dan mengembalikan hasil. `written` berarti row mendapat ACK dari ClickHouse setelah async buffer berhasil flush ke disk. Karena hanya ada satu target, tidak ada per target count dan tidak ada hasil sebagian antar storage. `shutdown` menghentikan intake sebelum drain.
 
 Adapter interface, batch type, SQL, HTTP parameter, table name, retry classification, dan client error tetap internal. Caller tidak mendapat method per signal kind.
 
@@ -180,9 +171,9 @@ Missing related row valid karena sampling, retention, failure, atau arrival orde
 
 ## Schema evolution
 
-`schema_version` adalah positive integer required pada setiap row dan typed constant pada setiap canonical record. Perubahan additive menambah nullable column atau column dengan deterministic default serta mempertahankan reader lama. Breaking change membuat table version baru, adapter yang dapat menulis kedua version, backfill bila perlu, query parity, lalu reader cutover.
+`schema_version` adalah positive integer required pada setiap row dan typed constant pada setiap canonical record. Perubahan additive menambah nullable column atau column dengan deterministic default serta mempertahankan reader lama. Breaking change membuat table version baru dan memerlukan spec baru, karena tidak ada dual write atau backfill yang dapat memindahkan row antar version. Jalur yang tersedia adalah menulis version baru ke depan dan membiarkan version lama habis oleh TTL.
 
-Writer startup memeriksa exact supported schema version serta required table setting. Writer tidak mengirim row ke schema yang lebih tua atau lebih baru dari support matrix. Mismatch menghasilkan state `disabled`, safe diagnostic, dan deployment gate failure.
+Writer startup memeriksa exact supported schema version serta required table setting. Writer tidak mengirim row ke schema yang lebih tua atau lebih baru dari support matrix. Mismatch adalah kesalahan deployment, sehingga process menolak start dengan diagnostic yang aman dan deployment gate ikut gagal. ClickHouse yang hanya tidak dapat dihubungi bukan mismatch dan hanya membuka Blind Spot.
 
 ## Ingestion path
 
@@ -222,7 +213,7 @@ Retry final yang gagal, queue pressure drop, atau acknowledged result yang tidak
 
 ## Time, retention, and loss
 
-Event time diterima ketika tidak lebih tua dari retention entity serta tidak lebih dari lima menit di masa depan terhadap UTC adapter clock. Backfill memiliki explicit migration mode yang memvalidasi source range, bukan current retention check biasa. Invalid time dan oversize row ditolak sebelum enqueue dan dicatat sebagai data quality diagnostic.
+Event time diterima ketika tidak lebih tua dari retention entity serta tidak lebih dari lima menit di masa depan terhadap UTC adapter clock. Tidak ada pengecualian migration, karena tidak ada backfill. Invalid time dan oversize row ditolak sebelum enqueue dan dicatat sebagai data quality diagnostic.
 
 TTL berjalan saat ClickHouse merge. Operator boleh melihat row sampai empat jam sesudah logical expiry. Query selalu menerapkan time bound sehingga expired row tidak bocor hanya karena merge tertunda.
 
@@ -230,6 +221,6 @@ Tidak ada cold archive atau Signal backup. Kehilangan process dapat menghilangka
 
 ## Rationale
 
-Satu external interface memberi leverage karena caller tidak perlu mempelajari empat writer, dua database, queue rules, atau HTTP settings. Empat canonical entity tetap terpisah karena field, retention, stable identity, dan query shape berbeda. Satu generic event table akan menghasilkan nullable field besar, sort key lemah, dan query yang sulit diprediksi.
+Satu external interface memberi leverage karena caller tidak perlu mempelajari empat writer, queue rules, atau HTTP settings. Interface itu tetap dipertahankan meskipun sekarang hanya ada satu adapter runtime, karena justru interface inilah yang membuat penghapusan adapter PostgreSQL menjadi pekerjaan satu paket dan bukan pekerjaan lintas seluruh producer. Fake untuk unit test tetap menjadi implementasi kedua, sehingga contract suite masih menguji interface. Empat canonical entity tetap terpisah karena field, retention, stable identity, dan query shape berbeda. Satu generic event table akan menghasilkan nullable field besar, sort key lemah, dan query yang sulit diprediksi.
 
 Direct HTTP dengan acknowledged async insert menggabungkan batching server side dengan error yang masih terlihat caller. Fire and forget tidak dipakai karena ACK sebelum disk flush akan membuat drop tidak dapat dihitung. ReplacingMergeTree serta stable token dipakai bersama karena deduplication ClickHouse bersifat windowed dan background merge bersifat eventual.

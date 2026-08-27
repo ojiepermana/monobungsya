@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-25
 **Status**: Superseded
-**Superseded by**: [0017](../0017-hybrid-observability-storage/index.md)
+**Superseded by**: [0017](../0017-clickhouse-observability-storage/index.md)
 
 ## Summary
 

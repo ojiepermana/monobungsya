@@ -135,6 +135,8 @@ Kalibrasi membutuhkan sedikitnya 20 valid official runs dan 20 inlier sesudah Tu
 * Error baru gagal ketika baseline nol. Baseline yang sudah memiliki error memakai 10 persen dan sedikitnya satu error tambahan.
 * Operation count mempunyai scenario maximum agar N plus one pada query, message, SMTP, atau HTTP keluar terlihat.
 * Run tanpa compatible baseline menghasilkan `not_comparable` dan report, bukan false pass.
+* Baseline yang sudah drift juga bukan alasan menyatakan lulus. Comparison terakhir gagal dengan driver CPU sekitar `+21,7` persen dan throughput sekitar `-19,0` persen, tetapi replay dari commit sebelum perubahan storage pada host yang sama menghasilkan angka yang cocok dengan run baru dan berbeda dari artifact yang disetujui. Ini menunjuk baseline drift atau beban runner, bukan regresi. Selama baseline belum dikalibrasi ulang, gate overhead dilaporkan terbuka.
+* Kalibrasi baseline resmi memerlukan 20 run pada runner terkendali dengan cukup Tukey inlier, coefficient of variation setiap metric dalam batas, dan event loop `p95` dalam batas. Percobaan kalibrasi lokal yang gagal syarat itu tidak boleh dipromosikan menjadi baseline.
 
 ## Artifact and ingestion contract
 

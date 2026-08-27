@@ -5,6 +5,8 @@
 
 ## Summary
 
+> Storage note, added 2026-08-27: the application log and access log storage described here is superseded by [spec 0017](../0017-clickhouse-observability-storage/index.md). Those two Signal types move to ClickHouse, and `logs.logging` plus `logs.access_logs` are dropped from PostgreSQL. Everything else in this spec still holds, including `logs.audit_trails` and its yearly partitions, the strict Audit Trail write path, `ActivityLog` sanitization, the gateway access lifecycle, correlation, and the permission model. Read this spec for the Audit Trail contract and 0017 for where Signals live.
+
 Application logs, audit trails, and access logs live in PostgreSQL under yearly partitions (tables divided by year). The gateway records each completed public API request once and may add a small typed summary owned by that endpoint. A session summary is role free: auth reports session state and reason, while the gateway adds a count from the same effective permission list it returns to the browser. Requests made during one Angular navigation share a trace identifier, so an operator can relate `/api/v1/auth/session` to `/api/v1/users` without merging their rows.
 
 ## Requirements
