@@ -21,7 +21,6 @@ describe('application navigation authorization', () => {
       'users',
       'passkeys',
       'permissions',
-      'groups',
       'logs-audit',
     ]);
   });

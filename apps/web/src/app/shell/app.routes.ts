@@ -96,13 +96,6 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: 'permission/group',
-    title: 'MONOBUNGSYA · Group',
-    canActivate: [authGuard, permissionGuard(PERMISSIONS.accessPermissionList)],
-    loadComponent: () =>
-      import('../pages/access/groups/groups.page').then((m) => m.GroupsPage),
-  },
-  {
     path: 'notifications',
     title: 'MONOBUNGSYA · Notifikasi',
     canActivate: [authGuard],
@@ -135,11 +128,6 @@ export const routes: Routes = [
   {
     path: 'access/permission',
     redirectTo: 'permission/catalog',
-    pathMatch: 'full',
-  },
-  {
-    path: 'access/group',
-    redirectTo: 'permission/group',
     pathMatch: 'full',
   },
   {

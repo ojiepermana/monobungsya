@@ -81,13 +81,6 @@ export function appNavigationFor(
         icon: 'list_alt',
         link: '/permission/catalog',
       },
-      {
-        id: 'groups',
-        type: 'item',
-        title: 'Group',
-        icon: 'group',
-        link: '/permission/group',
-      },
     );
   }
 
