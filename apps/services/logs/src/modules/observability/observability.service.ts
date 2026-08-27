@@ -11,7 +11,6 @@ import {
 import type { VerifiedIngestion } from './observability.ingestion';
 import {
   decodeAlertCursor,
-  decodeBaselineCursor,
   decodeBenchmarkCursor,
   decodeTraceCursor,
   METRIC_STEPS,
@@ -30,6 +29,12 @@ import { METRIC_GROUPS } from './observability.types';
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const STORAGE_BLIND_SPOT = 'observability_storage_blind_spot';
+const DEFAULT_METRIC_GROUPS: readonly MetricGroup[] = [
+  'service',
+  'resourceKind',
+  'resourceName',
+];
+
 function parseTime(value: string | undefined, fallback: Date): Date {
   if (!value) return fallback;
   const parsed = new Date(value);
@@ -62,7 +67,7 @@ function clean(value: string | undefined): string | undefined {
 }
 
 function metricGroups(value: string | undefined): MetricGroup[] {
-  if (!value) return [];
+  if (!value) return [...DEFAULT_METRIC_GROUPS];
   const groups = value
     .split(',')
     .map((group) => group.trim())
@@ -273,13 +278,7 @@ export class ObservabilityService {
           requestId: clean(query.requestId),
           runId: clean(query.runId),
         }),
-      {
-        items: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { services: [], resourceKinds: [], resourceNames: [] },
-        storageStatus: 'blind_spot',
-      },
+      { items: [], nextCursor: null, storageStatus: 'blind_spot' },
     );
     const completeness: 'complete' | 'partial' = page.items.every(
       (item) => item.complete,
@@ -288,9 +287,7 @@ export class ObservabilityService {
       : 'partial';
     return {
       data: page.items,
-      prevCursor: page.prevCursor,
       nextCursor: page.nextCursor,
-      options: page.options,
       completeness:
         page.storageStatus === 'blind_spot' ? 'partial' : completeness,
       storageStatus: page.storageStatus,
@@ -353,7 +350,6 @@ export class ObservabilityService {
           missingBuckets: 0,
           storageStatus: 'blind_spot',
         },
-        options: { metrics: [], services: [], resourceKinds: [] },
       },
     );
   }
@@ -375,13 +371,7 @@ export class ObservabilityService {
           sourceCommitSha: clean(query.sourceCommitSha),
           bunVersion: clean(query.bunVersion),
         }),
-      {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { scenarioIds: [], statuses: [], bunVersions: [] },
-        storageStatus: 'blind_spot',
-      },
+      { data: [], nextCursor: null, storageStatus: 'blind_spot' },
     );
   }
 
@@ -395,13 +385,6 @@ export class ObservabilityService {
   }
 
   async listBenchmarkBaselines(query: BenchmarkBaselineQuery) {
-    if (query.cursor) {
-      try {
-        decodeBaselineCursor(query.cursor);
-      } catch {
-        throw new ValidationError('The benchmark baseline cursor is invalid');
-      }
-    }
     return this.readWithBlindSpot(
       () =>
         this.repository.listBenchmarkBaselines({
@@ -409,19 +392,8 @@ export class ObservabilityService {
           scenarioVersion: clean(query.scenarioVersion),
           fixtureVersion: clean(query.fixtureVersion),
           environment: clean(query.environment),
-          cursor: query.cursor,
         }),
-      {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: {
-          scenarioIds: [],
-          environments: [],
-          fixtureVersions: [],
-        },
-        storageStatus: 'blind_spot',
-      },
+      { data: [], storageStatus: 'blind_spot' },
     );
   }
 
@@ -443,13 +415,7 @@ export class ObservabilityService {
           seriesFingerprint: clean(query.seriesFingerprint),
           cursor: query.cursor,
         }),
-      {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { ruleIds: [], services: [] },
-        storageStatus: 'blind_spot',
-      },
+      { data: [], nextCursor: null, storageStatus: 'blind_spot' },
     );
   }
 

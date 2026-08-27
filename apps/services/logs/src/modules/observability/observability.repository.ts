@@ -36,39 +36,19 @@ const DEFAULT_MAX_SERIES = 200;
 const DEFAULT_QUERY_TIMEOUT_MS = 5_000;
 
 interface Cursor {
-  direction: 'next' | 'prev';
   startedAt: string;
   traceId: string;
 }
 
 interface AlertCursor {
-  direction: 'next' | 'prev';
   evaluatedAt: string;
   ruleId: string;
   seriesFingerprint: string;
 }
 
-interface BenchmarkCursor {
-  direction: 'next' | 'prev';
-  createdAt: string;
-  runId: string;
-}
-
-interface BaselineCursor {
-  direction: 'next' | 'prev';
-  promotedAt: string;
-  baselineId: string;
-}
-
 interface TracePage {
   items: TraceSummary[];
-  prevCursor: string | null;
   nextCursor: string | null;
-  options: {
-    services: string[];
-    resourceKinds: string[];
-    resourceNames: string[];
-  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -92,25 +72,19 @@ function timestamp(value: unknown): string {
   return isoFromDbTimestamp(String(value));
 }
 
-function encodeCursor(
-  cursor: Omit<Cursor, 'direction'>,
-  direction: Cursor['direction'] = 'next',
-): string {
-  return btoa(`${direction}|${cursor.startedAt}|${cursor.traceId}`);
+function encodeCursor(cursor: Cursor): string {
+  return btoa(`${cursor.startedAt}|${cursor.traceId}`);
 }
 
 export function decodeTraceCursor(value: string): Cursor {
   try {
     const parts = atob(value).split('|');
-    const hasDirection = parts[0] === 'next' || parts[0] === 'prev';
-    const direction: Cursor['direction'] =
-      hasDirection && parts[0] === 'prev' ? 'prev' : 'next';
-    const startedAt = hasDirection ? parts[1] : parts[0];
-    const traceId = hasDirection ? parts[2] : parts[1];
+    const startedAt = parts[0];
+    const traceId = parts[1];
     if (!startedAt || !traceId || !/^[0-9a-f]{32}$/.test(traceId)) {
       throw new Error('invalid cursor');
     }
-    return { direction, startedAt, traceId };
+    return { startedAt, traceId };
   } catch {
     throw new Error('invalid cursor');
   }
@@ -120,58 +94,34 @@ function textOrNull(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
 }
 
-function stringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value
-        .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
+function cursor(value: string, id: string): string {
+  return btoa(`${value}|${id}`);
 }
 
-function cursor(
-  value: string,
-  id: string,
-  direction: 'next' | 'prev' = 'next',
-): string {
-  return btoa(`${direction}|${value}|${id}`);
-}
-
-export function decodeBenchmarkCursor(value: string): BenchmarkCursor {
+export function decodeBenchmarkCursor(value: string): {
+  createdAt: string;
+  runId: string;
+} {
   try {
-    const parts = atob(value).split('|');
-    const hasDirection = parts[0] === 'next' || parts[0] === 'prev';
-    const direction: BenchmarkCursor['direction'] =
-      hasDirection && parts[0] === 'prev' ? 'prev' : 'next';
-    const createdAt = hasDirection ? parts[1] : parts[0];
-    const runId = hasDirection ? parts[2] : parts[1];
+    const [createdAt, runId] = atob(value).split('|');
     if (!createdAt || !runId || !/^[0-9a-f-]{36}$/i.test(runId)) {
       throw new Error('invalid cursor');
     }
-    return { direction, createdAt, runId };
+    return { createdAt, runId };
   } catch {
     throw new Error('invalid cursor');
   }
 }
 
-function encodeAlertCursor(
-  cursor: Omit<AlertCursor, 'direction'>,
-  direction: AlertCursor['direction'] = 'next',
-): string {
+function encodeAlertCursor(cursor: AlertCursor): string {
   return btoa(
-    `${direction}|${cursor.evaluatedAt}|${cursor.ruleId}|${cursor.seriesFingerprint}`,
+    `${cursor.evaluatedAt}|${cursor.ruleId}|${cursor.seriesFingerprint}`,
   );
 }
 
 export function decodeAlertCursor(value: string): AlertCursor {
   try {
-    const parts = atob(value).split('|');
-    const hasDirection = parts[0] === 'next' || parts[0] === 'prev';
-    const direction: AlertCursor['direction'] =
-      hasDirection && parts[0] === 'prev' ? 'prev' : 'next';
-    const evaluatedAt = hasDirection ? parts[1] : parts[0];
-    const ruleId = hasDirection ? parts[2] : parts[1];
-    const seriesFingerprint = hasDirection ? parts[3] : parts[2];
+    const [evaluatedAt, ruleId, seriesFingerprint] = atob(value).split('|');
     if (
       !evaluatedAt ||
       Number.isNaN(Date.parse(evaluatedAt)) ||
@@ -181,31 +131,7 @@ export function decodeAlertCursor(value: string): AlertCursor {
     ) {
       throw new Error('invalid cursor');
     }
-    return { direction, evaluatedAt, ruleId, seriesFingerprint };
-  } catch {
-    throw new Error('invalid cursor');
-  }
-}
-
-function encodeBaselineCursor(
-  cursor: Omit<BaselineCursor, 'direction'>,
-  direction: BaselineCursor['direction'] = 'next',
-): string {
-  return btoa(`${direction}|${cursor.promotedAt}|${cursor.baselineId}`);
-}
-
-export function decodeBaselineCursor(value: string): BaselineCursor {
-  try {
-    const parts = atob(value).split('|');
-    const hasDirection = parts[0] === 'next' || parts[0] === 'prev';
-    const direction: BaselineCursor['direction'] =
-      hasDirection && parts[0] === 'prev' ? 'prev' : 'next';
-    const promotedAt = hasDirection ? parts[1] : parts[0];
-    const baselineId = hasDirection ? parts[2] : parts[1];
-    if (!promotedAt || !baselineId || !/^[0-9a-f-]{36}$/i.test(baselineId)) {
-      throw new Error('invalid cursor');
-    }
-    return { direction, promotedAt, baselineId };
+    return { evaluatedAt, ruleId, seriesFingerprint };
   } catch {
     throw new Error('invalid cursor');
   }
@@ -388,13 +314,7 @@ export class ObservabilityRepository {
     query: Omit<TraceQuery, 'from' | 'to'> & { from: Date; to: Date },
   ): Promise<TracePage> {
     if (!this.database)
-      return {
-        items: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { services: [], resourceKinds: [], resourceNames: [] },
-        storageStatus: 'blind_spot',
-      };
+      return { items: [], nextCursor: null, storageStatus: 'blind_spot' };
 
     const params: unknown[] = [query.from, query.to];
     const conditions = ['started_at >= $1', 'started_at < $2'];
@@ -411,38 +331,14 @@ export class ObservabilityRepository {
     add('request_id', query.requestId);
     add('run_id', query.runId);
 
-    const optionRows = (await this.readQuery(
-      `SELECT ` +
-        `COALESCE(array_agg(DISTINCT service_name ORDER BY service_name) FILTER (WHERE service_name IS NOT NULL), ARRAY[]::text[]) AS services, ` +
-        `COALESCE(array_agg(DISTINCT resource_kind ORDER BY resource_kind) FILTER (WHERE resource_kind IS NOT NULL), ARRAY[]::text[]) AS resource_kinds, ` +
-        `COALESCE(array_agg(DISTINCT resource_name ORDER BY resource_name) FILTER (WHERE resource_name IS NOT NULL), ARRAY[]::text[]) AS resource_names ` +
-        `FROM "telemetry"."spans" WHERE ${conditions.join(' AND ')}`,
-      params,
-    )) as Array<Record<string, unknown>>;
-
-    const optionRow = optionRows[0];
-    const options = {
-      services: stringArray(optionRow?.services),
-      resourceKinds: stringArray(optionRow?.resource_kinds),
-      resourceNames: stringArray(optionRow?.resource_names),
-    };
-
-    let direction: Cursor['direction'] = 'next';
     if (query.cursor) {
-      const decoded = decodeTraceCursor(query.cursor);
-      direction = decoded.direction;
-      params.push(decoded.startedAt, decoded.traceId);
+      const cursor = decodeTraceCursor(query.cursor);
+      params.push(cursor.startedAt, cursor.traceId);
       conditions.push(
-        direction === 'prev'
-          ? `(started_at, trace_id) > ($${params.length - 1}, $${params.length})`
-          : `(started_at, trace_id) < ($${params.length - 1}, $${params.length})`,
+        `(started_at, trace_id) < ($${params.length - 1}, $${params.length})`,
       );
     }
 
-    const order =
-      direction === 'prev'
-        ? 'ORDER BY min(started_at) ASC, trace_id ASC'
-        : 'ORDER BY min(started_at) DESC, trace_id DESC';
     const rows = (await this.readQuery(
       `SELECT trace_id, min(started_at)::text AS started_at, ` +
         `max(finished_at)::text AS finished_at, ` +
@@ -457,18 +353,13 @@ export class ObservabilityRepository {
         `max(correlation_id) AS correlation_id, max(request_id) AS request_id, ` +
         `(array_agg(run_id ORDER BY started_at DESC NULLS LAST))[1]::text AS run_id ` +
         `FROM "telemetry"."spans" WHERE ${conditions.join(' AND ')} ` +
-        `GROUP BY trace_id ${order} ` +
+        `GROUP BY trace_id ORDER BY min(started_at) DESC, trace_id DESC ` +
         `LIMIT $${params.length + 1}`,
       [...params, TRACE_PAGE_SIZE + 1],
     )) as Array<Record<string, unknown>>;
-    if (query.cursor && rows.length === 0) {
-      throw new ValidationError('The trace cursor has expired');
-    }
 
     const hasMore = rows.length > TRACE_PAGE_SIZE;
-    const pageRows = hasMore ? rows.slice(0, TRACE_PAGE_SIZE) : rows;
-    const page = direction === 'prev' ? pageRows.reverse() : pageRows;
-    const first = page[0];
+    const page = hasMore ? rows.slice(0, TRACE_PAGE_SIZE) : rows;
     const last = page.at(-1);
     return {
       items: page.map((row) => ({
@@ -486,29 +377,13 @@ export class ObservabilityRepository {
         requestId: textOrNull(row.request_id),
         runId: textOrNull(row.run_id),
       })),
-      prevCursor:
-        first &&
-        ((direction === 'prev' && hasMore) ||
-          (direction === 'next' && Boolean(query.cursor)))
-          ? encodeCursor(
-              {
-                startedAt: String(first.started_at),
-                traceId: String(first.trace_id).trim(),
-              },
-              'prev',
-            )
-          : null,
       nextCursor:
-        last && (direction === 'prev' || hasMore)
-          ? encodeCursor(
-              {
-                startedAt: String(last.started_at),
-                traceId: String(last.trace_id).trim(),
-              },
-              'next',
-            )
+        hasMore && last
+          ? encodeCursor({
+              startedAt: String(last.started_at),
+              traceId: String(last.trace_id).trim(),
+            })
           : null,
-      options,
       storageStatus: 'available',
     };
   }
@@ -585,12 +460,10 @@ export class ObservabilityRepository {
           missingBuckets: 0,
           storageStatus: 'blind_spot',
         },
-        options: { metrics: [], services: [], resourceKinds: [] },
       };
     }
 
-    const rawBucketWidthSeconds = 60;
-    const params: unknown[] = [query.from, query.to, rawBucketWidthSeconds];
+    const params: unknown[] = [query.from, query.to, query.stepSeconds];
     const conditions = [
       'bucket_start >= $1',
       'bucket_start < $2',
@@ -605,21 +478,7 @@ export class ObservabilityRepository {
     add('service_name', query.service);
     add('resource_kind', query.resourceKind);
     add('resource_name', query.resourceName);
-    const optionRows = (await this.readQuery(
-      `SELECT ` +
-        `COALESCE(array_agg(DISTINCT metric_name ORDER BY metric_name) FILTER (WHERE metric_name IS NOT NULL), ARRAY[]::text[]) AS metrics, ` +
-        `COALESCE(array_agg(DISTINCT service_name ORDER BY service_name) FILTER (WHERE service_name IS NOT NULL), ARRAY[]::text[]) AS services, ` +
-        `COALESCE(array_agg(DISTINCT resource_kind ORDER BY resource_kind) FILTER (WHERE resource_kind IS NOT NULL), ARRAY[]::text[]) AS resource_kinds ` +
-        `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')}`,
-      params,
-    )) as Array<Record<string, unknown>>;
-    const optionRow = optionRows[0];
-    const options = {
-      metrics: stringArray(optionRow?.metrics),
-      services: stringArray(optionRow?.services),
-      resourceKinds: stringArray(optionRow?.resource_kinds),
-    };
-    const groups = query.groups ?? [];
+    const groups = query.groups ?? ['service', 'resourceKind', 'resourceName'];
     const hasGroup = (group: MetricGroup) => groups.includes(group);
     const statusGroup = `(COALESCE(labels->>'status', 'unknown'))`;
     const structuralGroups = [
@@ -633,12 +492,13 @@ export class ObservabilityRepository {
       ...(hasGroup('status') ? [statusGroup] : []),
     ];
     const estimateRows = (await this.readQuery(
-      `SELECT DISTINCT ${seriesDimensions.join(', ')} ` +
-        `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')} ` +
-        `LIMIT ${this.maxSeries + 1}`,
+      `SELECT COUNT(*)::int AS series_count FROM (` +
+        `SELECT DISTINCT ${seriesDimensions.join(', ')} ` +
+        `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')}` +
+        `) AS metric_series`,
       params,
     )) as Array<Record<string, unknown>>;
-    const estimatedSeries = estimateRows.length;
+    const estimatedSeries = Number(estimateRows[0]?.series_count ?? 0);
     if (estimatedSeries > this.maxSeries) {
       throw new ValidationError(
         `Metric query exceeds the ${this.maxSeries} series limit`,
@@ -650,11 +510,6 @@ export class ObservabilityRepository {
       min: 'min(min)',
       max: 'max(max)',
     }[query.statistic];
-    const stepParam = params.length + 1;
-    const dataParams = [...params, query.stepSeconds];
-    const bucketExpression =
-      `date_bin(make_interval(secs => $${stepParam}), bucket_start, ` +
-      `TIMESTAMP '1970-01-01')`;
     const serviceExpression = hasGroup('service') ? 'service_name' : `'*'`;
     const resourceKindExpression = hasGroup('resourceKind')
       ? 'resource_kind'
@@ -666,20 +521,17 @@ export class ObservabilityRepository {
       ? `jsonb_build_object('status', ${statusGroup})`
       : `(array_agg(labels ORDER BY series_fingerprint))[1]`;
     const rows = (await this.readQuery(
-      `SELECT ${bucketExpression}::text AS bucket_start, ${valueExpression} AS value, ` +
+      `SELECT bucket_start::text AS bucket_start, ${valueExpression} AS value, ` +
         `sum(count)::bigint AS count, ${serviceExpression} AS service_name, ` +
         `${resourceKindExpression} AS resource_kind, ${resourceNameExpression} AS resource_name, ` +
         `metric_name, max(unit) AS unit, ${labelsExpression} AS labels ` +
         `FROM "telemetry"."metric_buckets" WHERE ${conditions.join(' AND ')} ` +
-        `GROUP BY ${bucketExpression}, ${seriesDimensions.join(', ')} ` +
-        `ORDER BY ${bucketExpression} ASC, service_name, resource_name`,
-      dataParams,
+        `GROUP BY bucket_start, ${seriesDimensions.join(', ')} ` +
+        `ORDER BY bucket_start ASC, service_name, resource_name`,
+      params,
     )) as Array<Record<string, unknown>>;
-    const alignedFrom =
-      Math.floor(query.from.getTime() / (query.stepSeconds * 1000)) *
-      (query.stepSeconds * 1000);
     const expectedBuckets = Math.ceil(
-      (query.to.getTime() - alignedFrom) / (query.stepSeconds * 1000),
+      (query.to.getTime() - query.from.getTime()) / (query.stepSeconds * 1000),
     );
     const storedBuckets = new Set(rows.map((row) => String(row.bucket_start)))
       .size;
@@ -703,7 +555,6 @@ export class ObservabilityRepository {
         missingBuckets: Math.max(0, expectedBuckets - storedBuckets),
         storageStatus: 'available',
       },
-      options,
     };
   }
 
@@ -726,13 +577,7 @@ export class ObservabilityRepository {
     query: BenchmarkRunQuery,
   ): Promise<BenchmarkRunsResult> {
     if (!this.database)
-      return {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { scenarioIds: [], statuses: [], bunVersions: [] },
-        storageStatus: 'blind_spot',
-      };
+      return { data: [], nextCursor: null, storageStatus: 'blind_spot' };
     const params: unknown[] = [];
     const conditions: string[] = [];
     const add = (column: string, value: string | undefined) => {
@@ -744,37 +589,15 @@ export class ObservabilityRepository {
     add('status', query.status);
     add('source_commit_sha', query.sourceCommitSha);
     add('bun_version', query.bunVersion);
-    const optionRows = (await this.readQuery(
-      `SELECT ` +
-        `COALESCE(array_agg(DISTINCT scenario_id ORDER BY scenario_id) FILTER (WHERE scenario_id IS NOT NULL), ARRAY[]::text[]) AS scenario_ids, ` +
-        `COALESCE(array_agg(DISTINCT status ORDER BY status) FILTER (WHERE status IS NOT NULL), ARRAY[]::text[]) AS statuses, ` +
-        `COALESCE(array_agg(DISTINCT bun_version ORDER BY bun_version) FILTER (WHERE bun_version IS NOT NULL), ARRAY[]::text[]) AS bun_versions ` +
-        `FROM "telemetry"."benchmark_runs" ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}`,
-      params,
-    )) as Array<Record<string, unknown>>;
-    const optionRow = optionRows[0];
-    const options = {
-      scenarioIds: stringArray(optionRow?.scenario_ids),
-      statuses: stringArray(optionRow?.statuses),
-      bunVersions: stringArray(optionRow?.bun_versions),
-    };
-    let direction: BenchmarkCursor['direction'] = 'next';
     if (query.cursor) {
       const decoded = decodeBenchmarkCursor(query.cursor);
-      direction = decoded.direction;
       params.push(decoded.createdAt, decoded.runId);
       conditions.push(
-        direction === 'prev'
-          ? `(created_at, run_id) > ($${params.length - 1}, $${params.length})`
-          : `(created_at, run_id) < ($${params.length - 1}, $${params.length})`,
+        `(created_at, run_id) < ($${params.length - 1}, $${params.length})`,
       );
     }
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const order =
-      direction === 'prev'
-        ? 'ORDER BY created_at ASC, run_id ASC'
-        : 'ORDER BY created_at DESC, run_id DESC';
     const rows = (await this.readQuery(
       `SELECT run_id, scenario_id, scenario_version, status, source_commit_sha, ` +
         `fixture_version, environment, bun_version, completeness, started_at::text AS started_at, ` +
@@ -783,30 +606,18 @@ export class ObservabilityRepository {
         `WHEN bool_or(decision = 'not_comparable') THEN 'not_comparable' ELSE 'pass' END ` +
         `FROM "telemetry"."benchmark_comparisons" c WHERE c.run_id = r.run_id) AS comparison_status ` +
         `FROM "telemetry"."benchmark_runs" r ${where} ` +
-        `${order} LIMIT $${params.length + 1}`,
+        `ORDER BY created_at DESC, run_id DESC LIMIT $${params.length + 1}`,
       [...params, BENCHMARK_PAGE_SIZE + 1],
     )) as Array<Record<string, unknown>>;
-    if (query.cursor && rows.length === 0) {
-      throw new ValidationError('The benchmark cursor has expired');
-    }
     const hasMore = rows.length > BENCHMARK_PAGE_SIZE;
-    const pageRows = hasMore ? rows.slice(0, BENCHMARK_PAGE_SIZE) : rows;
-    const page = direction === 'prev' ? pageRows.reverse() : pageRows;
-    const first = page[0];
+    const page = hasMore ? rows.slice(0, BENCHMARK_PAGE_SIZE) : rows;
     const last = page.at(-1);
     return {
       data: page.map((row) => this.mapBenchmarkRun(row)),
-      prevCursor:
-        first &&
-        ((direction === 'prev' && hasMore) ||
-          (direction === 'next' && Boolean(query.cursor)))
-          ? cursor(String(first.created_at), String(first.run_id), 'prev')
-          : null,
       nextCursor:
-        last && (direction === 'prev' || hasMore)
-          ? cursor(String(last.created_at), String(last.run_id), 'next')
+        hasMore && last
+          ? cursor(String(last.created_at), String(last.run_id))
           : null,
-      options,
       storageStatus: 'available',
     };
   }
@@ -850,19 +661,7 @@ export class ObservabilityRepository {
   async listBenchmarkBaselines(
     query: BenchmarkBaselineQuery,
   ): Promise<BenchmarkBaselinesResult> {
-    if (!this.database) {
-      return {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: {
-          scenarioIds: [],
-          environments: [],
-          fixtureVersions: [],
-        },
-        storageStatus: 'blind_spot',
-      };
-    }
+    if (!this.database) return { data: [], storageStatus: 'blind_spot' };
     const params: unknown[] = [];
     const conditions: string[] = [];
     for (const [column, value] of [
@@ -875,55 +674,16 @@ export class ObservabilityRepository {
       params.push(value);
       conditions.push(`${column} = $${params.length}`);
     }
-    const optionRows = (await this.readQuery(
-      `SELECT ` +
-        `COALESCE(array_agg(DISTINCT scenario_id ORDER BY scenario_id) FILTER (WHERE scenario_id IS NOT NULL), ARRAY[]::text[]) AS scenario_ids, ` +
-        `COALESCE(array_agg(DISTINCT environment ORDER BY environment) FILTER (WHERE environment IS NOT NULL), ARRAY[]::text[]) AS environments, ` +
-        `COALESCE(array_agg(DISTINCT fixture_version ORDER BY fixture_version) FILTER (WHERE fixture_version IS NOT NULL), ARRAY[]::text[]) AS fixture_versions ` +
-        `FROM "telemetry"."benchmark_baselines" ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}`,
-      params,
-    )) as Array<Record<string, unknown>>;
-    const optionRow = optionRows[0];
-    const options = {
-      scenarioIds: stringArray(optionRow?.scenario_ids),
-      environments: stringArray(optionRow?.environments),
-      fixtureVersions: stringArray(optionRow?.fixture_versions),
-    };
-    let direction: BaselineCursor['direction'] = 'next';
-    if (query.cursor) {
-      const decoded = decodeBaselineCursor(query.cursor);
-      direction = decoded.direction;
-      params.push(decoded.promotedAt, decoded.baselineId);
-      const promotedAtParam = `$${params.length - 1}`;
-      const baselineIdParam = `$${params.length}`;
-      conditions.push(
-        direction === 'prev'
-          ? `(promoted_at > ${promotedAtParam} OR (promoted_at = ${promotedAtParam} AND baseline_id < ${baselineIdParam}))`
-          : `(promoted_at < ${promotedAtParam} OR (promoted_at = ${promotedAtParam} AND baseline_id > ${baselineIdParam}))`,
-      );
-    }
-    const order =
-      direction === 'prev'
-        ? 'ORDER BY promoted_at ASC, baseline_id DESC'
-        : 'ORDER BY promoted_at DESC, baseline_id ASC';
     const rows = (await this.readQuery(
       `SELECT baseline_id, scenario_id, scenario_version, approved_run_id, fixture_version, ` +
         `environment, instrumentation_schema_version, threshold_policy_version, approval_commit_sha, ` +
         `active, promoted_at::text AS promoted_at FROM "telemetry"."benchmark_baselines" ` +
-        `${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''} ${order} ` +
-        `LIMIT $${params.length + 1}`,
-      [...params, BENCHMARK_PAGE_SIZE + 1],
+        `${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''} ` +
+        `ORDER BY promoted_at DESC, baseline_id DESC`,
+      params,
     )) as Array<Record<string, unknown>>;
-    if (query.cursor && rows.length === 0) {
-      throw new ValidationError('The benchmark baseline cursor has expired');
-    }
-    const hasMore = rows.length > BENCHMARK_PAGE_SIZE;
-    const pageRows = hasMore ? rows.slice(0, BENCHMARK_PAGE_SIZE) : rows;
-    const page = direction === 'prev' ? pageRows.reverse() : pageRows;
-    const first = page[0];
-    const last = page.at(-1);
     return {
-      data: page.map((row) => ({
+      data: rows.map((row) => ({
         baselineId: String(row.baseline_id),
         scenarioId: String(row.scenario_id),
         scenarioVersion: String(row.scenario_version),
@@ -938,29 +698,6 @@ export class ObservabilityRepository {
         active: Boolean(row.active),
         promotedAt: timestamp(row.promoted_at),
       })),
-      prevCursor:
-        first &&
-        ((direction === 'prev' && hasMore) ||
-          (direction === 'next' && Boolean(query.cursor)))
-          ? encodeBaselineCursor(
-              {
-                promotedAt: String(first.promoted_at),
-                baselineId: String(first.baseline_id),
-              },
-              'prev',
-            )
-          : null,
-      nextCursor:
-        last && (direction === 'prev' || hasMore)
-          ? encodeBaselineCursor(
-              {
-                promotedAt: String(last.promoted_at),
-                baselineId: String(last.baseline_id),
-              },
-              'next',
-            )
-          : null,
-      options,
       storageStatus: 'available',
     };
   }
@@ -974,13 +711,7 @@ export class ObservabilityRepository {
     cursor?: string;
   }): Promise<AlertsResult> {
     if (!this.database)
-      return {
-        data: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { ruleIds: [], services: [] },
-        storageStatus: 'blind_spot',
-      };
+      return { data: [], nextCursor: null, storageStatus: 'blind_spot' };
     const params: unknown[] = [];
     const conditions: string[] = [];
     for (const [column, value] of [
@@ -994,24 +725,8 @@ export class ObservabilityRepository {
       params.push(value);
       conditions.push(`${column} = $${params.length}`);
     }
-    const optionRows = (await this.readQuery(
-      `SELECT ` +
-        `COALESCE(array_agg(DISTINCT state.rule_id ORDER BY state.rule_id) FILTER (WHERE state.rule_id IS NOT NULL), ARRAY[]::text[]) AS rule_ids, ` +
-        `COALESCE(array_agg(DISTINCT state.service_name ORDER BY state.service_name) FILTER (WHERE state.service_name IS NOT NULL), ARRAY[]::text[]) AS services ` +
-        `FROM "telemetry"."alert_states" AS state ` +
-        `LEFT JOIN "telemetry"."alert_rules" AS rules ON rules.rule_id = state.rule_id AND rules.rule_version = state.rule_version ` +
-        `${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}`,
-      params,
-    )) as Array<Record<string, unknown>>;
-    const optionRow = optionRows[0];
-    const options = {
-      ruleIds: stringArray(optionRow?.rule_ids),
-      services: stringArray(optionRow?.services),
-    };
-    let direction: AlertCursor['direction'] = 'next';
     if (query.cursor) {
       const decoded = decodeAlertCursor(query.cursor);
-      direction = decoded.direction;
       params.push(
         decoded.evaluatedAt,
         decoded.ruleId,
@@ -1021,29 +736,16 @@ export class ObservabilityRepository {
       const ruleIdParam = `$${params.length - 1}`;
       const seriesFingerprintParam = `$${params.length}`;
       conditions.push(
-        direction === 'prev'
-          ? `(` +
-              `state.last_evaluated_at > ${evaluatedAtParam} ` +
-              `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
-              `AND state.rule_id < ${ruleIdParam}) ` +
-              `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
-              `AND state.rule_id = ${ruleIdParam} ` +
-              `AND state.series_fingerprint < ${seriesFingerprintParam})` +
-              `)`
-          : `(` +
-              `state.last_evaluated_at < ${evaluatedAtParam} ` +
-              `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
-              `AND state.rule_id > ${ruleIdParam}) ` +
-              `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
-              `AND state.rule_id = ${ruleIdParam} ` +
-              `AND state.series_fingerprint > ${seriesFingerprintParam})` +
-              `)`,
+        `(` +
+          `state.last_evaluated_at < ${evaluatedAtParam} ` +
+          `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
+          `AND state.rule_id > ${ruleIdParam}) ` +
+          `OR (state.last_evaluated_at = ${evaluatedAtParam} ` +
+          `AND state.rule_id = ${ruleIdParam} ` +
+          `AND state.series_fingerprint > ${seriesFingerprintParam})` +
+          `)`,
       );
     }
-    const order =
-      direction === 'prev'
-        ? 'ORDER BY state.last_evaluated_at ASC, state.rule_id DESC, state.series_fingerprint DESC'
-        : 'ORDER BY state.last_evaluated_at DESC, state.rule_id ASC, state.series_fingerprint ASC';
     const rows = (await this.readQuery(
       `SELECT state.rule_id, state.rule_version, state.series_fingerprint, ` +
         `state.service_name, state.resource_kind, state.resource_name, state.status, ` +
@@ -1055,45 +757,23 @@ export class ObservabilityRepository {
         `FROM "telemetry"."alert_states" AS state ` +
         `LEFT JOIN "telemetry"."alert_rules" AS rules ON rules.rule_id = state.rule_id AND rules.rule_version = state.rule_version ` +
         `${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''} ` +
-        `${order} ` +
+        `ORDER BY state.last_evaluated_at DESC, state.rule_id ASC, state.series_fingerprint ASC ` +
         `LIMIT $${params.length + 1}`,
       [...params, 51],
     )) as Array<Record<string, unknown>>;
-    if (query.cursor && rows.length === 0) {
-      throw new ValidationError('The alert cursor has expired');
-    }
     const hasMore = rows.length > 50;
-    const pageRows = hasMore ? rows.slice(0, 50) : rows;
-    const page = direction === 'prev' ? pageRows.reverse() : pageRows;
-    const first = page[0];
+    const page = hasMore ? rows.slice(0, 50) : rows;
     const last = page.at(-1);
     return {
       data: page.map((row) => this.mapAlert(row)),
-      prevCursor:
-        first &&
-        ((direction === 'prev' && hasMore) ||
-          (direction === 'next' && Boolean(query.cursor)))
-          ? encodeAlertCursor(
-              {
-                evaluatedAt: String(first.last_evaluated_at),
-                ruleId: String(first.rule_id),
-                seriesFingerprint: String(first.series_fingerprint).trim(),
-              },
-              'prev',
-            )
-          : null,
       nextCursor:
-        last && (direction === 'prev' || hasMore)
-          ? encodeAlertCursor(
-              {
-                evaluatedAt: String(last.last_evaluated_at),
-                ruleId: String(last.rule_id),
-                seriesFingerprint: String(last.series_fingerprint).trim(),
-              },
-              'next',
-            )
+        hasMore && last
+          ? encodeAlertCursor({
+              evaluatedAt: String(last.last_evaluated_at),
+              ruleId: String(last.rule_id),
+              seriesFingerprint: String(last.series_fingerprint).trim(),
+            })
           : null,
-      options,
       storageStatus: 'available',
     };
   }

@@ -97,7 +97,6 @@ export function appNavigationFor(
       title: 'Observability',
       icon: 'monitor_heart',
       link: '/observability',
-      exactMatch: true,
     });
   }
 

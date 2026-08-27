@@ -35,9 +35,7 @@ describe('observability read surface', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       data: [],
-      prevCursor: null,
       nextCursor: null,
-      options: { services: [], resourceKinds: [], resourceNames: [] },
       completeness: 'partial',
       storageStatus: 'blind_spot',
     });
@@ -155,9 +153,7 @@ describe('observability read surface', () => {
   it('rejects metric estimates above the configured series limit', async () => {
     const database = {
       unsafe: async (text: string) =>
-        text.includes('LIMIT 2')
-          ? [{ metric_name: 'one' }, { metric_name: 'two' }]
-          : [],
+        text.includes('series_count') ? [{ series_count: 2 }] : [],
     } as unknown as DatabaseClient;
     const app = createApp(testEnv(), {
       telemetryDatabase: database,
@@ -170,73 +166,24 @@ describe('observability read surface', () => {
     expect(response.status).toBe(422);
   });
 
-  it('aggregates stored minute buckets into the requested metric step', async () => {
-    const { database, queries } = fakeDatabase(({ text }) => {
-      if (text.includes('date_bin')) {
-        return [
-          {
-            bucket_start: '2026-08-25 00:00:00.000',
-            value: 12,
-            count: 3,
-            service_name: 'gateway',
-            resource_kind: 'http.server',
-            resource_name: 'request',
-            metric_name: 'telemetry.operation.count',
-            unit: 'count',
-            labels: '{}',
-          },
-        ];
-      }
-      if (text.includes('array_agg')) {
-        return [
-          {
-            metrics: ['telemetry.operation.count'],
-            services: ['gateway'],
-            resource_kinds: ['http.server'],
-          },
-        ];
-      }
-      if (text.includes('LIMIT 201')) {
-        return [{ metric_name: 'telemetry.operation.count' }];
-      }
-      return [];
-    });
-    const app = createApp(testEnv(), { telemetryDatabase: database });
-
-    const response = await app.handle(
-      new Request(
-        'http://localhost/internal/observability/metrics?from=2026-08-25T00:00:00Z&to=2026-08-25T00:05:00Z&step=300',
-      ),
-    );
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
-      data: [{ bucketStart: '2026-08-25T00:00:00.000Z', value: 12 }],
-      stepSeconds: 300,
-      coverage: {
-        expectedBuckets: 1,
-        storedBuckets: 1,
-        missingBuckets: 0,
-      },
-    });
-    const dataQuery = queries.find((query) => query.text.includes('date_bin'));
-    expect(dataQuery?.text).toContain('bucket_width_seconds = $3');
-    expect(dataQuery?.params).toContain(60);
-    expect(dataQuery?.params).toContain(300);
-  });
-
   it('keeps observability permission separate from the log permission', async () => {
     const secret = 'observability-signing-secret';
     const app = createApp(testEnv({ INTERNAL_AUTH_SIGNING_SECRET: secret }));
     const expiresAt = new Date(Date.now() + 60_000).toISOString();
-    const request = (path: string, permissions: string[]) => {
+    const request = (permissions: string[]) => {
       const identity = {
         userId: '0198f8a0-0000-7000-8000-000000000001',
         email: 'operator@project.local',
         permissions,
         expiresAt,
       };
-      const signature = signAuthIdentity('GET', path, identity, secret);
-      return new Request(`http://localhost${path}`, {
+      const signature = signAuthIdentity(
+        'GET',
+        '/internal/observability/traces',
+        identity,
+        secret,
+      );
+      return new Request('http://localhost/internal/observability/traces', {
         headers: {
           'x-auth-user-id': identity.userId,
           'x-auth-email': identity.email,
@@ -247,40 +194,10 @@ describe('observability read surface', () => {
       });
     };
 
+    expect((await app.handle(request(['logs:log:read']))).status).toBe(403);
     expect(
-      (
-        await app.handle(
-          request('/internal/observability/traces', ['logs:log:read']),
-        )
-      ).status,
-    ).toBe(403);
-    expect(
-      (
-        await app.handle(
-          request('/internal/observability/traces', [
-            'observability:trace:read',
-          ]),
-        )
-      ).status,
+      (await app.handle(request(['observability:telemetry:read']))).status,
     ).toBe(200);
-    expect(
-      (
-        await app.handle(
-          request('/internal/observability/alerts', [
-            'observability:alert:read',
-          ]),
-        )
-      ).status,
-    ).toBe(200);
-    expect(
-      (
-        await app.handle(
-          request('/internal/observability/traces', [
-            'observability:alert:read',
-          ]),
-        )
-      ).status,
-    ).toBe(403);
   });
 });
 
@@ -318,15 +235,12 @@ describe('observability repository', () => {
 
     expect(result.items[0]?.traceId).toBe('a'.repeat(32));
     expect(result.items[0]?.durationMs).toBe(100);
-    const traceQuery = queries.find((query) =>
-      query.text.includes('GROUP BY trace_id'),
-    );
-    expect(traceQuery?.text).toContain('started_at >= $1');
-    expect(traceQuery?.text).toContain(
+    expect(queries[0]?.text).toContain('started_at >= $1');
+    expect(queries[0]?.text).toContain(
       '(array_agg(run_id ORDER BY started_at DESC NULLS LAST))[1]::text AS run_id',
     );
-    expect(traceQuery?.text).not.toContain('max(run_id)');
-    expect(traceQuery?.params[0]).toEqual(new Date('2026-08-25T09:00:00.000Z'));
+    expect(queries[0]?.text).not.toContain('max(run_id)');
+    expect(queries[0]?.params[0]).toEqual(new Date('2026-08-25T09:00:00.000Z'));
   });
 
   it('filters alert scope and paginates with the mixed sort direction', async () => {
@@ -373,15 +287,12 @@ describe('observability repository', () => {
       severity: 'critical',
     });
     expect(result.nextCursor).toBeNull();
-    const alertQuery = queries.find((query) =>
-      query.text.includes('state.last_evaluated_at'),
-    );
-    expect(alertQuery?.text).toContain('rules.severity = $1');
-    expect(alertQuery?.text).toContain('state.service_name = $2');
-    expect(alertQuery?.text).toContain('state.last_evaluated_at < $3');
-    expect(alertQuery?.text).toContain('state.rule_id > $4');
-    expect(alertQuery?.text).toContain('state.series_fingerprint > $5');
-    expect(alertQuery?.params).toEqual([
+    expect(queries[0]?.text).toContain('rules.severity = $1');
+    expect(queries[0]?.text).toContain('state.service_name = $2');
+    expect(queries[0]?.text).toContain('state.last_evaluated_at < $3');
+    expect(queries[0]?.text).toContain('state.rule_id > $4');
+    expect(queries[0]?.text).toContain('state.series_fingerprint > $5');
+    expect(queries[0]?.params).toEqual([
       'critical',
       'jobs',
       '2026-08-25 10:05:00.000',
@@ -389,21 +300,5 @@ describe('observability repository', () => {
       'c'.repeat(64),
       51,
     ]);
-  });
-
-  it('rejects a valid-looking cursor when its boundary has disappeared', async () => {
-    const { database } = fakeDatabase(() => []);
-    const repository = new ObservabilityRepository(database);
-    const cursor = Buffer.from(
-      `next|2026-08-25 10:00:00.000|${'a'.repeat(32)}`,
-    ).toString('base64');
-
-    await expect(
-      repository.listTraces({
-        from: new Date('2026-08-25T09:00:00.000Z'),
-        to: new Date('2026-08-25T11:00:00.000Z'),
-        cursor,
-      }),
-    ).rejects.toThrow('cursor has expired');
   });
 });
