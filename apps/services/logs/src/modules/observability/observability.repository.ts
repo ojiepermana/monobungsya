@@ -378,7 +378,7 @@ export class ObservabilityRepository {
           ingestionId,
           receipt.bodyChecksum,
           responseChecksum,
-          responseBody,
+          response,
         ] as never[],
       );
     });

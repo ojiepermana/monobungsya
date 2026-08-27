@@ -7,7 +7,6 @@ import {
   type SignalPromotionInput,
   type SignalPromotionStorageMode,
 } from './promotion';
-import { canonicalJson } from './store';
 
 const REPORT_COLUMNS = [
   'id AS report_id',
@@ -394,8 +393,8 @@ export class PostgresSignalPromotionControl
         input.to.writeMode,
         input.to.readMode,
         input.evaluatedAt,
-        canonicalJson(input.evidence),
-        canonicalJson(decision),
+        input.evidence,
+        decision,
         input.artifactUri,
         input.recordedBy,
       ] as never[],

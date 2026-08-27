@@ -5,7 +5,6 @@ import {
 } from '#project/database';
 import {
   BufferedObservabilitySignalStore,
-  canonicalJson,
   type SignalBatch,
   type SignalTarget,
 } from './store';
@@ -41,8 +40,13 @@ function sqlValues(rows: readonly unknown[][]): {
   return { sql: placeholders.join(', '), params };
 }
 
-function nullableJson(value: unknown): string | null {
-  return value === null || value === undefined ? null : canonicalJson(value);
+/**
+ * Keep JSONB parameters as structured values. Bun's PostgreSQL driver encodes
+ * a string parameter as a JSON string even when the destination is JSONB;
+ * passing the value itself preserves object/array semantics for read models.
+ */
+function nullableJson(value: unknown): unknown {
+  return value === undefined ? null : value;
 }
 
 class PostgresSignalTarget implements SignalTarget {
@@ -98,7 +102,7 @@ class PostgresSignalTarget implements SignalTarget {
           signal.operation,
           signal.status,
           signal.samplingReason,
-          canonicalJson(signal.attributes),
+          signal.attributes,
           signal.errorType,
           signal.startedAt,
           signal.finishedAt,
@@ -139,7 +143,7 @@ class PostgresSignalTarget implements SignalTarget {
           signal.max,
           transaction.array(signal.histogramBoundaries, 'float8'),
           transaction.array(signal.histogramCounts, 'int8'),
-          canonicalJson(signal.labels),
+          signal.labels,
         ];
       }),
     );

@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import {
   type AppendResult,
   OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
@@ -10,7 +11,6 @@ import {
   type StoredObservabilitySignal,
 } from './types';
 
-const encoder = new TextEncoder();
 const SIGNAL_KINDS: readonly SignalKind[] = [
   'span',
   'metric_bucket',
@@ -298,6 +298,8 @@ export class BufferedObservabilitySignalStore
   private readonly nextKindIndex = { value: 0 };
   private readonly flushTimer: ReturnType<typeof setInterval> | undefined;
   private queueBytes = 0;
+  private normalItems = 0;
+  private normalBytes = 0;
   private totalWritten = 0;
   private totalDropped = 0;
   private totalFailedDeliveries = 0;
@@ -350,7 +352,11 @@ export class BufferedObservabilitySignalStore
 
     let bytes: number;
     try {
-      bytes = encoder.encode(canonicalJson(signal)).byteLength;
+      // Byte capacity depends only on the UTF-8 payload size. Canonical key
+      // ordering is required when persisting JSON fields, but sorting every
+      // nested attribute here needlessly puts that work on the producer hot
+      // path and does not change the byte count.
+      bytes = Buffer.byteLength(JSON.stringify(signal), 'utf8');
     } catch {
       return this.dropAppend('invalid_schema');
     }
@@ -370,6 +376,10 @@ export class BufferedObservabilitySignalStore
     }) as StoredObservabilitySignal;
     this.queue.push({ signal: stored, bytes, priority });
     this.queueBytes += bytes;
+    if (!priority) {
+      this.normalItems += 1;
+      this.normalBytes += bytes;
+    }
     return { status: 'accepted' };
   }
 
@@ -584,14 +594,10 @@ export class BufferedObservabilitySignalStore
       if (bytes > this.maxBytes || this.queue.length >= this.maxItems) {
         return false;
       }
-      const normalItems = this.queue.filter((item) => !item.priority).length;
-      const normalBytes = this.queue
-        .filter((item) => !item.priority)
-        .reduce((total, item) => total + item.bytes, 0);
       return (
         this.queueBytes + bytes <= this.maxBytes &&
-        normalItems < Math.floor(this.maxItems * 0.8) &&
-        normalBytes + bytes <= Math.floor(this.maxBytes * 0.8)
+        this.normalItems < Math.floor(this.maxItems * 0.8) &&
+        this.normalBytes + bytes <= Math.floor(this.maxBytes * 0.8)
       );
     }
     if (
@@ -617,6 +623,8 @@ export class BufferedObservabilitySignalStore
       const [dropped] = this.queue.splice(index, 1);
       if (!dropped) return;
       this.queueBytes -= dropped.bytes;
+      this.normalItems -= 1;
+      this.normalBytes -= dropped.bytes;
       this.recordDrop('queue_full', 1);
     }
   }
@@ -695,6 +703,12 @@ export class BufferedObservabilitySignalStore
     }
     if (selected.length === 0) return null;
     this.queueBytes -= selectedBytes;
+    for (const item of selected) {
+      if (!item.priority) {
+        this.normalItems -= 1;
+        this.normalBytes -= item.bytes;
+      }
+    }
     return {
       id: Bun.randomUUIDv7(),
       kind,
@@ -827,6 +841,8 @@ export class BufferedObservabilitySignalStore
     const count = this.queue.length;
     this.queue.length = 0;
     this.queueBytes = 0;
+    this.normalItems = 0;
+    this.normalBytes = 0;
     if (count > 0) this.recordDrop(reason, count);
   }
 }
