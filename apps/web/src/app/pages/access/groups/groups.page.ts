@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   BadgeComponent,
   type BadgeVariant,
@@ -45,6 +45,11 @@ import {
   type GroupStatus,
   type PermissionGroupRecord,
 } from '../../../services/api.service';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import {
+  pageFromQuery,
+  syncPageQuery,
+} from '../../../shared/pagination/pagination-state';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'medium',
@@ -77,6 +82,7 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
     PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
     RouterLink,
     TableBodyComponent,
     TableCaptionComponent,
@@ -214,16 +220,20 @@ const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
 
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Page {{ meta().page }} of {{ pageCount() }} · {{ meta().total }} groups</p>
-        <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
-        </div>
+        <app-pagination
+          [page]="meta().page"
+          [totalPages]="meta().totalPages"
+          [loading]="loading()"
+          (pageChange)="goTo($event)"
+        />
       </PageFooter>
     </Page>
   `,
 })
 export class GroupsPage {
   private readonly api = inject(ApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly layout = inject(LayoutService);
   protected readonly filterOpen = signal(false);
   protected readonly loading = signal(true);
@@ -247,10 +257,11 @@ export class GroupsPage {
   );
 
   constructor() {
-    this.load(1);
+    this.load(pageFromQuery(this.route.snapshot.queryParamMap.get('page')));
   }
 
   protected load(page: number): void {
+    syncPageQuery(this.router, this.route, page);
     this.loading.set(true);
     this.error.set(null);
     const status = this.status();
@@ -306,6 +317,10 @@ export class GroupsPage {
     this.status.set('');
     this.deleted.set('exclude');
     this.load(1);
+  }
+
+  protected goTo(page: number): void {
+    this.load(page);
   }
 
   protected openCreate(): void {

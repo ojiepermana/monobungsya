@@ -21,6 +21,8 @@ import {
   type ApplicationLogItem,
   type LogsMeta,
 } from '../../../services/api.service';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { pageFromQuery } from '../../../shared/pagination/pagination-state';
 import {
   defaultTimeWindow,
   inputValue,
@@ -58,11 +60,6 @@ function validateSignalLogRange(from: string, to: string): string | null {
   return null;
 }
 
-function pageFromQuery(value: string | null): number {
-  const page = Number(value);
-  return Number.isSafeInteger(page) && page >= 1 ? page : 1;
-}
-
 @Component({
   selector: 'app-application-logs-page',
   host: { class: 'block h-full min-h-0' },
@@ -79,6 +76,7 @@ function pageFromQuery(value: string | null): number {
     PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
   ],
   template: `
     <Page variant="stacked" scroll="content" appearance="flat" [appsLauncher]="false" class="h-full min-h-0">
@@ -212,10 +210,12 @@ function pageFromQuery(value: string | null): number {
             <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !prevCursor()" (click)="goToCursor(prevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
             <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || !nextCursor()" (click)="goToCursor(nextCursor())">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
           } @else {
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goToPage(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goToPage(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goToPage(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goToPage(meta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
+            <app-pagination
+              [page]="meta().page"
+              [totalPages]="meta().totalPages"
+              [loading]="loading()"
+              (pageChange)="goToPage($event)"
+            />
           }
         </div>
       </PageFooter>

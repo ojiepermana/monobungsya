@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { IconComponent } from '@ojiepermana/angular/component/icon';
 import {
@@ -18,6 +18,11 @@ import {
   type NotificationPreference,
   type NotificationRecord,
 } from '../../services/api.service';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import {
+  pageFromQuery,
+  syncPageQuery,
+} from '../../shared/pagination/pagination-state';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'medium',
@@ -43,6 +48,7 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
     PageContentComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
     RouterLink,
   ],
   template: `
@@ -116,16 +122,20 @@ const CATEGORIES: Array<{ value: string; label: string }> = [
       </PageContent>
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Halaman {{ meta().page }} dari {{ pageCount() }} · {{ meta().total }} notifikasi</p>
-        <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="load(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Sebelumnya</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="load(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Berikutnya</button>
-        </div>
+        <app-pagination
+          [page]="meta().page"
+          [totalPages]="meta().totalPages"
+          [loading]="loading()"
+          (pageChange)="goTo($event)"
+        />
       </PageFooter>
     </Page>
   `,
 })
 export class NotificationsPage {
   private readonly api = inject(ApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly layoutAppearance = 'flat' as const;
   protected readonly categoryOptions = CATEGORIES;
   protected readonly category = signal('');
@@ -156,10 +166,11 @@ export class NotificationsPage {
   );
 
   constructor() {
-    this.load(1);
+    this.load(pageFromQuery(this.route.snapshot.queryParamMap.get('page')));
   }
 
   protected load(page: number): void {
+    syncPageQuery(this.router, this.route, page);
     this.loading.set(true);
     this.error.set(null);
     this.api
@@ -187,6 +198,9 @@ export class NotificationsPage {
   protected changeUnread(event: Event): void {
     this.unreadOnly.set((event.target as HTMLInputElement).checked);
     this.load(1);
+  }
+  protected goTo(page: number): void {
+    this.load(page);
   }
   protected markRead(notification: NotificationRecord): void {
     this.api.markNotificationRead(notification.id).subscribe({

@@ -6,6 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   AlertDialogActionComponent,
   AlertDialogCancelComponent,
@@ -65,6 +66,11 @@ import {
   type PermissionRecord,
   type UserRecord,
 } from '../../../services/api.service';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import {
+  pageFromQuery,
+  syncPageQuery,
+} from '../../../shared/pagination/pagination-state';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'medium',
@@ -108,6 +114,7 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
     PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
     TableBodyComponent,
     TableCaptionComponent,
     TableCellComponent,
@@ -336,10 +343,12 @@ const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
         </AlertDialog>
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">Page {{ permissionsPage() }} of {{ permissionsPageCount() }} · {{ attachedPermissions().length }} catalog permissions</p>
-        <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="permissionsPage() <= 1 || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="permissionsPage() >= permissionsPageCount() || permissionsLoading()" (click)="goToPermissionsPage(permissionsPage() + 1)">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
-        </div>
+        <app-pagination
+          [page]="permissionsPage()"
+          [totalPages]="permissionsPageCount()"
+          [loading]="permissionsLoading()"
+          (pageChange)="goToPermissionsPage($event)"
+        />
       </PageFooter>
     </Page>
   `,
@@ -349,6 +358,8 @@ export class GroupDetailPage {
 
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly layout = inject(LayoutService);
   protected readonly group = signal<PermissionGroupRecord | null>(null);
   protected readonly attachedPermissions = signal<PermissionRecord[]>([]);
@@ -453,25 +464,32 @@ export class GroupDetailPage {
   });
 
   constructor() {
+    const initialPage = pageFromQuery(
+      this.route.snapshot.queryParamMap.get('permissionsPage'),
+    );
+
     effect(() => {
       const id = this.id();
-      if (id) this.load(id);
+      if (id) this.load(id, initialPage);
     });
   }
 
   protected setPermissionSearch(event: Event): void {
     this.permissionSearch.set((event.target as HTMLInputElement).value);
     this.permissionsPage.set(1);
+    syncPageQuery(this.router, this.route, 1, 'permissionsPage');
   }
 
   protected setPermissionNamespace(event: Event): void {
     this.permissionNamespace.set((event.target as HTMLSelectElement).value);
     this.permissionsPage.set(1);
+    syncPageQuery(this.router, this.route, 1, 'permissionsPage');
   }
 
   protected setPermissionAction(event: Event): void {
     this.permissionAction.set((event.target as HTMLSelectElement).value);
     this.permissionsPage.set(1);
+    syncPageQuery(this.router, this.route, 1, 'permissionsPage');
   }
 
   protected hasPermissionFilters(): boolean {
@@ -487,13 +505,14 @@ export class GroupDetailPage {
     this.permissionNamespace.set('');
     this.permissionAction.set('');
     this.permissionsPage.set(1);
+    syncPageQuery(this.router, this.route, 1, 'permissionsPage');
   }
 
-  private load(id: string): void {
+  private load(id: string, page = 1): void {
     this.loading.set(true);
     this.permissionsLoading.set(true);
     this.usersLoading.set(true);
-    this.permissionsPage.set(1);
+    this.permissionsPage.set(page);
     this.error.set(null);
     this.dialogError.set(null);
     this.applyMessage.set(null);
@@ -663,9 +682,9 @@ export class GroupDetailPage {
   }
 
   protected goToPermissionsPage(page: number): void {
-    this.permissionsPage.set(
-      Math.min(Math.max(page, 1), this.permissionsPageCount()),
-    );
+    const nextPage = Math.min(Math.max(page, 1), this.permissionsPageCount());
+    this.permissionsPage.set(nextPage);
+    syncPageQuery(this.router, this.route, nextPage, 'permissionsPage');
   }
 
   protected attach(): void {

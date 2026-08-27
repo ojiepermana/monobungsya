@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BadgeComponent } from '@ojiepermana/angular/component/badge';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import {
@@ -46,6 +46,11 @@ import {
   type UserStatus,
   type UserStatusFilter,
 } from '../../../services/api.service';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import {
+  pageFromQuery,
+  syncPageQuery,
+} from '../../../shared/pagination/pagination-state';
 import { ReasonDialog } from '../reason-dialog';
 import { UserEditDialog } from '../user-edit-dialog';
 import {
@@ -117,6 +122,7 @@ interface DraftUser {
     PageFilterToggleComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
     ReasonDialog,
     RouterLink,
     UserEditDialog,
@@ -291,12 +297,12 @@ interface DraftUser {
 
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
-        <div class="flex items-center gap-2">
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page <= 1" (click)="goTo(meta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
-          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="loading() || meta().page >= meta().totalPages" (click)="goTo(meta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
-        </div>
+        <app-pagination
+          [page]="meta().page"
+          [totalPages]="meta().totalPages"
+          [loading]="loading()"
+          (pageChange)="goTo($event)"
+        />
       </PageFooter>
 
     </Page>
@@ -305,6 +311,8 @@ interface DraftUser {
 export class UsersPage {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly layout = inject(LayoutService);
   private readonly reasonDialog = viewChild(ReasonDialog);
 
@@ -369,10 +377,11 @@ export class UsersPage {
   });
 
   constructor() {
-    this.load(1);
+    this.load(pageFromQuery(this.route.snapshot.queryParamMap.get('page')));
   }
 
   protected load(page: number): void {
+    syncPageQuery(this.router, this.route, page);
     this.loading.set(true);
     this.error.set(null);
     this.api

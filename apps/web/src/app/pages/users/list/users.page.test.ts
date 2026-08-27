@@ -1,6 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  provideRouter,
+} from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '../../../auth/auth.service';
@@ -53,6 +57,7 @@ function createPage(
     email: 'admin@project.local',
     permissions: ['user:user:manage'],
   },
+  query: Record<string, string> = {},
 ) {
   const api = {
     users: vi.fn().mockReturnValue(of(emptyResponse())),
@@ -67,6 +72,10 @@ function createPage(
     providers: [
       provideZonelessChangeDetection(),
       provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { queryParamMap: convertToParamMap(query) } },
+      },
       { provide: ApiService, useValue: api },
       { provide: AuthService, useValue: { user: signal(callerUser) } },
     ],
@@ -135,6 +144,16 @@ describe('UsersPage list and filters (spec docs/specs/0007-user-management, AC-9
     expect(page.loading()).toBe(false);
     expect(page.rows()).toEqual([row]);
     expect(page.meta().total).toBe(1);
+  });
+
+  it('restores the requested page from the URL on construction', () => {
+    const { api } = createPage({}, null, { page: '3' });
+
+    expect(api.users).toHaveBeenCalledWith({
+      search: '',
+      status: '',
+      page: 3,
+    });
   });
 
   it('sets an error and stops loading when the list request fails', () => {

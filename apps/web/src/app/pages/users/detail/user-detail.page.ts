@@ -6,7 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BadgeComponent } from '@ojiepermana/angular/component/badge';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import {
@@ -50,6 +50,11 @@ import {
   type UpdateUserPayload,
   type UserRecord,
 } from '../../../services/api.service';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import {
+  pageFromQuery,
+  syncPageQuery,
+} from '../../../shared/pagination/pagination-state';
 import {
   defaultTimeWindow,
   isExpiredCursorError,
@@ -74,6 +79,14 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
 const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
 type TabKey = 'audit' | 'permissions' | 'access' | 'application';
+
+function tabFromQuery(value: string | null): TabKey {
+  return value === 'permissions' ||
+    value === 'access' ||
+    value === 'application'
+    ? value
+    : 'audit';
+}
 
 /**
  * User detail (spec docs/specs/0007-user-management, AC-9 and AC-10): the
@@ -111,6 +124,7 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
     PageContentComponent,
     PageFooterComponent,
     PageHeaderComponent,
+    PaginationComponent,
     UserEditDialog,
     UserAccessPanel,
     UserTwoFactorPanel,
@@ -329,10 +343,12 @@ type TabKey = 'audit' | 'permissions' | 'access' | 'application';
             <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || !activePrevCursor()" (click)="goToCursor(activePrevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
             <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || !activeNextCursor()" (click)="goToCursor(activeNextCursor())">Next<Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
           } @else {
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
-            <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
+            <app-pagination
+              [page]="activeMeta().page"
+              [totalPages]="activeMeta().totalPages"
+              [loading]="logsLoading()"
+              (pageChange)="goTo($event)"
+            />
           }
         </div>
       </PageFooter>
@@ -345,6 +361,8 @@ export class UserDetailPage {
 
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly layout = inject(LayoutService);
 
   protected readonly loading = signal(true);
@@ -471,18 +489,23 @@ export class UserDetailPage {
    * rather than running once in the constructor.
    */
   constructor() {
+    const query = this.route.snapshot.queryParamMap;
+    const initialTab = tabFromQuery(query.get('tab'));
+    const initialPage = pageFromQuery(query.get('page'));
+
     effect(() => {
       const id = this.id();
-      this.tab.set('audit');
+      this.tab.set(initialTab);
       this.resetSignalLogCursor('access');
       this.resetSignalLogCursor('application');
       this.loadProfile(id);
-      this.loadLogs('audit', 1, id);
+      this.loadLogs(initialTab, initialPage, id);
     });
   }
 
   protected selectTab(tab: TabKey): void {
     this.tab.set(tab);
+    this.syncTabQuery(tab);
     if (tab === 'access' || tab === 'application') {
       this.resetSignalLogCursor(tab);
     }
@@ -490,11 +513,13 @@ export class UserDetailPage {
   }
 
   protected goTo(page: number): void {
+    syncPageQuery(this.router, this.route, page);
     this.loadLogs(this.tab(), page, this.id());
   }
 
   protected goToCursor(cursor: string | null): void {
     if (!cursor) return;
+    syncPageQuery(this.router, this.route, 1);
     const tab = this.tab();
     if (tab === 'access') {
       this.accessCursor.set(cursor);
@@ -504,6 +529,18 @@ export class UserDetailPage {
       return;
     }
     this.loadLogs(tab, 1, this.id());
+  }
+
+  private syncTabQuery(tab: TabKey): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      replaceUrl: true,
+      queryParams: {
+        tab: tab === 'audit' ? null : tab,
+        page: null,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   private loadProfile(id: string): void {
