@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { LayoutService } from '@ojiepermana/angular/theme/layout/services';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -45,6 +46,7 @@ function createPage() {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       {
         provide: LayoutService,
         useValue: {

@@ -30,7 +30,7 @@
     "dev:mcp": "bun --watch apps/mcp/src/index.ts",
     "kill:dev-ports": "bun run scripts/kill-dev-ports.ts",
     "doctor": "bun run scripts/doctor.ts",
-    "test": "bun test apps/gateway/erp/src apps/services packages/config/src packages/database/src packages/elysia/src packages/jobs/src packages/logger/src packages/observability/src packages/telemetry/src packages/contracts/src apps/mcp/src/tests scripts/observability-benchmark.test.ts scripts/record-observability-promotion.test.ts scripts/activate-observability-promotion.test.ts scripts/enforce-observability-postgres-readonly.test.ts scripts/start-local-clickhouse.test.ts scripts/observability-postgres-adapter-contract.test.ts scripts/backfill-observability-signals.test.ts",
+    "test": "bun test apps/gateway/erp/src apps/services packages/config/src packages/database/src packages/elysia/src packages/jobs/src packages/logger/src packages/observability/src packages/telemetry/src packages/contracts/src apps/mcp/src/tests scripts/observability-benchmark.test.ts scripts/observability-staging.test.ts scripts/observability-local-staging.test.ts scripts/record-observability-promotion.test.ts scripts/activate-observability-promotion.test.ts scripts/enforce-observability-postgres-readonly.test.ts scripts/start-local-clickhouse.test.ts scripts/observability-postgres-adapter-contract.test.ts scripts/backfill-observability-signals.test.ts",
     "test:mcp": "bun test apps/mcp/src/tests",
     "test:database": "bun test packages/database/src",
     "test:progress": "bun test scripts/check-workflow-drift.test.ts",
@@ -101,7 +101,7 @@
     "db:seed:reset": "bun run packages/database/src/cli.ts seed-reset"
   },
   "dependencies": {
-    "@angular/cdk": "^22.1.3",
+    "@angular/cdk": "^22.1.4",
     "@angular/common": "^22.1.3",
     "@angular/compiler": "^22.1.3",
     "@angular/core": "^22.1.3",

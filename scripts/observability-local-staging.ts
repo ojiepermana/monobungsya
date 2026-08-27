@@ -75,7 +75,13 @@ async function create(): Promise<void> {
       ...(service === 'gateway'
         ? {
             ENABLE_INFRASTRUCTURE: 'false',
-            NODE_ENV: 'production',
+            // The disposable target is a local benchmark fixture, not a
+            // production cutover. Explicitly pin the baseline mode so a
+            // developer's ClickHouse promotion settings cannot prevent the
+            // gateway from starting.
+            NODE_ENV: 'test',
+            OBSERVABILITY_SIGNAL_WRITE_MODE: 'postgres',
+            OBSERVABILITY_SIGNAL_READ_MODE: 'postgres',
             PORT: String(stagingPort),
             SERVICE_INSTANCE_ID: `benchmark-staging-gateway-${process.pid}`,
             TELEMETRY_ENABLED: 'true',
