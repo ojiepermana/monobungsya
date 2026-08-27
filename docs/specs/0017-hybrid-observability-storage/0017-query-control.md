@@ -117,9 +117,9 @@ filterFingerprint
 
 Next query mengikuti sort order canonical. Previous query membalik comparison serta database order, mengambil satu page, lalu mengembalikan row dalam canonical display order. Membuka page ketiga lalu Previous dua kali harus menghasilkan page pertama yang identik.
 
-Application Log serta Access Log memakai page size 25. Trace memakai page size 50. Response membawa jumlah row page melalui panjang `data`, bukan exact total. `prevCursor` null pada page pertama dan `nextCursor` null ketika tidak ada row lanjutan.
+Application Log serta Access Log memakai page size default 100 dan dibatasi maksimal 100. Trace memakai page size 50. Response membawa jumlah row page melalui panjang `data`, bukan exact total. `prevCursor` null pada page pertama dan `nextCursor` null ketika tidak ada row lanjutan.
 
-Audit Trail tidak memakai Signal cursor dan mempertahankan page size 25, exact total, total pages, serta offset query PostgreSQL.
+Audit Trail tidak memakai Signal cursor dan mempertahankan exact total, total pages, serta offset query PostgreSQL. Page size default seluruh endpoint log adalah 100 dan dibatasi maksimal 100.
 
 ## Query budgets
 

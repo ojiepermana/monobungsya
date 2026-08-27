@@ -45,7 +45,7 @@ No blocking drift.
 ## Closeout debt
 
 1. **14. Observability pages per signal:** next Reconcile status, 0 verify steps open.
-1. **15. Hybrid observability storage:** next build, 27 verify steps open.
+1. **15. Hybrid observability storage:** next build, 10 verify steps open.
 
 ## Specs without scope
 

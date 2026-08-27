@@ -275,10 +275,10 @@ Move high volume Span, Metric Bucket, Application Log, and Access Log data behin
 - [ ] Build it: `/develop hybrid observability storage`
   - [x] Canonical Signal interface, bounded queue, fake, PostgreSQL adapter, and producer extraction (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9)
   - [x] ClickHouse HTTP adapter, schema migration, version gate, and local runner (AC-5, AC-6, AC-8, AC-23)
-  - [ ] Read model, control health, query limits, and per signal cursor paths (AC-10 to AC-16)
+  - [x] Read model, control health, query limits, and per signal cursor paths (AC-10 to AC-16)
   - [ ] Capacity, dual write, backfill, cutover, rollback, and operational evidence (AC-2, AC-17 to AC-22)
 - [ ] Verify it: `/check verify hybrid observability storage`
-- [x] Test it: `/test hybrid observability storage` (445 backend and package tests, 153 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-26)
+- [x] Test it: `/test hybrid observability storage` (461 backend and package tests, 156 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-27)
 
 Spec [0017](../specs/0017-hybrid-observability-storage/index.md) · code in `packages/observability`, `packages/telemetry`, `packages/logger`, `packages/database`, `apps/services/logs`, and `apps/gateway/erp`
 
