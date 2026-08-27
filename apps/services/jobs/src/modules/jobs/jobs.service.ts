@@ -10,11 +10,13 @@ export const JOB_STATUSES = [
   'completed',
   'failed',
 ] as const;
+const JOBS_PER_PAGE = 100;
 
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export interface JobListQuery {
   page?: string;
+  pageSize?: string;
   status?: string;
   type?: string;
   sourceService?: string;
@@ -31,6 +33,7 @@ export class JobsService {
 
   async list(query: JobListQuery) {
     const page = positivePage(query.page);
+    const pageSize = positivePageSize(query.pageSize);
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -57,7 +60,7 @@ export class JobsService {
       `SELECT ${SAFE_JOB_COLUMNS} FROM "jobs"."job" ${where}
        ORDER BY created_at DESC, id DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, 25, (page - 1) * 25] as never[],
+      [...params, pageSize, (page - 1) * pageSize] as never[],
     )) as Array<Record<string, unknown>>;
     const [typeRows, sourceRows, targetRows] = await Promise.all([
       this.database`SELECT DISTINCT type FROM jobs.job ORDER BY type`,
@@ -71,9 +74,9 @@ export class JobsService {
       data: rows.map(mapSafeJob),
       meta: {
         page,
-        perPage: 25,
+        perPage: pageSize,
         total: Number(countRows[0]?.total ?? 0),
-        totalPages: Math.ceil(Number(countRows[0]?.total ?? 0) / 25),
+        totalPages: Math.ceil(Number(countRows[0]?.total ?? 0) / pageSize),
       },
       filters: {
         page,
@@ -238,6 +241,13 @@ function addFilter(
 function positivePage(value: string | undefined): number {
   const parsed = Number(value ?? '1');
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function positivePageSize(value: string | undefined): number {
+  const parsed = Number(value ?? JOBS_PER_PAGE);
+  return Number.isInteger(parsed) && parsed > 0
+    ? Math.min(parsed, JOBS_PER_PAGE)
+    : JOBS_PER_PAGE;
 }
 
 function mapSafeJob(row: Record<string, unknown>) {

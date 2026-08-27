@@ -83,6 +83,7 @@ export interface SignalLogRange {
   from: Date;
   to: Date;
   cursor?: string;
+  pageSize?: number;
 }
 
 export interface SignalAccessLogsQuery extends SignalLogRange {

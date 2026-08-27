@@ -56,7 +56,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
-const EMPTY_META = { page: 1, pageSize: 25, total: 0, totalPages: 0 };
+const EMPTY_META = { page: 1, pageSize: 100, total: 0, totalPages: 0 };
 
 @Component({
   selector: 'app-groups-page',

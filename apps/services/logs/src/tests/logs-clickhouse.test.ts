@@ -90,7 +90,7 @@ function uuid(index: number): string {
 }
 
 function applicationRow(index: number) {
-  const second = String(index).padStart(2, '0');
+  const second = String(index % 60).padStart(2, '0');
   return {
     id: uuid(index),
     level: 'error',
@@ -172,14 +172,14 @@ describe('ClickHouse log Signal reads', () => {
   });
 
   it('uses a versioned filter-bound keyset cursor in both directions', async () => {
-    const firstRows = Array.from({ length: 26 }, (_, offset) =>
-      applicationRow(51 - offset),
+    const firstRows = Array.from({ length: 101 }, (_, offset) =>
+      applicationRow(201 - offset),
     );
-    const nextRows = Array.from({ length: 26 }, (_, offset) =>
-      applicationRow(26 - offset),
+    const nextRows = Array.from({ length: 101 }, (_, offset) =>
+      applicationRow(100 - offset),
     );
-    const previousRows = Array.from({ length: 26 }, (_, offset) =>
-      applicationRow(27 + offset),
+    const previousRows = Array.from({ length: 101 }, (_, offset) =>
+      applicationRow(102 + offset),
     );
     const client = new FakeClickHouseClient((call) => {
       if (call.query.includes('groupUniqArray')) {
@@ -212,8 +212,8 @@ describe('ClickHouse log Signal reads', () => {
       actorUserId: '',
     });
 
-    expect(first.data).toHaveLength(25);
-    expect(first.data[0]?.id).toBe(uuid(51));
+    expect(first.data).toHaveLength(100);
+    expect(first.data[0]?.id).toBe(uuid(201));
     expect(first.nextCursor).toBeString();
     expect(first.prevCursor).toBeNull();
     expect(client.calls).toHaveLength(2);
@@ -238,7 +238,7 @@ describe('ClickHouse log Signal reads', () => {
       actorUserId: '',
       cursor: first.nextCursor ?? undefined,
     });
-    expect(next.data[0]?.id).toBe(uuid(26));
+    expect(next.data[0]?.id).toBe(uuid(100));
     expect(next.prevCursor).toBeString();
     expect(next.nextCursor).toBeString();
 
@@ -480,7 +480,7 @@ describe('ClickHouse log Signal reads', () => {
     expect(audit.status).toBe(200);
     expect(await audit.json()).toEqual({
       data: [],
-      meta: { page: 1, perPage: 25, total: 0, totalPages: 0 },
+      meta: { page: 1, perPage: 100, total: 0, totalPages: 0 },
       filters: { search: '', module: '', action: '' },
       options: { modules: [], actions: [] },
     });

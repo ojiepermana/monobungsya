@@ -38,7 +38,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
-const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
+const EMPTY_META: LogsMeta = { page: 1, perPage: 100, total: 0, totalPages: 0 };
 const SIGNAL_LOG_MAX_RANGE_MS = 30 * 24 * 60 * 60 * 1_000;
 
 function validateSignalLogRange(from: string, to: string): string | null {

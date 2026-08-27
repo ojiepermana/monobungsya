@@ -87,6 +87,12 @@ paths:
           schema:
             maxLength: 8
             type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
       responses:
         "200":
           description: Response for status 200

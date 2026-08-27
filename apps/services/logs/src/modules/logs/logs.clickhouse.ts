@@ -13,7 +13,7 @@ import type {
   SignalLogRange,
 } from './logs.types';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 100;
 const OPTION_LIMIT = 200;
 const CURSOR_VERSION = 1;
 const UUID_PATTERN =
@@ -84,6 +84,8 @@ function cursorFingerprint(
   range: SignalLogRange,
   filters: Record<string, string>,
 ): string {
+  const pageSize = range.pageSize ?? PAGE_SIZE;
+
   return sha256(
     canonicalJson({
       version: CURSOR_VERSION,
@@ -91,7 +93,7 @@ function cursorFingerprint(
       from: range.from.toISOString(),
       to: range.to.toISOString(),
       filters,
-      pageSize: PAGE_SIZE,
+      pageSize,
       sort: 'event_time_desc_stable_id_desc',
     }),
   );
@@ -421,9 +423,10 @@ export class ClickHouseLogsSignalReader {
     page: Record<string, unknown>[];
     cursors: { prevCursor: string | null; nextCursor: string | null };
   }> {
+    const pageSize = query.pageSize ?? PAGE_SIZE;
     const params: ClickHouseParameters = {
       ...source.params,
-      limit: PAGE_SIZE + 1,
+      limit: pageSize + 1,
     };
     let direction: CursorDirection = 'next';
     if (cursor) {
@@ -451,8 +454,8 @@ export class ClickHouseLogsSignalReader {
       throw new ValidationError('The log cursor has expired');
     }
 
-    const hasMore = rows.length > PAGE_SIZE;
-    const pageRows = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+    const hasMore = rows.length > pageSize;
+    const pageRows = hasMore ? rows.slice(0, pageSize) : rows;
     const page = direction === 'prev' ? pageRows.reverse() : pageRows;
     const first = page[0];
     const last = page.at(-1);

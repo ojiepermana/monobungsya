@@ -27,12 +27,20 @@ function parsePage(value: string | undefined): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
-function buildMeta(page: number, total: number): LogsMeta {
+function parsePageSize(value: string | undefined): number {
+  const parsed = Number(value ?? LOGS_PER_PAGE);
+
+  return Number.isInteger(parsed) && parsed > 0
+    ? Math.min(parsed, LOGS_PER_PAGE)
+    : LOGS_PER_PAGE;
+}
+
+function buildMeta(page: number, pageSize: number, total: number): LogsMeta {
   return {
     page,
-    perPage: LOGS_PER_PAGE,
+    perPage: pageSize,
     total,
-    totalPages: Math.ceil(total / LOGS_PER_PAGE),
+    totalPages: Math.ceil(total / pageSize),
   };
 }
 
@@ -94,6 +102,7 @@ export class LogsService {
     action?: string;
     actorUserId?: string;
     page?: string;
+    pageSize?: string;
   }): Promise<AuditTrailsResult> {
     const filters = {
       search: squish(query.search),
@@ -101,15 +110,17 @@ export class LogsService {
       action: squish(query.action),
     };
     const page = parsePage(query.page);
+    const pageSize = parsePageSize(query.pageSize);
     const { items, total } = await this.repository.listAuditTrails({
       ...filters,
       actorUserId: squish(query.actorUserId),
       page,
+      pageSize,
     });
 
     return {
       data: items,
-      meta: buildMeta(page, total),
+      meta: buildMeta(page, pageSize, total),
       filters,
       options: await this.repository.auditTrailOptions(),
     };
@@ -122,6 +133,7 @@ export class LogsService {
     traceId?: string;
     actorUserId?: string;
     page?: string;
+    pageSize?: string;
     from?: string;
     to?: string;
     cursor?: string;
@@ -133,6 +145,7 @@ export class LogsService {
       traceId: squish(query.traceId),
     };
     const actorUserId = squish(query.actorUserId).toLowerCase();
+    const pageSize = parsePageSize(query.pageSize);
     if (this.repository.usesClickHouseSignalReads()) {
       const range = signalRange(query.from, query.to, this.now());
       return this.readSignalList(
@@ -141,6 +154,7 @@ export class LogsService {
             ...filters,
             actorUserId,
             cursor: query.cursor,
+            pageSize,
             ...range,
           }),
         (blindSpotSince): SignalAccessLogsResult => ({
@@ -159,11 +173,12 @@ export class LogsService {
       ...filters,
       actorUserId,
       page,
+      pageSize,
     });
 
     return {
       data: items,
-      meta: buildMeta(page, total),
+      meta: buildMeta(page, pageSize, total),
       filters,
       options: await this.repository.accessLogOptions(),
     };
@@ -176,6 +191,7 @@ export class LogsService {
     event?: string;
     actorUserId?: string;
     page?: string;
+    pageSize?: string;
     from?: string;
     to?: string;
     cursor?: string;
@@ -187,6 +203,7 @@ export class LogsService {
       event: squish(query.event),
     };
     const actorUserId = squish(query.actorUserId).toLowerCase();
+    const pageSize = parsePageSize(query.pageSize);
     if (this.repository.usesClickHouseSignalReads()) {
       const range = signalRange(query.from, query.to, this.now());
       return this.readSignalList(
@@ -195,6 +212,7 @@ export class LogsService {
             ...filters,
             actorUserId,
             cursor: query.cursor,
+            pageSize,
             ...range,
           }),
         (blindSpotSince): SignalApplicationLogsResult => ({
@@ -213,11 +231,12 @@ export class LogsService {
       ...filters,
       actorUserId,
       page,
+      pageSize,
     });
 
     return {
       data: items,
-      meta: buildMeta(page, total),
+      meta: buildMeta(page, pageSize, total),
       filters,
       options: await this.repository.applicationLogOptions(),
     };

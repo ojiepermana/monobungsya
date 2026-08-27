@@ -211,7 +211,7 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
   });
 
   it('paginates attached catalog permissions in the page footer', () => {
-    const permissions = Array.from({ length: 11 }, (_, index) => ({
+    const permissions = Array.from({ length: 101 }, (_, index) => ({
       ...permission,
       id: `permission-${index + 1}`,
       name: `user:user:permission-${index + 1}` as PermissionRecord['name'],
@@ -225,8 +225,8 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     );
     const root = fixture.nativeElement as HTMLElement;
 
-    expect(root.textContent).toContain('Page 1 of 2 · 11 catalog permissions');
-    expect(root.querySelectorAll('tbody tr')).toHaveLength(10);
+    expect(root.textContent).toContain('Page 1 of 2 · 101 catalog permissions');
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(100);
 
     const next = Array.from(root.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Next'),
@@ -234,9 +234,9 @@ describe('GroupDetailPage (spec docs/specs/0015-permission-group-template)', () 
     next?.click();
     fixture.detectChanges();
 
-    expect(root.textContent).toContain('Page 2 of 2 · 11 catalog permissions');
+    expect(root.textContent).toContain('Page 2 of 2 · 101 catalog permissions');
     expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(root.textContent).toContain('user:user:permission-11');
+    expect(root.textContent).toContain('user:user:permission-101');
   });
 
   it('filters attached permissions from the toggleable PageFilter', () => {

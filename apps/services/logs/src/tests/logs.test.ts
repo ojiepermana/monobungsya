@@ -61,7 +61,7 @@ describe('logs service app', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       data: [],
-      meta: { page: 1, perPage: 25, total: 0, totalPages: 0 },
+      meta: { page: 1, perPage: 100, total: 0, totalPages: 0 },
       filters: { search: '', module: '', action: '' },
       options: { modules: [], actions: [] },
     });
@@ -123,6 +123,7 @@ describe('logs repository', () => {
       action: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(queries.length).toBeGreaterThan(0);
@@ -146,6 +147,7 @@ describe('logs repository', () => {
       traceId: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(queries[0]?.params[0]).toBe('%50\\%\\_done%');
@@ -164,6 +166,7 @@ describe('logs repository', () => {
       action: '',
       actorUserId: '',
       page: 2,
+      pageSize: 25,
     });
 
     const listQuery = queries[1];
@@ -204,6 +207,7 @@ describe('logs repository', () => {
       event: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(items[0]).toEqual({
@@ -256,6 +260,7 @@ describe('logs repository', () => {
       traceId: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(items[0]).toEqual({
@@ -321,6 +326,7 @@ describe('logs repository', () => {
       traceId: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(items[0]?.traceSource).toBe('client_header');
@@ -369,6 +375,7 @@ describe('logs repository', () => {
       traceId: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     expect(items[0]).toMatchObject({
@@ -394,6 +401,7 @@ describe('logs repository', () => {
       action: '',
       actorUserId,
       page: 1,
+      pageSize: 25,
     });
     await repository.listAccessLogs({
       search: '',
@@ -402,6 +410,7 @@ describe('logs repository', () => {
       traceId: '',
       actorUserId,
       page: 1,
+      pageSize: 25,
     });
     await repository.listApplicationLogs({
       search: '',
@@ -410,6 +419,7 @@ describe('logs repository', () => {
       event: '',
       actorUserId,
       page: 1,
+      pageSize: 25,
     });
 
     const listQueries = queries.filter(
@@ -436,6 +446,7 @@ describe('logs repository', () => {
       action: '',
       actorUserId: '',
       page: 1,
+      pageSize: 25,
     });
 
     for (const query of queries) {
@@ -480,16 +491,16 @@ describe('logs service pagination and filters', () => {
     return new LogsRepository(database);
   }
 
-  it('returns meta { page: 2, perPage: 25, total: 26, totalPages: 2 } for 26 rows', async () => {
+  it('returns meta { page: 2, perPage: 100, total: 26, totalPages: 1 } for 26 rows', async () => {
     const service = new LogsService(repositoryWithTotal(26));
 
     const result = await service.getAuditTrails({ page: '2' });
 
     expect(result.meta).toEqual({
       page: 2,
-      perPage: 25,
+      perPage: 100,
       total: 26,
-      totalPages: 2,
+      totalPages: 1,
     });
   });
 

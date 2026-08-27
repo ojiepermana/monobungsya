@@ -21,7 +21,7 @@ import type {
   SignalApplicationLogsResult,
 } from './logs.types';
 
-export const LOGS_PER_PAGE = 25;
+export const LOGS_PER_PAGE = 100;
 
 interface ListPage<Item> {
   items: Item[];
@@ -157,6 +157,7 @@ export class LogsRepository {
     action: string;
     actorUserId: string;
     page: number;
+    pageSize?: number;
   }): Promise<ListPage<AuditTrailItem>> {
     const clause = buildWhere(query.search, AUDIT_SEARCH_COLUMNS, [
       [AUDIT_FILTER_COLUMNS.module, query.module],
@@ -170,6 +171,7 @@ export class LogsRepository {
       'audited_at',
       clause,
       query.page,
+      query.pageSize ?? LOGS_PER_PAGE,
     );
 
     return {
@@ -203,6 +205,7 @@ export class LogsRepository {
     traceId: string;
     actorUserId: string;
     page: number;
+    pageSize?: number;
   }): Promise<ListPage<AccessLogItem>> {
     const clause = buildWhere(query.search, ACCESS_SEARCH_COLUMNS, [
       [ACCESS_FILTER_COLUMNS.event, query.event],
@@ -218,6 +221,7 @@ export class LogsRepository {
       'accessed_at',
       clause,
       query.page,
+      query.pageSize ?? LOGS_PER_PAGE,
     );
 
     return {
@@ -240,6 +244,7 @@ export class LogsRepository {
     event: string;
     actorUserId: string;
     page: number;
+    pageSize?: number;
   }): Promise<ListPage<ApplicationLogItem>> {
     const clause = buildWhere(query.search, APPLICATION_SEARCH_COLUMNS, [
       [APPLICATION_FILTER_COLUMNS.level, query.level],
@@ -256,6 +261,7 @@ export class LogsRepository {
       'occurred_at',
       clause,
       query.page,
+      query.pageSize ?? LOGS_PER_PAGE,
     );
 
     return {
@@ -282,6 +288,7 @@ export class LogsRepository {
     timeColumn: string,
     clause: WhereClause,
     page: number,
+    pageSize: number,
   ): Promise<ListPage<Record<string, unknown>>> {
     if (!this.database) {
       return { items: [], total: 0 };
@@ -307,11 +314,7 @@ export class LogsRepository {
           `SELECT ${selectColumns} FROM ${table}${clause.where} ` +
             `ORDER BY ${timeColumn} DESC, id DESC ` +
             `LIMIT $${limitParam} OFFSET $${offsetParam}`,
-          [
-            ...clause.params,
-            LOGS_PER_PAGE,
-            (page - 1) * LOGS_PER_PAGE,
-          ] as never[],
+          [...clause.params, pageSize, (page - 1) * pageSize] as never[],
         ),
     )) as Array<Record<string, unknown>>;
 

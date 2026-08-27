@@ -32,6 +32,7 @@ export const usersListQuery = t.Object({
   search: t.Optional(t.String({ maxLength: 255 })),
   status: t.Optional(userStatusFilterSchema),
   page: t.Optional(t.String({ maxLength: 8 })),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
 });
 
 export const usersListResponse = t.Object({

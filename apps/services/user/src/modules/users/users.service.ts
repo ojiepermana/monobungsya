@@ -82,6 +82,14 @@ function parsePage(value: string | undefined): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function parsePageSize(value: string | undefined): number {
+  const parsed = Number(value ?? USERS_PER_PAGE);
+
+  return Number.isInteger(parsed) && parsed > 0
+    ? Math.min(parsed, USERS_PER_PAGE)
+    : USERS_PER_PAGE;
+}
+
 function summarizeChange(before: UserRecord, after: UserRecord): string {
   const parts: string[] = [];
 
@@ -127,11 +135,13 @@ export class UsersService {
     search?: string;
     status?: UsersListQuery['status'];
     page?: string;
+    pageSize?: string;
   }): Promise<UsersListResult> {
     const resolved: UsersListQuery = {
       search: query.search?.trim() ?? '',
       status: query.status ?? '',
       page: parsePage(query.page),
+      pageSize: parsePageSize(query.pageSize),
     };
     const page = await this.repository.list(resolved);
 
@@ -139,9 +149,9 @@ export class UsersService {
       data: page.items,
       meta: {
         page: resolved.page,
-        perPage: USERS_PER_PAGE,
+        perPage: resolved.pageSize,
         total: page.total,
-        totalPages: Math.ceil(page.total / USERS_PER_PAGE),
+        totalPages: Math.ceil(page.total / resolved.pageSize),
       },
       filters: { search: resolved.search, status: resolved.status },
       options: { statuses: [...USER_STATUSES] },

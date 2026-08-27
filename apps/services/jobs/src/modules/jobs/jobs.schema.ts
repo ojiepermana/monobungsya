@@ -38,6 +38,7 @@ export const jobIdParams = t.Object({ id: t.String({ format: 'uuid' }) });
 
 export const jobsListQuery = t.Object({
   page: t.Optional(t.String({ maxLength: 8 })),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
   status: t.Optional(jobStatus),
   type: t.Optional(t.String({ maxLength: 100 })),
   sourceService: t.Optional(t.String({ maxLength: 50 })),

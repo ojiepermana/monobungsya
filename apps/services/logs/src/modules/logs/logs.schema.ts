@@ -45,6 +45,7 @@ export const auditTrailsQuery = t.Object({
   module: t.Optional(t.String()),
   action: t.Optional(t.String()),
   page: t.Optional(t.String()),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
   actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 
@@ -84,6 +85,7 @@ export const accessLogsQuery = t.Object({
   from: t.Optional(t.String()),
   to: t.Optional(t.String()),
   cursor: t.Optional(t.String({ maxLength: 512 })),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
   actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 
@@ -150,6 +152,7 @@ export const applicationLogsQuery = t.Object({
   from: t.Optional(t.String()),
   to: t.Optional(t.String()),
   cursor: t.Optional(t.String({ maxLength: 512 })),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
   actorUserId: t.Optional(t.String({ format: 'uuid' })),
 });
 

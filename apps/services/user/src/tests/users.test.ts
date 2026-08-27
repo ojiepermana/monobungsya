@@ -742,9 +742,9 @@ describe('users list (spec docs/specs/0007-user-management, AC-9)', () => {
     expect(response.status).toBe(200);
     expect(body.meta).toEqual({
       page: 2,
-      perPage: 25,
+      perPage: 100,
       total: 26,
-      totalPages: 2,
+      totalPages: 1,
     });
   });
 
@@ -767,7 +767,12 @@ describe('UsersRepository (spec docs/specs/0007-user-management)', () => {
     const { database, queries } = createFakeDatabase([[{ total: 0 }], []]);
     const repository = new UsersRepository(database);
 
-    await repository.list({ search: injection, status: '', page: 1 });
+    await repository.list({
+      search: injection,
+      status: '',
+      page: 1,
+      pageSize: 25,
+    });
 
     for (const query of queries) {
       expect(query.text).not.toContain(injection);
@@ -779,7 +784,12 @@ describe('UsersRepository (spec docs/specs/0007-user-management)', () => {
     const { database, queries } = createFakeDatabase([[{ total: 0 }], []]);
     const repository = new UsersRepository(database);
 
-    await repository.list({ search: '50%_admin', status: '', page: 1 });
+    await repository.list({
+      search: '50%_admin',
+      status: '',
+      page: 1,
+      pageSize: 25,
+    });
 
     expect(queries[0]?.params[0]).toBe('%50\\%\\_admin%');
     expect(queries[1]?.text).toContain("ESCAPE '\\'");
@@ -799,7 +809,7 @@ describe('UsersRepository (spec docs/specs/0007-user-management)', () => {
       const { database, queries } = createFakeDatabase([[{ total: 0 }], []]);
       const repository = new UsersRepository(database);
 
-      await repository.list({ search: '', status, page: 1 });
+      await repository.list({ search: '', status, page: 1, pageSize: 25 });
 
       if (predicate) {
         expect(queries[0]?.text).toContain(predicate);
@@ -813,7 +823,7 @@ describe('UsersRepository (spec docs/specs/0007-user-management)', () => {
     const { database, queries } = createFakeDatabase([[{ total: 60 }], []]);
     const repository = new UsersRepository(database);
 
-    await repository.list({ search: '', status: '', page: 3 });
+    await repository.list({ search: '', status: '', page: 3, pageSize: 25 });
 
     const listQuery = queries[1];
     expect(listQuery?.text).toContain('LIMIT $1 OFFSET $2');

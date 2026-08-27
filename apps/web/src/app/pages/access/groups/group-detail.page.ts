@@ -77,7 +77,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
-const ATTACHED_PERMISSIONS_PAGE_SIZE = 10;
+const ATTACHED_PERMISSIONS_PAGE_SIZE = 100;
 
 @Component({
   selector: 'app-group-detail-page',

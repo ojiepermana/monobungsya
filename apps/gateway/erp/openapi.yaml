@@ -2239,6 +2239,12 @@ paths:
           schema:
             maxLength: 8
             type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
         - name: status
           in: query
           required: false
@@ -2927,6 +2933,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
         - name: category
           in: query
           required: false
@@ -3452,6 +3464,12 @@ paths:
           schema:
             maxLength: 512
             type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            maxLength: 8
+            type: string
         - name: actorUserId
           in: query
           required: false
@@ -3876,6 +3894,12 @@ paths:
           required: false
           schema:
             maxLength: 512
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            maxLength: 8
             type: string
         - name: actorUserId
           in: query

@@ -41,12 +41,13 @@ export interface UsersFilters {
   search: string;
   status: UserStatusFilter;
   page: number;
+  pageSize?: number;
 }
 
 export interface UsersResponse {
   data: UserRecord[];
   meta: LogsMeta;
-  filters: Omit<UsersFilters, 'page'>;
+  filters: Omit<UsersFilters, 'page' | 'pageSize'>;
   options: { statuses: UserStatus[] };
 }
 
@@ -73,6 +74,7 @@ export interface AuditTrailFilters {
   module: string;
   action: string;
   page: number;
+  pageSize?: number;
 }
 
 /** Narrows a log list to one actor, for the user detail page tabs. */
@@ -96,7 +98,7 @@ export interface AuditTrailItem {
 export interface AuditTrailsResponse {
   data: AuditTrailItem[];
   meta: LogsMeta;
-  filters: Omit<AuditTrailFilters, 'page'>;
+  filters: Omit<AuditTrailFilters, 'page' | 'pageSize'>;
   options: {
     modules: string[];
     actions: string[];
@@ -109,6 +111,7 @@ export interface AccessLogFilters {
   outcome: string;
   traceId: string;
   page: number;
+  pageSize?: number;
   from?: string;
   to?: string;
   cursor?: string;
@@ -210,7 +213,10 @@ export interface AccessLogItem {
 export interface PostgresAccessLogsResponse {
   data: AccessLogItem[];
   meta: LogsMeta;
-  filters: Omit<AccessLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
+  filters: Omit<
+    AccessLogFilters,
+    'page' | 'pageSize' | 'from' | 'to' | 'cursor'
+  >;
   options: {
     events: string[];
     outcomes: string[];
@@ -240,6 +246,7 @@ export interface ApplicationLogFilters {
   module: string;
   event: string;
   page: number;
+  pageSize?: number;
   from?: string;
   to?: string;
   cursor?: string;
@@ -267,7 +274,10 @@ export interface ApplicationLogItem {
 export interface PostgresApplicationLogsResponse {
   data: ApplicationLogItem[];
   meta: LogsMeta;
-  filters: Omit<ApplicationLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
+  filters: Omit<
+    ApplicationLogFilters,
+    'page' | 'pageSize' | 'from' | 'to' | 'cursor'
+  >;
   options: {
     levels: string[];
     modules: string[];
@@ -367,6 +377,7 @@ export interface JobsResponse {
   meta: LogsMeta;
   filters: {
     page: number;
+    pageSize?: number;
     status: string;
     type: string;
     sourceService: string;
@@ -610,12 +621,14 @@ export class ApiService {
 
   notifications(filters: {
     page: number;
+    pageSize?: number;
     category: string;
     unreadOnly: boolean;
   }): Observable<NotificationsResponse> {
     return this.http.get<NotificationsResponse>('/api/v1/notifications', {
       params: {
         page: filters.page,
+        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
         category: filters.category,
         unreadOnly: filters.unreadOnly,
       },
@@ -659,10 +672,15 @@ export class ApiService {
     );
   }
 
-  jobs(filters: { page: number; status: string }): Observable<JobsResponse> {
+  jobs(filters: {
+    page: number;
+    pageSize?: number;
+    status: string;
+  }): Observable<JobsResponse> {
     return this.http.get<JobsResponse>('/api/v1/jobs', {
       params: {
         page: filters.page,
+        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
         ...(filters.status ? { status: filters.status } : {}),
       },
     });
@@ -688,6 +706,7 @@ export class ApiService {
             search: filters.search,
             status: filters.status,
             page: String(filters.page),
+            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
           },
           throwOnError: true,
         }),
@@ -770,6 +789,7 @@ export class ApiService {
             module: filters.module,
             action: filters.action,
             page: String(filters.page),
+            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
             actorUserId: filters.actorUserId,
           },
           throwOnError: true,
@@ -791,6 +811,7 @@ export class ApiService {
         ...(filters.from ? { from: filters.from } : {}),
         ...(filters.to ? { to: filters.to } : {}),
         ...(filters.cursor ? { cursor: filters.cursor } : {}),
+        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
         ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
       },
     });
@@ -811,6 +832,7 @@ export class ApiService {
           ...(filters.from ? { from: filters.from } : {}),
           ...(filters.to ? { to: filters.to } : {}),
           ...(filters.cursor ? { cursor: filters.cursor } : {}),
+          ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
           ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
         },
       },
@@ -948,6 +970,7 @@ export class ApiService {
     search: string;
     namespace: string;
     page: number;
+    pageSize?: number;
   }): Observable<PermissionsResponse> {
     return defer(() =>
       sdkRequest<PermissionsResponse>(() =>
@@ -956,6 +979,7 @@ export class ApiService {
             search: filters.search,
             namespace: filters.namespace,
             page: String(filters.page),
+            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
           },
           throwOnError: true,
         }),

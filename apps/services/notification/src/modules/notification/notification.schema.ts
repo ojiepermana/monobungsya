@@ -10,6 +10,7 @@ const meta = t.Object({
 
 export const notificationsQuery = t.Object({
   page: t.Optional(t.String()),
+  pageSize: t.Optional(t.String({ maxLength: 8 })),
   category: t.Optional(t.String()),
   unreadOnly: t.Optional(t.String()),
 });

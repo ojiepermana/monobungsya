@@ -15,7 +15,7 @@ import type {
   UsersPage,
 } from './types/repository.types';
 
-export const USERS_PER_PAGE = 25;
+export const USERS_PER_PAGE = 100;
 
 /**
  * Data access for "user"."users". Every value the caller supplies is bound as a
@@ -131,7 +131,7 @@ export class UsersRepository {
     const rows = (await database.unsafe(
       `SELECT ${SELECT_COLUMNS} FROM "user"."users"${where} ` +
         `ORDER BY ${ORDER_BY} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, USERS_PER_PAGE, (query.page - 1) * USERS_PER_PAGE] as never[],
+      [...params, query.pageSize, (query.page - 1) * query.pageSize] as never[],
     )) as Array<Record<string, unknown>>;
 
     return {

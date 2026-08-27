@@ -50,7 +50,7 @@ interface PermissionListMeta {
 
 const EMPTY_META: PermissionListMeta = {
   page: 1,
-  pageSize: 25,
+  pageSize: 100,
   total: 0,
   totalPages: 0,
 };

@@ -842,6 +842,7 @@ export type GetApiV1JobsData = {
     path?: never;
     query?: {
         page?: string;
+        pageSize?: string;
         status?: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
         type?: string;
         sourceService?: string;
@@ -1032,6 +1033,7 @@ export type GetApiV1NotificationsData = {
     path?: never;
     query?: {
         page?: string;
+        pageSize?: string;
         category?: string;
         unreadOnly?: string;
     };
@@ -1248,6 +1250,7 @@ export type GetApiV1LogsAccessLogsData = {
         from?: string;
         to?: string;
         cursor?: string;
+        pageSize?: string;
         actorUserId?: string;
     };
     url: '/api/v1/logs/access-logs';
@@ -1364,6 +1367,7 @@ export type GetApiV1LogsApplicationLogsData = {
         from?: string;
         to?: string;
         cursor?: string;
+        pageSize?: string;
         actorUserId?: string;
     };
     url: '/api/v1/logs/application-logs';

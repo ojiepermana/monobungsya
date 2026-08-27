@@ -145,7 +145,7 @@ export class NotificationsPage {
   protected readonly rows = signal<NotificationRecord[]>([]);
   protected readonly meta = signal({
     page: 1,
-    perPage: 25,
+    perPage: 100,
     total: 0,
     totalPages: 0,
   });

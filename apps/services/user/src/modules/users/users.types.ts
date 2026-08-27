@@ -58,6 +58,7 @@ export interface UsersListQuery {
   search: string;
   status: UserStatusFilter;
   page: number;
+  pageSize: number;
 }
 
 export interface UsersListMeta {

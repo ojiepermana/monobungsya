@@ -18,6 +18,7 @@ export const NOTIFICATION_CATEGORIES = [
   'operational',
 ] as const;
 export const NOTIFICATION_CHANNELS = ['in_app', 'email'] as const;
+const NOTIFICATIONS_PER_PAGE = 100;
 type Category = (typeof NOTIFICATION_CATEGORIES)[number];
 type Channel = (typeof NOTIFICATION_CHANNELS)[number];
 
@@ -372,9 +373,15 @@ export class NotificationService {
 
   async list(
     userId: string,
-    query: { page?: string; category?: string; unreadOnly?: string },
+    query: {
+      page?: string;
+      pageSize?: string;
+      category?: string;
+      unreadOnly?: string;
+    },
   ) {
     const page = positivePage(query.page);
+    const pageSize = positivePageSize(query.pageSize);
     const category =
       query.category &&
       NOTIFICATION_CATEGORIES.includes(query.category as Category)
@@ -395,14 +402,19 @@ export class NotificationService {
     );
     const rows = await this.database.unsafe(
       `SELECT id, category, severity, type, title, body, metadata, action_route, read_at::text AS read_at, created_at::text AS created_at FROM notification.notification WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, 25, (page - 1) * 25] as never[],
+      [...params, pageSize, (page - 1) * pageSize] as never[],
     );
     const total = Number(
       (countRows as Array<{ total: number }>)[0]?.total ?? 0,
     );
     return {
       data: rows.map(mapNotification),
-      meta: { page, perPage: 25, total, totalPages: Math.ceil(total / 25) },
+      meta: {
+        page,
+        perPage: pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
       filters: { page, category, unreadOnly },
       options: { categories: [...NOTIFICATION_CATEGORIES] },
     };
@@ -578,6 +590,13 @@ function mapNotification(row: Record<string, unknown>) {
 function positivePage(value: string | undefined): number {
   const parsed = Number(value ?? '1');
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function positivePageSize(value: string | undefined): number {
+  const parsed = Number(value ?? NOTIFICATIONS_PER_PAGE);
+  return Number.isInteger(parsed) && parsed > 0
+    ? Math.min(parsed, NOTIFICATIONS_PER_PAGE)
+    : NOTIFICATIONS_PER_PAGE;
 }
 
 function safe(value: unknown, fallback: string): string {

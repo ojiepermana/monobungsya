@@ -76,7 +76,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
-const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
+const EMPTY_META: LogsMeta = { page: 1, perPage: 100, total: 0, totalPages: 0 };
 
 type TabKey = 'audit' | 'permissions' | 'access' | 'application';
 
