@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   faApple,
@@ -10,10 +10,15 @@ import {
   faYahoo,
 } from '@fortawesome/free-brands-svg-icons';
 import {
-  AlertComponent,
-  AlertDescriptionComponent,
-  AlertTitleComponent,
-} from '@ojiepermana/angular/component/alert';
+  AlertDialogActionComponent,
+  AlertDialogComponent,
+  AlertDialogContentComponent,
+  AlertDialogDescriptionComponent,
+  AlertDialogFooterComponent,
+  AlertDialogHeaderComponent,
+  AlertDialogMediaComponent,
+  AlertDialogTitleComponent,
+} from '@ojiepermana/angular/component/alert-dialog';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import {
   CardComponent,
@@ -55,21 +60,27 @@ const SOCIAL_PROVIDERS = [
   { label: 'Yahoo', icon: faYahoo, iconScale: 1.11, brandColor: '#6001d2' },
 ] as const;
 
-type LoginState =
-  | 'idle'
-  | 'invalid'
-  | 'submitting'
-  | 'sent'
-  | 'rate-limited'
-  | 'service-error';
+type LoginState = 'idle' | 'invalid' | 'submitting';
+
+type LoginAlertStatus = 'gagal' | 'belum_verifikasi' | 'berhasil';
+
+interface LoginAlert {
+  status: LoginAlertStatus;
+  keterangan: string;
+}
 
 @Component({
   selector: 'app-login-page',
   host: { class: 'block h-full min-h-0' },
   imports: [
-    AlertComponent,
-    AlertDescriptionComponent,
-    AlertTitleComponent,
+    AlertDialogActionComponent,
+    AlertDialogComponent,
+    AlertDialogContentComponent,
+    AlertDialogDescriptionComponent,
+    AlertDialogFooterComponent,
+    AlertDialogHeaderComponent,
+    AlertDialogMediaComponent,
+    AlertDialogTitleComponent,
     ButtonComponent,
     CardComponent,
     CardContentComponent,
@@ -119,19 +130,7 @@ type LoginState =
           </CardHeader>
 
           <CardContent>
-            @if (state() === 'sent') {
-              <div class="grid gap-4" role="status" aria-live="polite">
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Check your inbox</p>
-                <p class="text-xl font-semibold text-foreground">Your way in is on its way.</p>
-                <p class="text-sm leading-6 text-muted-foreground">If this address is registered, a one time sign in link will arrive shortly.</p>
-                <div class="border-l-2 border-primary bg-muted px-4 py-3 text-sm leading-6 text-foreground">Check <strong>{{ email() }}</strong> for your secure link.</div>
-                <button Button type="button" class="w-full gap-1.5" (click)="reset()">
-                  <Icon name="arrow_back" [size]="14" aria-hidden="true" />
-                  Use another email
-                </button>
-              </div>
-            } @else {
-              @if (passkeySupported) {
+            @if (passkeySupported) {
                 <div class="mb-5 grid gap-3">
                   <button Button size="xs" type="button" class="w-full gap-1.5" [disabled]="passkeyLoading()" (click)="signInWithPasskey()">
                     <Icon name="fingerprint" [size]="14" aria-hidden="true" />
@@ -148,9 +147,9 @@ type LoginState =
                     <span class="h-px flex-1 bg-border"></span>
                   </div>
                 </div>
-              }
+            }
 
-              <form class="space-y-5" (submit)="send($event)" novalidate>
+            <form class="space-y-5" (submit)="send($event)" novalidate>
                 <div class="grid gap-2">
                   <label class="text-sm font-medium" for="login-email">Email</label>
                   <div class="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2">
@@ -163,11 +162,11 @@ type LoginState =
                       placeholder="nama@monobungsya.id"
                       [value]="email()"
                       [attr.aria-invalid]="state() === 'invalid'"
-                      [attr.aria-describedby]="state() === 'invalid' || state() === 'rate-limited' || state() === 'service-error' ? 'login-error' : null"
+                      [attr.aria-describedby]="state() === 'invalid' ? 'login-error' : null"
                       required
                       (input)="updateEmail($event)"
                     />
-                    <button Button size="xs" type="submit" class="h-full gap-1.5 whitespace-nowrap px-3" [disabled]="state() === 'submitting'">
+                    <button Button size="xs" type="submit" class="h-full gap-1.5 whitespace-nowrap px-3" [disabled]="state() === 'submitting' || !emailIsValid()">
                       <Icon name="mail" [size]="14" aria-hidden="true" />
                       {{ state() === 'submitting' ? 'Membuat link...' : 'Kirim' }}
                     </button>
@@ -175,11 +174,7 @@ type LoginState =
                 </div>
 
                 @if (state() === 'invalid') {
-                  <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">Enter a valid work email address.</p>
-                } @else if (state() === 'rate-limited') {
-                  <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">Too many requests. Wait a few minutes, then try again.</p>
-                } @else if (state() === 'service-error') {
-                  <p id="login-error" class="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm leading-5 text-foreground" role="alert">The sign in service is unavailable. Try again shortly.</p>
+                  <span id="login-error" class="sr-only">Email tidak valid</span>
                 }
 
                 <div class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
@@ -190,25 +185,36 @@ type LoginState =
                 <div class="flex items-center justify-between gap-2">
                   @for (provider of socialProviders; track provider.label) {
                     <button Button variant="ghost" size="xs" type="button" class="social-provider-button shrink-0 p-0" [style.height.px]="32" [style.width.px]="32" [attr.aria-label]="'Login dengan ' + provider.label" [title]="'Login dengan ' + provider.label">
-                      <svg class="social-provider-icon !size-5 shrink-0 transition-colors" [style.--provider-brand-color]="provider.brandColor" [style.transform]="'scale(' + provider.iconScale + ')'" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
+                        <svg class="social-provider-icon size-5! shrink-0 transition-colors" [style.--provider-brand-color]="provider.brandColor" [style.transform]="'scale(' + provider.iconScale + ')'" [attr.viewBox]="'0 0 ' + provider.icon.icon[0] + ' ' + provider.icon.icon[1]" fill="currentColor" aria-hidden="true" focusable="false">
                         <path [attr.d]="provider.icon.icon[4]"></path>
                       </svg>
                     </button>
                   }
                 </div>
 
-              </form>
-            }
-
-            @if (state() === 'rate-limited' || state() === 'service-error') {
-              <Alert class="mt-5">
-                <AlertTitle>Status</AlertTitle>
-                <AlertDescription>Periksa koneksi Anda dan coba lagi sebentar.</AlertDescription>
-              </Alert>
-            }
+            </form>
           </CardContent>
         </Card>
       </PageContent>
+
+      @if (alert(); as message) {
+        <AlertDialog [(open)]="alertOpen" aria-labelledby="login-alert-title" aria-describedby="login-alert-description">
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <div class="flex items-center gap-3 text-left">
+                <AlertDialogMedia [class]="alertMediaClass()">
+                  <Icon [name]="alertIcon(message.status)" [size]="20" aria-hidden="true" />
+                </AlertDialogMedia>
+                <AlertDialogTitle id="login-alert-title" [class]="alertTextClass()">{{ alertLabel(message.status) }}</AlertDialogTitle>
+              </div>
+              <AlertDialogDescription id="login-alert-description" [class]="alertTextClass()">{{ message.keterangan }}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <button type="button" AlertDialogAction [variant]="message.status === 'gagal' ? 'destructive' : 'default'">Tutup</button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      }
 
       <PageFooter class="invisible h-0 overflow-hidden" aria-hidden="true"></PageFooter>
     </Page>
@@ -222,7 +228,12 @@ export class LoginPage {
 
   protected readonly passkeySupported = this.passkey.supported();
   protected readonly email = signal('');
+  protected readonly emailIsValid = computed(() =>
+    this.isValidEmail(this.email().trim()),
+  );
   protected readonly state = signal<LoginState>('idle');
+  protected readonly alert = signal<LoginAlert | null>(null);
+  protected readonly alertOpen = signal(false);
   protected readonly passkeyLoading = signal(false);
   protected readonly passkeyMessage = signal<string | null>(null);
   protected readonly socialProviders = SOCIAL_PROVIDERS;
@@ -238,24 +249,77 @@ export class LoginPage {
 
     if (!this.isValidEmail(email)) {
       this.state.set('invalid');
+      this.showAlert({
+        status: 'gagal',
+        keterangan: 'Email yang dimasukkan tidak valid',
+      });
       return;
     }
 
     this.state.set('submitting');
     this.auth.requestMagicLink(email, this.tauri.magicLinkOptions()).subscribe({
-      next: () => this.state.set('sent'),
+      next: (response) => {
+        this.state.set('idle');
+        this.showAlert(response);
+      },
       error: (error: unknown) => {
-        this.state.set(
-          error instanceof GatewayRequestError && error.status === 429
-            ? 'rate-limited'
-            : 'service-error',
-        );
+        this.state.set('idle');
+        this.showAlert({
+          status: 'gagal',
+          keterangan:
+            error instanceof GatewayRequestError && error.status === 429
+              ? 'Terlalu banyak permintaan. Silakan coba lagi beberapa menit lagi.'
+              : 'Layanan login sedang tidak tersedia. Silakan coba lagi nanti.',
+        });
       },
     });
   }
 
   reset(): void {
     this.state.set('idle');
+    this.alertOpen.set(false);
+    this.alert.set(null);
+  }
+
+  protected alertLabel(status: LoginAlertStatus): string {
+    return status === 'gagal'
+      ? 'Gagal'
+      : status === 'belum_verifikasi'
+        ? 'Belum verifikasi'
+        : 'Berhasil';
+  }
+
+  protected alertIcon(status: LoginAlertStatus): string {
+    return status === 'gagal'
+      ? 'error'
+      : status === 'belum_verifikasi'
+        ? 'mark_email_unread'
+        : 'check_circle';
+  }
+
+  protected alertMediaClass(): string {
+    const status = this.alert()?.status;
+
+    return status === 'gagal'
+      ? 'border-destructive/20 bg-destructive/10 text-destructive'
+      : status === 'belum_verifikasi'
+        ? 'border-accent/30 bg-accent/10 text-accent-foreground'
+        : 'border-primary/20 bg-primary/10 text-primary';
+  }
+
+  protected alertTextClass(): string {
+    const status = this.alert()?.status;
+
+    return status === 'gagal'
+      ? 'text-destructive'
+      : status === 'belum_verifikasi'
+        ? 'text-accent-foreground'
+        : 'text-primary';
+  }
+
+  private showAlert(alert: LoginAlert): void {
+    this.alert.set(alert);
+    this.alertOpen.set(true);
   }
 
   signInWithPasskey(): void {

@@ -6,16 +6,35 @@ import {
 } from '#project/errors';
 import { createSecret, hashSecret, normalizeEmail } from './auth.crypto';
 import type { AuthSecurityContext } from './auth.notifications';
-import { AuthRepository } from './auth.repository';
-import type {
-  AuthMailer,
-  FirstFactorResult,
-} from './auth.types';
+import { AuthRepository, type MagicLinkEligibility } from './auth.repository';
+import type { AuthMailer, FirstFactorResult } from './auth.types';
 
 export interface MagicLinkRequestResult {
-  accepted: true;
-  rateLimited: boolean;
+  status: 'gagal' | 'belum_verifikasi' | 'berhasil';
+  keterangan: string;
 }
+
+const MAGIC_LINK_MESSAGES: Record<
+  MagicLinkEligibility,
+  { status: MagicLinkRequestResult['status']; keterangan: string }
+> = {
+  not_registered: {
+    status: 'gagal',
+    keterangan: 'Anda belum terdaftar',
+  },
+  inactive: {
+    status: 'gagal',
+    keterangan: 'Hubungi admin untuk informasi lebih lanjut',
+  },
+  unverified: {
+    status: 'belum_verifikasi',
+    keterangan: 'Email Anda belum diverifikasi',
+  },
+  active: {
+    status: 'berhasil',
+    keterangan: 'Silakan login dengan link yang dikirimkan ke email Anda',
+  },
+};
 
 export interface SessionResult {
   authenticated: boolean;
@@ -53,7 +72,7 @@ export class AuthService {
 
   async requestMagicLink(
     email: string,
-    ipAddress: string,
+    ipAddress: string | undefined,
     options: { desktop?: boolean } = {},
   ): Promise<MagicLinkRequestResult> {
     if (!this.mailer) {
@@ -73,7 +92,7 @@ export class AuthService {
     const result = await this.repository.issueMagicLink(
       normalizedEmail,
       hashSecret(normalizedEmail),
-      hashSecret(ipAddress),
+      ipAddress ? hashSecret(ipAddress) : undefined,
       hashSecret(token),
       expiresAt,
     );
@@ -82,7 +101,7 @@ export class AuthService {
       throw new RateLimitError();
     }
 
-    if (result.user) {
+    if (result.eligibility === 'active' && result.user) {
       try {
         await this.mailer.sendMagicLink({
           recipient: result.user.email,
@@ -96,7 +115,7 @@ export class AuthService {
       }
     }
 
-    return { accepted: true, rateLimited: result.rateLimited };
+    return MAGIC_LINK_MESSAGES[result.eligibility];
   }
 
   /**

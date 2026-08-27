@@ -6,6 +6,8 @@ import { hashSecret } from '../modules/auth/auth.crypto';
 import type { AuthMailer, MagicLinkMessage } from '../modules/auth/auth.types';
 
 const databaseUrl = Bun.env.DATABASE_URL;
+const integrationUserId = '0198f8a0-0000-7000-8000-000000000099';
+const integrationEmail = 'magic-link-active@integration.local';
 
 describe('auth magic link integration', () => {
   test('runs the magic link and session lifecycle', async () => {
@@ -21,8 +23,21 @@ describe('auth magic link integration', () => {
       },
     };
     const ipAddress = '198.51.100.42';
-    const emailHash = hashSecret('admin@local.app');
+    const emailHash = hashSecret(integrationEmail);
     const ipHash = hashSecret(ipAddress);
+
+    await database`
+      INSERT INTO "user"."users" (id, name, email, email_verified_at)
+      VALUES (${integrationUserId}, 'Magic Link Test User', ${integrationEmail}, now())
+      ON CONFLICT (id) DO UPDATE
+      SET name = EXCLUDED.name,
+          email = EXCLUDED.email,
+          email_verified_at = EXCLUDED.email_verified_at,
+          suspended_at = NULL,
+          blocked_at = NULL,
+          deleted_at = NULL,
+          updated_at = now()
+    `;
 
     await database`
       DELETE FROM "auth"."auth_rate_limits"
@@ -53,12 +68,17 @@ describe('auth magic link integration', () => {
             'content-type': 'application/json',
             'x-forwarded-for': ipAddress,
           },
-          body: JSON.stringify({ email: 'ADMIN@LOCAL.APP' }),
+          body: JSON.stringify({
+            email: 'MAGIC-LINK-ACTIVE@INTEGRATION.LOCAL',
+          }),
         }),
       );
 
       expect(request.status).toBe(200);
-      expect(await request.json()).toEqual({ accepted: true });
+      expect(await request.json()).toEqual({
+        status: 'berhasil',
+        keterangan: 'Silakan login dengan link yang dikirimkan ke email Anda',
+      });
       expect(messages).toHaveLength(1);
 
       const verification = await app.handle(
@@ -84,7 +104,7 @@ describe('auth magic link integration', () => {
 
       expect(session.status).toBe(200);
       expect(sessionBody.authenticated).toBe(true);
-      expect(sessionBody.user.email).toBe('admin@local.app');
+      expect(sessionBody.user.email).toBe(integrationEmail);
 
       const replay = await app.handle(
         new Request(
@@ -130,6 +150,9 @@ describe('auth magic link integration', () => {
         DELETE FROM "auth"."auth_rate_limits"
         WHERE (key_type = 'email' AND key_hash = ${emailHash})
            OR (key_type = 'ip' AND key_hash = ${ipHash})
+      `;
+      await database`
+        DELETE FROM "user"."users" WHERE id = ${integrationUserId}
       `;
       await closeDatabaseClient(database);
     }

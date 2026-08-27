@@ -119,11 +119,17 @@ paths:
               schema:
                 type: object
                 required:
-                  - accepted
+                  - status
+                  - keterangan
                 properties:
-                  accepted:
-                    const: true
-                    type: boolean
+                  status:
+                    type: string
+                    enum:
+                      - gagal
+                      - belum_verifikasi
+                      - berhasil
+                  keterangan:
+                    type: string
       operationId: postInternalAuthMagic-link
   /internal/auth/verify:
     get:

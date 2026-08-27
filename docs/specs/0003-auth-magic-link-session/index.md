@@ -9,6 +9,8 @@ Auth service memakai magic link email untuk login dan session server side yang d
 
 > **Superseded authorization note, 2026-08-24:** role projection and role based authorization in AC-5, AC-8, the identity model, and the original build plan were replaced by the permission first model in [spec 0008](../0008-permission-acl/index.md). Magic link, session lifetime, cookie, HMAC identity integrity, and rate limit decisions in this spec remain active. Current session responses and signed identities carry effective permissions and no role.
 
+> **Login eligibility amendment, 2026-08-27:** the generic magic-link response requirement in the original AC-1 is superseded. The login form now reports whether the email is unregistered, inactive, unverified, or eligible for a link, as required by the current product flow.
+
 ## Context
 
 Monorepo sudah memiliki auth service, schema `auth`, tabel user, login token, session, dan rate limit, tetapi belum memiliki alur login yang dapat digunakan. Migration awal menyimpan bentuk token dan session yang belum cukup untuk hash token, expiry idle, expiry absolute, atau revoke session.
@@ -28,7 +30,7 @@ Sistem enterprise membutuhkan login yang tidak menyimpan password serta batas ya
 
 **Acceptance criteria**:
 
-- **AC-1**: A registered email can request a magic link. The response status and body are identical for registered and unregistered email addresses, and only a registered address receives an email.
+- **AC-1**: The magic-link response includes `status` and `keterangan`. An unregistered email returns `gagal` with `Anda belum terdaftar`; an inactive user, where `suspended_at`, `blocked_at`, or `deleted_at` is not null, returns `gagal` with `Hubungi admin untuk informasi lebih lanjut`; an active user without `email_verified_at` returns `belum_verifikasi` with `Email Anda belum diverifikasi`; and an active verified user returns `berhasil` with `Silakan login dengan link yang dikirimkan ke email Anda` and receives an email.
 - **AC-2**: Each magic link contains a raw random token that is never stored in the database. The database stores only its SHA 256 hash, the token expires after 15 minutes, and a successful consume marks it used atomically.
 - **AC-3**: Consuming a valid token creates one session, sets an HttpOnly secure SameSite cookie, and redirects to `WEB_APP_URL/auth/callback-complete`. An expired, used, malformed, or unknown token never creates a session and redirects generically to `WEB_APP_URL/auth/callback-error`.
 - **AC-4**: A session is valid only while it is not revoked, its idle expiry has not passed, and its absolute expiry has not passed. Idle lifetime is 8 hours and absolute lifetime is 7 days. Logout revokes the current session and clears the cookie.
@@ -129,7 +131,7 @@ One user has many login tokens and sessions. Rate limit rows have no business fo
 
 | Endpoint                     | Method | Key inputs                           | Key outputs                                  | Auth                              | Key errors                                                                          |
 | ---------------------------- | ------ | ------------------------------------ | -------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------- |
-| `/api/v1/auth/magic-link`    | POST   | `email:string` required              | Generic accepted message                     | Public, rate limited              | `400` invalid email, `429` rate limit, `503` SMTP or database failure               |
+| `/api/v1/auth/magic-link`    | POST   | `email:string` required              | `status` and `keterangan` eligibility result | Public, rate limited              | `400` invalid email, `429` rate limit, `503` SMTP or database failure               |
 | `/api/v1/auth/verify?token=` | GET    | `token:string` required              | `302` redirect and session cookie            | Public, one time token            | `400` malformed token, `410` expired or used token, `503` database failure          |
 | `/api/v1/auth/session`       | GET    | Session cookie optional              | `authenticated`, user identity, role, expiry | Cookie optional                   | `401` only when a present cookie is invalid; missing cookie returns unauthenticated |
 | `/api/v1/auth/logout`        | POST   | Session cookie optional              | Generic logout response and cleared cookie   | Authenticated cookie when present | `204` or idempotent success when already logged out, `503` database failure         |
@@ -182,7 +184,7 @@ Magic link request and verify are public but rate limited and return generic res
 **Critical test scenarios**:
 
 - Happy path: registered email receives a link, valid verify creates one session and redirects with a secure cookie, verifies **AC-1**, **AC-2**, **AC-3**.
-- Enumeration: registered and unregistered email produce identical response status and body, verifies **AC-1**.
+- Login eligibility: unregistered, inactive, unverified, and active verified users receive the defined status and keterangan, and only the last case receives an email, verifies **AC-1**.
 - Concurrency: two simultaneous consumes of one token create at most one session, verifies **AC-2**, **AC-9**.
 - Expiry: expired token, idle session, absolute session, and revoked session are rejected, verifies **AC-3**, **AC-4**.
 - Rate limit: sixth request for the same hashed email or IP in the window is rejected without raw key storage, verifies **AC-6**.
@@ -195,7 +197,7 @@ Magic link request and verify are public but rate limited and return generic res
 
 1. Add the auth migration that replaces raw login token storage with `token_hash`, adds session idle and absolute expiry fields, adds revoke state, and adds typed rate limit keys. Satisfies **AC-2**, **AC-4**, **AC-6**.
 2. Implement token hashing, secure random values, normalization, atomic consume, session validation, revoke, and rate limit repository operations. Satisfies **AC-2**, **AC-4**, **AC-6**, **AC-9**.
-3. Implement the SMTP adapter and magic link service with bounded timeout, generic response behavior, and safe structured logging. Satisfies **AC-1**, **AC-9**.
+3. Implement the SMTP adapter and magic link service with bounded timeout, explicit eligibility responses, and safe structured logging. Satisfies **AC-1**, **AC-9**.
 4. Implement the four public auth routes, cookie policy, redirect contract, and session response projection. Satisfies **AC-1**, **AC-3**, **AC-4**, **AC-5**.
 5. Add gateway session validation and HMAC identity forwarding, then add service authorization middleware for role checks. Satisfies **AC-7**, **AC-8**.
 6. Add daily cleanup worker and schedule, then add unit, integration, and service contract tests for all critical scenarios. Satisfies **AC-9**, **AC-10**.
@@ -245,6 +247,6 @@ Magic link request and verify are public but rate limited and return generic res
 
 - One time token hashing and atomic consume.
 - HttpOnly secure cookie sessions with server side revocation.
-- Generic authentication responses to reduce account enumeration.
+- Explicit login eligibility responses required by the product flow.
 - Least privilege and signed identity forwarding between services.
 - Rate limiting public authentication endpoints.

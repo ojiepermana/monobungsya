@@ -31,7 +31,8 @@ export interface AuthUser {
 }
 
 export interface RequestMagicLinkResponse {
-  accepted: true;
+  status: 'gagal' | 'belum_verifikasi' | 'berhasil';
+  keterangan: string;
 }
 
 export interface RequestMagicLinkOptions {

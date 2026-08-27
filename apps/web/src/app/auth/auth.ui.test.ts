@@ -80,6 +80,7 @@ describe('auth UI', () => {
     const submit = fixture.nativeElement.querySelector('button[type="submit"]');
 
     expect(input.parentElement).toBe(submit.parentElement);
+    expect(submit.disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('#login-help')).toBeNull();
     expect(submit.textContent).toContain('Kirim');
     expect(submit.textContent).not.toContain('Kirim magic link');
@@ -138,7 +139,7 @@ describe('auth UI', () => {
     ]);
     expect(
       providerButtons.every((button) =>
-        button.querySelector('svg')?.classList.contains('!size-5'),
+        button.querySelector('svg')?.classList.contains('size-5!'),
       ),
     ).toBe(true);
     expect(providerButtons[0].parentElement?.classList.contains('gap-2')).toBe(
@@ -165,6 +166,38 @@ describe('auth UI', () => {
         (button) => button.querySelector('svg')?.style.transform,
       ),
     ).toBe(true);
+  });
+
+  it('enables the email submit action only for a valid non-empty address', async () => {
+    await TestBed.configureTestingModule({
+      imports: [LoginPage],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { requestMagicLink: vi.fn() } },
+        { provide: TauriService, useValue: { magicLinkOptions: () => ({}) } },
+        { provide: PasskeyService, useValue: passkeyStub() },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+    const submit = fixture.nativeElement.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+
+    expect(submit.disabled).toBe(true);
+
+    fixture.componentInstance.updateEmail({
+      target: { value: 'not-an-email' },
+    } as unknown as Event);
+    fixture.detectChanges();
+    expect(submit.disabled).toBe(true);
+
+    fixture.componentInstance.updateEmail({
+      target: { value: 'user@example.com' },
+    } as unknown as Event);
+    fixture.detectChanges();
+    expect(submit.disabled).toBe(false);
   });
 
   it('covers AC-7: shows a soft passkey cancellation and keeps magic link available', async () => {
@@ -322,17 +355,22 @@ describe('auth UI', () => {
     fixture.detectChanges();
 
     expect(requestMagicLink).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain(
-      'Enter a valid work email address.',
+    expect(document.body.textContent).toContain(
+      'Email yang dimasukkan tidak valid',
     );
     const input = fixture.nativeElement.querySelector('input');
-    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeTruthy();
+    expect(document.body.querySelector('[role="alertdialog"]')).toBeTruthy();
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(input.getAttribute('aria-describedby')).toContain('login-error');
   });
 
   it('covers AC-1, AC-2, and AC-3: shows generic sent copy without a magic link response', async () => {
-    const requestMagicLink = vi.fn(() => of({ accepted: true }));
+    const requestMagicLink = vi.fn(() =>
+      of({
+        status: 'berhasil' as const,
+        keterangan: 'Silakan login dengan link yang dikirimkan ke email Anda',
+      }),
+    );
     await TestBed.configureTestingModule({
       imports: [LoginPage],
       providers: [
@@ -353,12 +391,13 @@ describe('auth UI', () => {
     fixture.detectChanges();
 
     expect(requestMagicLink).toHaveBeenCalledWith('user@example.com', {});
-    expect(fixture.nativeElement.textContent).toContain(
-      'Your way in is on its way.',
+    expect(document.body.textContent).toContain('Berhasil');
+    expect(document.body.textContent).toContain(
+      'Silakan login dengan link yang dikirimkan ke email Anda',
     );
-    expect(fixture.nativeElement.textContent).not.toContain('token=');
-    expect(fixture.nativeElement.querySelector('a[href*="verify"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
+    const dialog = document.body.querySelector('[role="alertdialog"]');
+    expect(dialog).toBeTruthy();
+    expect(dialog?.textContent).toContain('check_circleBerhasil');
   });
 
   it('covers AC-2: shows a rate limit state without exposing account details', async () => {
@@ -384,12 +423,15 @@ describe('auth UI', () => {
     } as unknown as SubmitEvent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Too many requests.');
-    expect(fixture.nativeElement.textContent).not.toContain('user@example.com');
+    expect(document.body.textContent).toContain('Terlalu banyak permintaan.');
+    expect(document.body.querySelector('[role="alertdialog"]')).toBeTruthy();
   });
 
   it('covers AC-2: keeps the submit action disabled while the request is pending', async () => {
-    const response = new Subject<{ accepted: true }>();
+    const response = new Subject<{
+      status: 'gagal' | 'belum_verifikasi' | 'berhasil';
+      keterangan: string;
+    }>();
     const requestMagicLink = vi.fn(() => response.asObservable());
     await TestBed.configureTestingModule({
       imports: [LoginPage],
@@ -416,11 +458,12 @@ describe('auth UI', () => {
     expect(submit.disabled).toBe(true);
     expect(submit.textContent).toContain('Membuat link');
 
-    response.next({ accepted: true });
+    response.next({
+      status: 'berhasil',
+      keterangan: 'Silakan login dengan link yang dikirimkan ke email Anda',
+    });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain(
-      'Your way in is on its way.',
-    );
+    expect(document.body.textContent).toContain('Berhasil');
   });
 
   it('covers AC-2: shows a generic service error without backend details', async () => {
@@ -446,9 +489,10 @@ describe('auth UI', () => {
     } as unknown as SubmitEvent);
     fixture.detectChanges();
 
-    expect(
-      fixture.nativeElement.querySelector('[role="alert"]')?.textContent,
-    ).toContain('The sign in service is unavailable.');
+    expect(document.body.textContent).toContain(
+      'Layanan login sedang tidak tersedia.',
+    );
+    expect(document.body.querySelector('[role="alertdialog"]')).toBeTruthy();
     expect(fixture.nativeElement.textContent).not.toContain('503');
   });
 

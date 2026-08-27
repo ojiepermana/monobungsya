@@ -17,8 +17,15 @@ export type AuthModuleStatus = {
 
 export interface MagicLinkIssueResult {
   user: AuthUser | null;
+  eligibility: MagicLinkEligibility;
   rateLimited: boolean;
 }
+
+export type MagicLinkEligibility =
+  | 'not_registered'
+  | 'inactive'
+  | 'unverified'
+  | 'active';
 
 export type RateLimitKeyType =
   | 'email'
@@ -60,7 +67,7 @@ export class AuthRepository {
   async issueMagicLink(
     email: string,
     emailHash: string,
-    ipHash: string,
+    ipHash: string | undefined,
     tokenHash: string,
     expiresAt: Date,
   ): Promise<MagicLinkIssueResult> {
@@ -72,23 +79,57 @@ export class AuthRepository {
         'email',
         emailHash,
       );
-      const ipLimit = await incrementRateLimit(transaction, 'ip', ipHash);
+      const ipLimit = ipHash
+        ? await incrementRateLimit(transaction, 'ip', ipHash)
+        : true;
 
       if (!emailLimit || !ipLimit) {
-        return { user: null, rateLimited: true };
+        return {
+          user: null,
+          eligibility: 'not_registered',
+          rateLimited: true,
+        };
       }
 
       const [userRow] = await transaction`
-        SELECT id, email, name, suspended_at
+        SELECT
+          id,
+          email,
+          name,
+          email_verified_at,
+          suspended_at,
+          blocked_at,
+          deleted_at
         FROM "user"."users"
         WHERE lower(email) = ${email}
-          AND suspended_at IS NULL
-          AND blocked_at IS NULL
-          AND deleted_at IS NULL
       `;
 
       if (!userRow) {
-        return { user: null, rateLimited: false };
+        return {
+          user: null,
+          eligibility: 'not_registered',
+          rateLimited: false,
+        };
+      }
+
+      if (
+        userRow.suspended_at !== null ||
+        userRow.blocked_at !== null ||
+        userRow.deleted_at !== null
+      ) {
+        return {
+          user: null,
+          eligibility: 'inactive',
+          rateLimited: false,
+        };
+      }
+
+      if (userRow.email_verified_at === null) {
+        return {
+          user: null,
+          eligibility: 'unverified',
+          rateLimited: false,
+        };
       }
 
       await transaction`
@@ -96,7 +137,11 @@ export class AuthRepository {
         VALUES (${userRow.id}, ${tokenHash}, ${expiresAt})
       `;
 
-      return { user: mapUser(userRow), rateLimited: false };
+      return {
+        user: mapUser(userRow),
+        eligibility: 'active',
+        rateLimited: false,
+      };
     });
   }
 

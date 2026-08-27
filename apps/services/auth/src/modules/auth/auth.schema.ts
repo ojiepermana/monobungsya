@@ -16,7 +16,12 @@ export const magicLinkQuery = t.Object({
 });
 
 export const magicLinkAcceptedResponse = t.Object({
-  accepted: t.Literal(true),
+  status: t.Union([
+    t.Literal('gagal'),
+    t.Literal('belum_verifikasi'),
+    t.Literal('berhasil'),
+  ]),
+  keterangan: t.String(),
 });
 
 export const sessionResponse = t.Object({

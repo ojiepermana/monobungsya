@@ -58,7 +58,8 @@ export type PostApiV1AuthMagicLinkResponses = {
      * Response for status 200
      */
     200: {
-        accepted: boolean;
+        status: 'gagal' | 'belum_verifikasi' | 'berhasil';
+        keterangan: string;
     };
 };
 

@@ -117,7 +117,10 @@ export function createAuthRoute(
           clientIp(request),
           body.desktop ? { desktop: true } : {},
         );
-        return Response.json({ accepted: result.accepted });
+        return Response.json({
+          status: result.status,
+          keterangan: result.keterangan,
+        });
       },
       {
         body: magicLinkRequestBody,
@@ -600,8 +603,11 @@ async function writeTotpAudit(
   });
 }
 
-function clientIp(request: Request): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  );
+function clientIp(request: Request): string | undefined {
+  const forwardedFor = request.headers
+    .get('x-forwarded-for')
+    ?.split(',')[0]
+    ?.trim();
+
+  return forwardedFor || request.headers.get('x-real-ip')?.trim() || undefined;
 }

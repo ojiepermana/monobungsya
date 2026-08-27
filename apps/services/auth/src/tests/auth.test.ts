@@ -38,6 +38,97 @@ describe('auth service', () => {
     });
   });
 
+  it('does not use an unavailable client IP as a shared rate-limit key', async () => {
+    let receivedIpHash: string | undefined;
+    const repository = {
+      issueMagicLink: async (
+        _email: string,
+        _emailHash: string,
+        ipHash: string | undefined,
+      ) => {
+        receivedIpHash = ipHash;
+        return {
+          user: null,
+          eligibility: 'not_registered' as const,
+          rateLimited: false,
+        };
+      },
+    } as unknown as AuthRepository;
+    const mailer: AuthMailer = { sendMagicLink: async () => undefined };
+    const service = new AuthService('auth', repository, mailer);
+
+    await expect(
+      service.requestMagicLink('me@ojiepermana.com', undefined),
+    ).resolves.toEqual({
+      status: 'gagal',
+      keterangan: 'Anda belum terdaftar',
+    });
+    expect(receivedIpHash).toBeUndefined();
+  });
+
+  it('returns the requested login status and only sends mail for active verified users', async () => {
+    const outcomes = [
+      {
+        eligibility: 'not_registered' as const,
+        expected: {
+          status: 'gagal',
+          keterangan: 'Anda belum terdaftar',
+        } as const,
+        user: null,
+      },
+      {
+        eligibility: 'inactive' as const,
+        expected: {
+          status: 'gagal',
+          keterangan: 'Hubungi admin untuk informasi lebih lanjut',
+        } as const,
+        user: null,
+      },
+      {
+        eligibility: 'unverified' as const,
+        expected: {
+          status: 'belum_verifikasi',
+          keterangan: 'Email Anda belum diverifikasi',
+        } as const,
+        user: null,
+      },
+      {
+        eligibility: 'active' as const,
+        expected: {
+          status: 'berhasil',
+          keterangan: 'Silakan login dengan link yang dikirimkan ke email Anda',
+        } as const,
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          name: 'System User',
+          suspendedAt: null,
+        },
+      },
+    ];
+
+    for (const outcome of outcomes) {
+      const sent: MagicLinkMessage[] = [];
+      const repository = {
+        issueMagicLink: async () => ({
+          user: outcome.user,
+          eligibility: outcome.eligibility,
+          rateLimited: false,
+        }),
+      } as unknown as AuthRepository;
+      const service = new AuthService('auth', repository, {
+        sendMagicLink: async (message) => {
+          sent.push(message);
+        },
+      });
+
+      await expect(
+        service.requestMagicLink('user@example.com', undefined),
+      ).resolves.toEqual(outcome.expected);
+      expect(sent).toHaveLength(outcome.eligibility === 'active' ? 1 : 0);
+    }
+  });
+
   it('returns the authenticated session identity', async () => {
     const repository = {
       inspectSession: async () => ({
