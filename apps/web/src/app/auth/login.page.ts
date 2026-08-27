@@ -109,6 +109,17 @@ interface LoginAlert {
       .social-provider-button:focus-visible .social-provider-icon {
         color: var(--provider-brand-color) !important;
       }
+
+      .passkey-button {
+        background-color: transparent;
+        color: hsl(var(--muted-foreground));
+      }
+
+      .passkey-button:hover,
+      .passkey-button:focus-visible {
+        background-color: transparent !important;
+        color: hsl(var(--primary)) !important;
+      }
     `,
   ],
   template: `
@@ -124,29 +135,41 @@ interface LoginAlert {
 
       <PageContent class="flex h-full min-h-0 flex-1 items-center justify-center overflow-auto px-4 py-8 sm:px-6">
         <Card class="block w-full max-w-md">
-          <CardHeader class="text-center">
-            <CardTitle level="1" class="text-xl sm:text-2xl">Masuk ke Monobungsya</CardTitle>
-            <p CardDescription>Gunakan email kantor atau email yang sudah terdaftar.</p>
+          <CardHeader class="grid-cols-1 gap-1">
+            <div class="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+              <img src="/logo.png" alt="" class="h-10 w-auto justify-self-start bg-foreground object-contain" />
+              <CardTitle level="1" class="col-start-2 min-w-0 justify-self-center text-center text-xl sm:text-2xl">Monobungsya</CardTitle>
+              @if (passkeySupported) {
+                <button
+                  Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  class="passkey-button col-start-3 justify-self-end p-0"
+                  aria-label="Masuk dengan passkey"
+                  title="Masuk dengan passkey"
+                  [disabled]="passkeyLoading()"
+                  [attr.aria-busy]="passkeyLoading()"
+                  (click)="signInWithPasskey()"
+                >
+                  <Icon name="fingerprint" [size]="48" aria-hidden="true" />
+                </button>
+              } @else {
+                <span aria-hidden="true"></span>
+              }
+            </div>
+            <p CardDescription class="text-center">Gunakan uemail yang sudah terdaftar.</p>
           </CardHeader>
 
           <CardContent>
             @if (passkeySupported) {
-                <div class="mb-5 grid gap-3">
-                  <button Button size="xs" type="button" class="w-full gap-1.5" [disabled]="passkeyLoading()" (click)="signInWithPasskey()">
-                    <Icon name="fingerprint" [size]="14" aria-hidden="true" />
-                    {{ passkeyLoading() ? 'Menunggu passkey...' : 'Masuk dengan passkey' }}
-                  </button>
-                  @if (passkeyMessage(); as message) {
-                    <p class="border-l-2 border-primary bg-muted px-3 py-2 text-sm leading-5 text-foreground" role="status" aria-live="polite">
-                      {{ message }}
-                    </p>
-                  }
-                  <div class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
-                    <span class="h-px flex-1 bg-border"></span>
-                    atau gunakan email
-                    <span class="h-px flex-1 bg-border"></span>
-                  </div>
+              @if (passkeyMessage(); as message) {
+                <div class="mb-5">
+                  <p class="border-l-2 border-primary bg-muted px-3 py-2 text-sm leading-5 text-foreground" role="status" aria-live="polite">
+                    {{ message }}
+                  </p>
                 </div>
+              }
             }
 
             <form class="space-y-5" (submit)="send($event)" novalidate>

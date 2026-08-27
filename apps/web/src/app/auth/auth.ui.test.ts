@@ -59,7 +59,20 @@ describe('auth UI', () => {
     expect(fixture.nativeElement.querySelectorAll('card')).toHaveLength(1);
     expect(fixture.nativeElement.querySelector('main')).toBeNull();
     expect(fixture.nativeElement.querySelector('nav')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Masuk ke Monobungsya');
+    expect(fixture.nativeElement.textContent).toContain('Monobungsya');
+    expect(
+      fixture.nativeElement.querySelector('img[src="/logo.png"]'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement
+        .querySelector('img[src="/logo.png"]')
+        ?.classList.contains('h-10'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement
+        .querySelector('img[src="/logo.png"]')
+        ?.classList.contains('bg-foreground'),
+    ).toBe(true);
   });
 
   it('keeps the email input and concise submit action in one row', async () => {
@@ -275,13 +288,13 @@ describe('auth UI', () => {
     const fixture = TestBed.createComponent(LoginPage);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector(
-      'button[type="button"]',
+      'button[aria-label="Masuk dengan passkey"]',
     ) as HTMLButtonElement;
 
     button.click();
     fixture.detectChanges();
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Menunggu passkey');
+    expect(button.getAttribute('aria-busy')).toBe('true');
 
     resolveSignIn(user);
     await fixture.whenStable();
@@ -315,7 +328,7 @@ describe('auth UI', () => {
     const fixture = TestBed.createComponent(LoginPage);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector(
-      'button[type="button"]',
+      'button[aria-label="Masuk dengan passkey"]',
     ) as HTMLButtonElement;
 
     button.click();
