@@ -21,27 +21,6 @@ export const magicLinkAcceptedResponse = t.Object({
 
 export const sessionResponse = t.Object({
   authenticated: t.Boolean(),
-  sessionObservation: t.Optional(
-    t.Object({
-      state: t.Union([
-        t.Literal('authenticated'),
-        t.Literal('anonymous'),
-        t.Literal('invalid'),
-      ]),
-      reason: t.Union([
-        t.Literal('missing_cookie'),
-        t.Literal('unknown_session'),
-        t.Literal('revoked'),
-        t.Literal('absolute_expired'),
-        t.Literal('idle_expired'),
-        t.Literal('user_missing'),
-        t.Literal('user_deleted'),
-        t.Literal('user_blocked'),
-        t.Literal('user_suspended'),
-        t.Null(),
-      ]),
-    }),
-  ),
   user: t.Optional(
     t.Object({
       id: t.String(),

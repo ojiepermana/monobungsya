@@ -10,7 +10,6 @@ import { AuthRepository } from './auth.repository';
 import type {
   AuthMailer,
   FirstFactorResult,
-  SessionObservation,
 } from './auth.types';
 
 export interface MagicLinkRequestResult {
@@ -20,7 +19,6 @@ export interface MagicLinkRequestResult {
 
 export interface SessionResult {
   authenticated: boolean;
-  sessionObservation: SessionObservation;
   user?: {
     id: string;
     email: string;
@@ -180,25 +178,16 @@ export class AuthService {
 
   async getSession(sessionToken: string | undefined): Promise<SessionResult> {
     if (!sessionToken) {
-      return {
-        authenticated: false,
-        sessionObservation: {
-          state: 'anonymous',
-          reason: 'missing_cookie',
-        },
-      };
+      return { authenticated: false };
     }
 
     const inspection = await this.repository.inspectSession(
       hashSecret(sessionToken),
     );
-    const identity = inspection.identity;
+    const identity = inspection;
 
     if (!identity) {
-      return {
-        authenticated: false,
-        sessionObservation: inspection.observation,
-      };
+      return { authenticated: false };
     }
 
     return {
@@ -213,10 +202,6 @@ export class AuthService {
         id: identity.sessionId,
         idleExpiresAt: identity.idleExpiresAt.toISOString(),
         absoluteExpiresAt: identity.absoluteExpiresAt.toISOString(),
-      },
-      sessionObservation: {
-        ...inspection.observation,
-        reason: null,
       },
     };
   }

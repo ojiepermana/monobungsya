@@ -162,39 +162,6 @@ paths:
                 properties:
                   authenticated:
                     type: boolean
-                  sessionObservation:
-                    type: object
-                    required:
-                      - state
-                      - reason
-                    properties:
-                      state:
-                        type: string
-                        enum:
-                          - authenticated
-                          - anonymous
-                          - invalid
-                      reason:
-                        anyOf:
-                          - const: missing_cookie
-                            type: string
-                          - const: unknown_session
-                            type: string
-                          - const: revoked
-                            type: string
-                          - const: absolute_expired
-                            type: string
-                          - const: idle_expired
-                            type: string
-                          - const: user_missing
-                            type: string
-                          - const: user_deleted
-                            type: string
-                          - const: user_blocked
-                            type: string
-                          - const: user_suspended
-                            type: string
-                          - type: "null"
                   user:
                     type: object
                     required:

@@ -86,10 +86,6 @@ export type GetApiV1AuthSessionResponses = {
      */
     200: {
         authenticated: boolean;
-        sessionObservation?: {
-            state: 'authenticated' | 'anonymous' | 'invalid';
-            reason: string | unknown;
-        };
         user?: {
             id: string;
             email: string;

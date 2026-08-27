@@ -19,66 +19,35 @@ import type {
 } from '../modules/auth/auth.types';
 
 describe('auth service', () => {
-  it('classifies a missing session cookie without exposing internal details', async () => {
+  it('returns an unauthenticated result when the session cookie is missing', async () => {
     const service = new AuthService('auth');
 
     await expect(service.getSession(undefined)).resolves.toEqual({
       authenticated: false,
-      sessionObservation: {
-        state: 'anonymous',
-        reason: 'missing_cookie',
-      },
     });
   });
 
-  it('keeps every invalid session reason internal to the auth observation', async () => {
-    const reasons = [
-      'unknown_session',
-      'revoked',
-      'absolute_expired',
-      'idle_expired',
-      'user_missing',
-      'user_deleted',
-      'user_blocked',
-      'user_suspended',
-    ] as const;
+  it('returns an unauthenticated result for an invalid session', async () => {
+    const repository = {
+      inspectSession: async () => null,
+    } as unknown as AuthRepository;
+    const service = new AuthService('auth', repository);
 
-    for (const reason of reasons) {
-      const repository = {
-        inspectSession: async () => ({
-          identity: null,
-          observation: { state: 'invalid' as const, reason },
-        }),
-      } as unknown as AuthRepository;
-      const service = new AuthService('auth', repository);
-
-      const result = await service.getSession(`session-${reason}`);
-
-      expect(result).toEqual({
-        authenticated: false,
-        sessionObservation: { state: 'invalid', reason },
-      });
-      expect(JSON.stringify(result)).not.toContain('permission');
-      expect(JSON.stringify(result)).not.toContain('token');
-    }
+    await expect(service.getSession('invalid-session')).resolves.toEqual({
+      authenticated: false,
+    });
   });
 
-  it('normalizes an authenticated observation to a null reason', async () => {
+  it('returns the authenticated session identity', async () => {
     const repository = {
       inspectSession: async () => ({
-        identity: {
-          id: '0198f8a0-0000-7000-8000-000000000001',
-          email: 'admin@project.local',
-          name: 'Admin',
-          suspendedAt: null,
-          sessionId: 'session-1',
-          idleExpiresAt: new Date('2026-08-24T10:00:00.000Z'),
-          absoluteExpiresAt: new Date('2026-08-24T18:00:00.000Z'),
-        },
-        observation: {
-          state: 'authenticated' as const,
-          reason: 'unknown_session' as const,
-        },
+        id: '0198f8a0-0000-7000-8000-000000000001',
+        email: 'admin@project.local',
+        name: 'Admin',
+        suspendedAt: null,
+        sessionId: 'session-1',
+        idleExpiresAt: new Date('2026-08-24T10:00:00.000Z'),
+        absoluteExpiresAt: new Date('2026-08-24T18:00:00.000Z'),
       }),
     } as unknown as AuthRepository;
     const service = new AuthService('auth', repository);
@@ -96,7 +65,6 @@ describe('auth service', () => {
         idleExpiresAt: '2026-08-24T10:00:00.000Z',
         absoluteExpiresAt: '2026-08-24T18:00:00.000Z',
       },
-      sessionObservation: { state: 'authenticated', reason: null },
     });
   });
 

@@ -7,7 +7,6 @@ import type {
   FirstFactorResult,
   MfaChallengePurpose,
   SessionIdentity,
-  SessionObservation,
   SessionRecord,
 } from './auth.types';
 
@@ -34,10 +33,7 @@ export interface ConsumedSession extends SessionRecord {
   user: AuthUser;
 }
 
-export interface SessionInspection {
-  identity: SessionIdentity | null;
-  observation: SessionObservation;
-}
+export type SessionInspection = SessionIdentity | null;
 
 export interface CleanupResult {
   loginTokens: number;
@@ -207,7 +203,7 @@ export class AuthRepository {
   }
 
   async findSession(sessionTokenHash: string): Promise<SessionIdentity | null> {
-    return (await this.inspectSession(sessionTokenHash)).identity;
+    return this.inspectSession(sessionTokenHash);
   }
 
   async inspectSession(sessionTokenHash: string): Promise<SessionInspection> {
@@ -261,24 +257,11 @@ export class AuthRepository {
     `;
 
     if (!row) {
-      return {
-        identity: null,
-        observation: {
-          state: 'invalid',
-          reason: 'unknown_session',
-        },
-      };
+      return null;
     }
 
-    const reason = sessionInvalidReason(row);
-    if (reason) {
-      return {
-        identity: null,
-        observation: {
-          state: 'invalid',
-          reason,
-        },
-      };
+    if (isInvalidSession(row)) {
+      return null;
     }
 
     const identity: SessionIdentity = {
@@ -288,13 +271,7 @@ export class AuthRepository {
       absoluteExpiresAt: new Date(String(row.touched_absolute_expires_at)),
     };
 
-    return {
-      identity,
-      observation: {
-        state: 'authenticated',
-        reason: 'unknown_session',
-      },
-    };
+    return identity;
   }
 
   async revokeSession(
@@ -525,32 +502,30 @@ export async function completeFirstFactor(
   return { status: 'authenticated', user, session };
 }
 
-function sessionInvalidReason(
-  row: Record<string, unknown>,
-): SessionInspection['observation']['reason'] {
+function isInvalidSession(row: Record<string, unknown>): boolean {
   const currentTime = new Date(String(row.current_time)).getTime();
 
   if (row.revoked_at !== null && row.revoked_at !== undefined) {
-    return 'revoked';
+    return true;
   }
   if (new Date(String(row.absolute_expires_at)).getTime() <= currentTime) {
-    return 'absolute_expired';
+    return true;
   }
   if (new Date(String(row.idle_expires_at)).getTime() <= currentTime) {
-    return 'idle_expired';
+    return true;
   }
   if (row.id === null || row.id === undefined) {
-    return 'user_missing';
+    return true;
   }
   if (row.deleted_at !== null && row.deleted_at !== undefined) {
-    return 'user_deleted';
+    return true;
   }
   if (row.blocked_at !== null && row.blocked_at !== undefined) {
-    return 'user_blocked';
+    return true;
   }
   if (row.suspended_at !== null && row.suspended_at !== undefined) {
-    return 'user_suspended';
+    return true;
   }
 
-  return null;
+  return false;
 }

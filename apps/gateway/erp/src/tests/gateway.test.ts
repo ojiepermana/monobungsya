@@ -17,10 +17,6 @@ function sessionResponse() {
       permissions: [],
     },
     session: { id: 'session-1', absoluteExpiresAt: EXPIRES_AT },
-    sessionObservation: {
-      state: 'authenticated',
-      reason: null,
-    },
   });
 }
 
