@@ -33,55 +33,6 @@ export interface PermissionListResult {
   filters: { search: string; namespace: string };
 }
 
-export type GroupStatus = 'active' | 'off';
-export type GroupDeletedFilter = 'exclude' | 'include' | 'only';
-
-export interface GroupRecord {
-  id: string;
-  name: string;
-  status: GroupStatus;
-  description: string | null;
-  permissionCount: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
-export interface GroupListQuery {
-  page?: string;
-  pageSize?: string;
-  search?: string;
-  status?: string;
-  deleted?: string;
-  appliable?: string;
-}
-
-export interface GroupListResult {
-  data: GroupRecord[];
-  meta: { page: number; pageSize: number; total: number; totalPages: number };
-  filters: {
-    search: string;
-    status: string;
-    deleted: GroupDeletedFilter;
-    appliable: boolean;
-  };
-}
-
-export interface GroupMutationResult {
-  attached: string[];
-  skipped: string[];
-}
-
-export interface GroupApplyResult {
-  granted: string[];
-  skipped: string[];
-}
-
-export interface GroupBulkApplyResult {
-  applied: Array<GroupApplyResult & { userId: string }>;
-  failed: Array<{ userId: string; reason: string }>;
-}
-
 export interface AccessActor {
   id: string;
   email: string;

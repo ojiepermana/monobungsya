@@ -10,14 +10,7 @@ import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import { InputComponent } from '@ojiepermana/angular/component/input';
 import { LabelComponent } from '@ojiepermana/angular/component/label';
 import {
-  NativeSelectComponent,
-  NativeSelectOptionDirective,
-} from '@ojiepermana/angular/component/native-select';
-import { AuthService } from '../../../auth/auth.service';
-import { PERMISSIONS } from '../../../auth/permissions';
-import {
   ApiService,
-  type PermissionGroupRecord,
   type PermissionRecord,
 } from '../../../services/api.service';
 
@@ -28,13 +21,7 @@ interface PermissionGroup {
 
 @Component({
   selector: 'app-user-access-panel',
-  imports: [
-    ButtonComponent,
-    InputComponent,
-    LabelComponent,
-    NativeSelectComponent,
-    NativeSelectOptionDirective,
-  ],
+  imports: [ButtonComponent, InputComponent, LabelComponent],
   template: `
     <div class="grid gap-6">
       @if (error()) {
@@ -96,32 +83,12 @@ interface PermissionGroup {
         }
       </section>
 
-      <section class="grid gap-5 border border-border bg-card p-5 md:grid-cols-2">
-        <div class="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-          <div class="grid gap-2">
-            <label Label for="copy-source-user">Copy from another user</label>
-            <input Input id="copy-source-user" placeholder="Source user UUID" [value]="sourceUserId()" (input)="setSourceUserId($event)" />
-          </div>
-          <button Button variant="outline" type="button" [disabled]="busy() || sourceUserId().trim().length === 0" (click)="copyFromSource()">Copy grants</button>
+      <section class="grid gap-3 border border-border bg-card p-5 md:grid-cols-[1fr_auto] md:items-end">
+        <div class="grid gap-2">
+          <label Label for="copy-source-user">Copy from another user</label>
+          <input Input id="copy-source-user" placeholder="Source user UUID" [value]="sourceUserId()" (input)="setSourceUserId($event)" />
         </div>
-        <div class="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-          <div class="grid gap-2">
-            <label Label for="apply-permission-group">Apply permission group</label>
-            @if (canApplyGroup()) {
-              <select NativeSelect id="apply-permission-group" [value]="selectedGroupId()" (change)="setSelectedGroup($event)">
-                <option NativeSelectOption value="">Choose an active, non-empty group</option>
-                @for (group of appliableGroups(); track group.id) {
-                  <option NativeSelectOption [value]="group.id">{{ group.name }} ({{ group.permissionCount }})</option>
-                }
-              </select>
-            } @else {
-              <p class="text-sm text-muted-foreground">Group apply access is required.</p>
-            }
-          </div>
-          <button Button variant="outline" type="button" [disabled]="busy() || !canApplyGroup() || !selectedGroupId()" (click)="applyGroup()">Apply group</button>
-        </div>
-        @if (groupLoading()) { <p class="text-xs text-muted-foreground md:col-span-2">Loading applicable groups...</p> }
-        @if (groupApplyMessage()) { <p class="text-xs text-muted-foreground md:col-span-2" role="status">{{ groupApplyMessage() }}</p> }
+        <button Button variant="outline" type="button" [disabled]="busy() || sourceUserId().trim().length === 0" (click)="copyFromSource()">Copy grants</button>
       </section>
     </div>
   `,
@@ -130,7 +97,6 @@ export class UserAccessPanel {
   readonly userId = input.required<string>();
 
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthService);
   protected readonly loading = signal(true);
   protected readonly catalogLoading = signal(true);
   protected readonly busy = signal(false);
@@ -140,13 +106,6 @@ export class UserAccessPanel {
   protected readonly selected = signal<string[]>([]);
   protected readonly search = signal('');
   protected readonly sourceUserId = signal('');
-  protected readonly appliableGroups = signal<PermissionGroupRecord[]>([]);
-  protected readonly groupLoading = signal(false);
-  protected readonly selectedGroupId = signal('');
-  protected readonly groupApplyMessage = signal<string | null>(null);
-  protected readonly canApplyGroup = computed(() =>
-    this.auth.hasPermission(PERMISSIONS.accessPermissionUserCreate),
-  );
 
   protected readonly groups = computed<PermissionGroup[]>(() => {
     const grouped = new Map<string, PermissionRecord[]>();
@@ -177,7 +136,6 @@ export class UserAccessPanel {
     this.loading.set(true);
     this.catalogLoading.set(true);
     this.error.set(null);
-    this.groupApplyMessage.set(null);
     this.api
       .permissions({ search: this.search(), namespace: '', page: 1 })
       .subscribe({
@@ -200,29 +158,6 @@ export class UserAccessPanel {
         this.error.set('Failed to load user access.');
       },
     });
-    if (this.canApplyGroup()) {
-      this.groupLoading.set(true);
-      this.api
-        .groups({
-          status: 'active',
-          deleted: 'exclude',
-          appliable: true,
-          page: 1,
-        })
-        .subscribe({
-          next: (response) => {
-            this.appliableGroups.set(response.data);
-            this.groupLoading.set(false);
-          },
-          error: () => {
-            this.groupLoading.set(false);
-            this.error.set('Failed to load applicable permission groups.');
-          },
-        });
-    } else {
-      this.appliableGroups.set([]);
-      this.groupLoading.set(false);
-    }
   }
 
   protected setSearch(event: Event): void {
@@ -232,10 +167,6 @@ export class UserAccessPanel {
 
   protected setSourceUserId(event: Event): void {
     this.sourceUserId.set((event.target as HTMLInputElement).value);
-  }
-
-  protected setSelectedGroup(event: Event): void {
-    this.selectedGroupId.set((event.target as HTMLSelectElement).value);
   }
 
   protected isSelected(permission: PermissionRecord): boolean {
@@ -301,27 +232,6 @@ export class UserAccessPanel {
       error: () => {
         this.busy.set(false);
         this.error.set('Failed to copy permissions.');
-      },
-    });
-  }
-
-  protected applyGroup(): void {
-    const groupId = this.selectedGroupId();
-    if (!groupId || !this.canApplyGroup()) return;
-    this.busy.set(true);
-    this.groupApplyMessage.set(null);
-    this.api.applyGroupToUser(this.userId(), groupId).subscribe({
-      next: (response) => {
-        this.busy.set(false);
-        this.selectedGroupId.set('');
-        this.reload(this.userId());
-        this.groupApplyMessage.set(
-          `Group applied: ${response.granted.length} granted, ${response.skipped.length} skipped.`,
-        );
-      },
-      error: () => {
-        this.busy.set(false);
-        this.error.set('Failed to apply permission group.');
       },
     });
   }

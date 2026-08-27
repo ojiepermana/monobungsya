@@ -13,7 +13,6 @@ describe('application navigation authorization', () => {
           PERMISSIONS.userUserManage,
           PERMISSIONS.logsLogRead,
           PERMISSIONS.accessPermissionManage,
-          PERMISSIONS.accessGroupManage,
         ]),
       ),
     ).toEqual([

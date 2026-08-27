@@ -26,17 +26,6 @@ export const PERMISSIONS = {
   accessPermissionUserCreate: 'access:permission_user:create',
   accessPermissionUserDelete: 'access:permission_user:delete',
   accessPermissionUserManage: 'access:permission_user:manage',
-  accessGroupList: 'access:group:list',
-  accessGroupRead: 'access:group:read',
-  accessGroupCreate: 'access:group:create',
-  accessGroupUpdate: 'access:group:update',
-  accessGroupDelete: 'access:group:delete',
-  accessGroupRestore: 'access:group:restore',
-  accessGroupManage: 'access:group:manage',
-  accessPermissionGroupList: 'access:permission_group:list',
-  accessPermissionGroupCreate: 'access:permission_group:create',
-  accessPermissionGroupDelete: 'access:permission_group:delete',
-  accessPermissionGroupManage: 'access:permission_group:manage',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -78,17 +67,6 @@ const descriptions: Record<KnownPermissionName, string> = {
   [PERMISSIONS.accessPermissionUserCreate]: 'Grant permissions to users',
   [PERMISSIONS.accessPermissionUserDelete]: 'Revoke permissions from users',
   [PERMISSIONS.accessPermissionUserManage]: 'Manage user grants',
-  [PERMISSIONS.accessGroupList]: 'List permission groups',
-  [PERMISSIONS.accessGroupRead]: 'Read a permission group',
-  [PERMISSIONS.accessGroupCreate]: 'Create permission groups',
-  [PERMISSIONS.accessGroupUpdate]: 'Update permission groups',
-  [PERMISSIONS.accessGroupDelete]: 'Soft delete permission groups',
-  [PERMISSIONS.accessGroupRestore]: 'Restore permission groups',
-  [PERMISSIONS.accessGroupManage]: 'Manage permission groups',
-  [PERMISSIONS.accessPermissionGroupList]: 'List group permissions',
-  [PERMISSIONS.accessPermissionGroupCreate]: 'Attach permissions to groups',
-  [PERMISSIONS.accessPermissionGroupDelete]: 'Detach permissions from groups',
-  [PERMISSIONS.accessPermissionGroupManage]: 'Manage group permissions',
 };
 
 function codeFor(name: KnownPermissionName): string {

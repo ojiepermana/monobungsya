@@ -4,7 +4,6 @@ import {
   hasResolvedPermission,
   managePermissionFor,
   normalizePermissions,
-  PERMISSION_CATALOG,
   PERMISSIONS,
 } from './index';
 
@@ -49,28 +48,5 @@ describe('permission helpers', () => {
         [PERMISSIONS.userUserCreate],
       ),
     ).toBe(true);
-  });
-
-  test('keeps permission group catalog entries in step with the constants (AC-2)', () => {
-    const groupPermissions = [
-      PERMISSIONS.accessGroupList,
-      PERMISSIONS.accessGroupRead,
-      PERMISSIONS.accessGroupCreate,
-      PERMISSIONS.accessGroupUpdate,
-      PERMISSIONS.accessGroupDelete,
-      PERMISSIONS.accessGroupRestore,
-      PERMISSIONS.accessGroupManage,
-      PERMISSIONS.accessPermissionGroupList,
-      PERMISSIONS.accessPermissionGroupCreate,
-      PERMISSIONS.accessPermissionGroupDelete,
-      PERMISSIONS.accessPermissionGroupManage,
-    ];
-
-    const expected = new Set<string>(groupPermissions);
-    expect(
-      PERMISSION_CATALOG.filter((entry) => expected.has(entry.name)).map(
-        (entry) => entry.name,
-      ),
-    ).toEqual(groupPermissions);
   });
 });

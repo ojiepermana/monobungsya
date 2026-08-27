@@ -23,7 +23,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 10  | Generated gateway SDK integration   | Foundation | done        |
 | 11  | Reliable jobs and notification center | Foundation | done        |
 | 12  | Bun observability and benchmarking standard | Foundation | done        |
-| 13  | Permission group grant templates    | Foundation | done        |
+| 13  | Permission group grant templates    | Foundation | in-progress |
 | 14  | Observability pages per signal      | Foundation | in-progress |
 | 15  | Hybrid observability storage        | Foundation | in-progress |
 
@@ -232,20 +232,20 @@ Extend the log subsystem with one typed telemetry contract for every Bun backend
 
 Spec [0014](../specs/0014-bun-observability-benchmarking/index.md)
 
-### 13. Permission group grant templates · done
+### 13. Permission group grant templates · in-progress
 
 Name a set of permissions once as a group, then apply it to one user or to many at once. A group is a template: applying it copies its permissions into direct grants, so the authorization path, the gateway permission cache, and the signed identity header stay exactly as they are.
 **Done when:** An operator can create, edit, switch off, soft delete, and restore a group, attach and detach its permissions, apply it to one user from that user's page and to many users from the group page, every apply lands as ordinary grants with one audit row per affected user, a group that is off or empty cannot be applied, and no query on the authorization path reads the group tables.
 
 - [x] Design it (spec): `/architect permission group grant templates`
-- [x] Build it: `/develop permission group grant templates`
-  - [x] Thin thread: migration `0037`, the eleven catalog permissions, `packages/acl` constants, group create and list from service through gateway to a rebuilt group page (AC-1, AC-2, AC-12, AC-15)
-  - [x] Group contents and lifecycle: attach and detach, update with status, the detail route and page, soft delete and restore with their guards, the appliable filter, audit writes (AC-3, AC-4, AC-5, AC-6, AC-10, AC-13)
-  - [x] Apply to one user from the user detail access panel, with the eligibility guard, the invalidation event, and one audit row per user (AC-7, AC-9, AC-14)
-  - [x] Bulk apply from the group page: per user transactions, the fifty id cap, and a picker reading the existing users endpoint (AC-8, AC-11, AC-13)
-  - [x] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, repository validation gate (AC-16)
-- [x] Verify it: `/check verify permission group grant templates`
-- [x] Test it: `/test permission group grant templates`
+- [ ] Build it: `/develop permission group grant templates`
+  - [ ] Thin thread: migration `0037`, the eleven catalog permissions, `packages/acl` constants, group create and list from service through gateway to a rebuilt group page (AC-1, AC-2, AC-12, AC-15)
+  - [ ] Group contents and lifecycle: attach and detach, update with status, the detail route and page, soft delete and restore with their guards, the appliable filter, audit writes (AC-3, AC-4, AC-5, AC-6, AC-10, AC-13)
+  - [ ] Apply to one user from the user detail access panel, with the eligibility guard, the invalidation event, and one audit row per user (AC-7, AC-9, AC-14)
+  - [ ] Bulk apply from the group page: per user transactions, the fifty id cap, and a picker reading the existing users endpoint (AC-8, AC-11, AC-13)
+  - [ ] Proof and artifacts: test scenarios, OpenAPI and SDK regeneration, repository validation gate (AC-16)
+- [ ] Verify it: `/check verify permission group grant templates`
+- [ ] Test it: `/test permission group grant templates`
 
 Spec [0015](../specs/0015-permission-group-template/index.md) · code in `packages/database`, `packages/acl`, `apps/services/access`, `apps/gateway/erp`, and `apps/web`
 

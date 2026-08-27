@@ -87,25 +87,7 @@ await db`
   INSERT INTO "access"."permission_user" (permission_id, user_id)
   SELECT permission.id, ${adminUser.id}
   FROM "access"."permission" AS permission
-  WHERE permission.name IN (
-    'logs:log:read',
-    'user:user:manage',
-    'jobs:job:list',
-    'jobs:job:read',
-    'jobs:job:retry',
-    'jobs:job:manage',
-    'observability:telemetry:read',
-    'access:group:list',
-    'access:group:read',
-    'access:group:create',
-    'access:group:update',
-    'access:group:delete',
-    'access:group:restore',
-    'access:permission_group:list',
-    'access:permission_group:create',
-    'access:permission_group:delete',
-    'access:permission_user:create'
-  )
+  WHERE permission.name IN ('logs:log:read', 'user:user:manage', 'jobs:job:list', 'jobs:job:read', 'jobs:job:retry', 'jobs:job:manage', 'observability:telemetry:read')
   ON CONFLICT (permission_id, user_id) DO NOTHING
 `;
 
