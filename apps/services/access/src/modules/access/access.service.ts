@@ -790,13 +790,8 @@ export class AccessService {
       (permission) =>
         permission === 'jobs:job:read' || permission === 'jobs:job:manage',
     );
-    const canReadObservability = permissions.some((permission) =>
-      [
-        'observability:trace:read',
-        'observability:metric:read',
-        'observability:benchmark:read',
-        'observability:alert:read',
-      ].includes(permission),
+    const canReadObservability = permissions.includes(
+      'observability:telemetry:read',
     );
     await enqueueJob(transaction, this.jobs, {
       type: accessNotificationRecipientCapabilitySyncContract.type,
