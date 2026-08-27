@@ -23,19 +23,3 @@ export interface ClickHouseVersionManifest {
 
 export const CLICKHOUSE_VERSION_MANIFEST =
   manifest as ClickHouseVersionManifest;
-
-const CLICKHOUSE_VERSION_PATTERN = /^(\d+)\.\d+\.\d+(?:\.\d+)?$/;
-
-export function isCompatibleClickHouseVersion(
-  actualVersion: string,
-  expectedVersion: string = CLICKHOUSE_VERSION_MANIFEST.serverVersion,
-): boolean {
-  // The schema and settings are validated against one pinned patch. A same-
-  // major server can still change MergeTree or async-insert behavior, so it
-  // is not a compatible deployment target until a manifest explicitly moves.
-  return (
-    CLICKHOUSE_VERSION_PATTERN.test(actualVersion) &&
-    CLICKHOUSE_VERSION_PATTERN.test(expectedVersion) &&
-    actualVersion === expectedVersion
-  );
-}

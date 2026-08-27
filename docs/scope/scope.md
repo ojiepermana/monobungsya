@@ -25,7 +25,7 @@ Monobungsia adalah monorepo enterprise untuk gateway, service domain, dan MCP se
 | 12  | Bun observability and benchmarking standard | Foundation | done        |
 | 13  | Permission group grant templates    | Foundation | done        |
 | 14  | Observability pages per signal      | Foundation | in-progress |
-| 15  | ClickHouse observability storage    | Foundation | in-progress |
+| 15  | Hybrid observability storage        | Foundation | in-progress |
 
 ## Foundations
 
@@ -266,23 +266,21 @@ Split the single tabbed `/observability` page into six standalone pages on the s
 
 Spec [0016](../specs/0016-observability-per-signal-pages/index.md) · code in `packages/database`, `packages/acl`, `apps/services/logs`, `apps/gateway/erp`, and `apps/web`
 
-### 15. ClickHouse observability storage · in-progress
+### 15. Hybrid observability storage · in-progress
 
-Make ClickHouse the only store for Span, Metric Bucket, Application Log, and Access Log behind one bounded signal store, while audit trail and observability control remain transactional in PostgreSQL. There is no storage mode: the dual write, backfill, promotion, and cutover machinery is removed and the PostgreSQL Signal tables are dropped.
-**Done when:** Producers depend only on the typed signal store, ClickHouse is the single write and read path with no mode to configure, the PostgreSQL Signal tables and the dual write code are gone, a deployment mismatch refuses to start while an outage only opens a Blind Spot, and the capacity gate passes on production hardware.
+Move high volume Span, Metric Bucket, Application Log, and Access Log data behind one bounded signal store that can cut over from PostgreSQL to ClickHouse, while audit trail and observability control remain transactional in PostgreSQL.
+**Done when:** Producers depend only on the typed signal store, ClickHouse storage and reads meet the bounded query and retention contract, the dual write cutover and rollback gates are proven, and operational health exposes every Blind Spot.
 
-- [x] Design it (spec): `/architect ClickHouse observability storage` (revised 2026-08-27 from hybrid dual write to ClickHouse only)
-- [ ] Build it: `/develop ClickHouse observability storage`
-  - [x] Canonical Signal interface, bounded queue, fake, and producer extraction (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9)
+- [x] Design it (spec): `/architect hybrid observability storage`
+- [ ] Build it: `/develop hybrid observability storage`
+  - [x] Canonical Signal interface, bounded queue, fake, PostgreSQL adapter, and producer extraction (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9)
   - [x] ClickHouse HTTP adapter, schema migration, version gate, and local runner (AC-5, AC-6, AC-8, AC-23)
-  - [x] Read model, control health, query limits, and per signal cursor paths (AC-11 to AC-16)
-  - [ ] One storage path: remove write and read modes, promotion, backfill, the PostgreSQL Signal adapter, the operator scripts, and reject the removed variables at startup (AC-3, AC-4, AC-22)
-  - [ ] Startup split and schema removal: refuse to start on a deployment mismatch, serve with a Blind Spot on an outage, then drop the PostgreSQL Signal tables and migrations `0041` to `0043` while audit trails stay intact (AC-20, AC-21, AC-23)
-  - [ ] Proof: recalibrated benchmark baseline, production profile, and capacity qualification on production hardware with node rebuild evidence (AC-1, AC-2, AC-10, AC-18, AC-19)
-- [ ] Verify it: `/check verify ClickHouse observability storage`
-- [x] Test it: `/test hybrid observability storage` (461 backend and package tests, 156 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-27; must be re-run after the removal slices)
+  - [ ] Read model, control health, query limits, and per signal cursor paths (AC-10 to AC-16)
+  - [ ] Capacity, dual write, backfill, cutover, rollback, and operational evidence (AC-2, AC-17 to AC-22)
+- [ ] Verify it: `/check verify hybrid observability storage`
+- [x] Test it: `/test hybrid observability storage` (445 backend and package tests, 153 Angular tests, native ClickHouse schema smoke, PostgreSQL and ClickHouse adapter contracts, lint, typecheck, and build green on 2026-08-26)
 
-Spec [0017](../specs/0017-clickhouse-observability-storage/index.md) · code in `packages/observability`, `packages/telemetry`, `packages/logger`, `packages/database`, `apps/services/logs`, and `apps/gateway/erp`
+Spec [0017](../specs/0017-hybrid-observability-storage/index.md) · code in `packages/observability`, `packages/telemetry`, `packages/logger`, `packages/database`, `apps/services/logs`, and `apps/gateway/erp`
 
 ## Domain
 
@@ -321,7 +319,6 @@ Spec [0007](../specs/0007-user-management/index.md) · code in `apps/services/us
 - Remember this device for 30 days (skip the TOTP step in a trusted browser) · reason: Trusted device behavior is outside the current 2FA contract · from spec 0009
 - Rotation path for `TOTP_ENCRYPTION_KEY` (bulk re encryption or per row key versions) · reason: Key rotation requires a separate operational design · from spec 0009
 - Access and jobs Dockerfiles plus CI image matrix coverage · reason: Runtime code is available, but deployment images have not been implemented · from spec 0001
-- Managed ClickHouse, replication, and Signal backup · reason: One self hosted node with no backup is the accepted tradeoff while losing a retention window is tolerable; revisit when it is not, or when operating one node exceeds the team's capacity · from spec 0017
 - Revisit OpenTelemetry integration · reason: Wait for official Bun support or evidence that maintaining the internal telemetry stack costs more than operating a Collector · from spec 0014
 - Supporting index for the global `benchmarks/runs` order, since the existing index leads with `scenario_id` and cannot serve an unfiltered `created_at DESC` listing · reason: Measure on real data before adding an index that has to be maintained · from spec 0016
 - Shared list page scaffold component, so the header, filter, and footer shell stops being duplicated across the observability and logs pages · reason: Nine pages of duplication is tolerable; a tenth is the signal to extract it · from spec 0016

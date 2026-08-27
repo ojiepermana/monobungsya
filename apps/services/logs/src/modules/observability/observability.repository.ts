@@ -5,23 +5,11 @@ import {
   ValidationError,
 } from '#project/errors';
 import { isoFromDbTimestamp } from '#project/logger';
-import type {
-  ClickHouseSignalReader,
-  ObservabilitySignalReadMode,
-} from '#project/observability';
 import {
   type BenchmarkReport,
   canonicalJson,
   sha256,
 } from '#project/telemetry';
-import { ClickHouseObservabilitySignalReader } from './observability.clickhouse';
-import {
-  decodeTraceCursor,
-  encodeTraceCursor,
-  type TraceCursorDirection,
-  traceCursorFingerprint,
-  traceCursorTimestamp,
-} from './observability.trace-cursor';
 import type {
   AlertStateSummary,
   AlertsResult,
@@ -47,6 +35,12 @@ const METRIC_STEPS = new Set([60, 300, 900, 3600]);
 const DEFAULT_MAX_SERIES = 200;
 const DEFAULT_QUERY_TIMEOUT_MS = 5_000;
 
+interface Cursor {
+  direction: 'next' | 'prev';
+  startedAt: string;
+  traceId: string;
+}
+
 interface AlertCursor {
   direction: 'next' | 'prev';
   evaluatedAt: string;
@@ -66,7 +60,7 @@ interface BaselineCursor {
   baselineId: string;
 }
 
-export interface TracePage {
+interface TracePage {
   items: TraceSummary[];
   prevCursor: string | null;
   nextCursor: string | null;
@@ -81,10 +75,8 @@ export interface TracePage {
 const BENCHMARK_PAGE_SIZE = 50;
 
 interface ObservabilityRepositoryOptions {
-  clickhouseReader?: ClickHouseSignalReader | null;
   maxSeries?: number;
   queryTimeoutMs?: number;
-  readMode?: ObservabilitySignalReadMode;
 }
 
 function parseJson(value: unknown): unknown {
@@ -100,7 +92,29 @@ function timestamp(value: unknown): string {
   return isoFromDbTimestamp(String(value));
 }
 
-export { decodeTraceCursor, traceCursorFingerprint };
+function encodeCursor(
+  cursor: Omit<Cursor, 'direction'>,
+  direction: Cursor['direction'] = 'next',
+): string {
+  return btoa(`${direction}|${cursor.startedAt}|${cursor.traceId}`);
+}
+
+export function decodeTraceCursor(value: string): Cursor {
+  try {
+    const parts = atob(value).split('|');
+    const hasDirection = parts[0] === 'next' || parts[0] === 'prev';
+    const direction: Cursor['direction'] =
+      hasDirection && parts[0] === 'prev' ? 'prev' : 'next';
+    const startedAt = hasDirection ? parts[1] : parts[0];
+    const traceId = hasDirection ? parts[2] : parts[1];
+    if (!startedAt || !traceId || !/^[0-9a-f]{32}$/.test(traceId)) {
+      throw new Error('invalid cursor');
+    }
+    return { direction, startedAt, traceId };
+  } catch {
+    throw new Error('invalid cursor');
+  }
+}
 
 function textOrNull(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
@@ -200,8 +214,6 @@ export function decodeBaselineCursor(value: string): BaselineCursor {
 export class ObservabilityRepository {
   private readonly maxSeries: number;
   private readonly queryTimeoutMs: number;
-  private readonly readMode: ObservabilitySignalReadMode;
-  private readonly clickhouse: ClickHouseObservabilitySignalReader | null;
 
   constructor(
     private readonly database?: DatabaseClient,
@@ -212,24 +224,10 @@ export class ObservabilityRepository {
       1,
       options.queryTimeoutMs ?? DEFAULT_QUERY_TIMEOUT_MS,
     );
-    this.readMode = options.readMode ?? 'postgres';
-    this.clickhouse =
-      this.readMode === 'clickhouse' && options.clickhouseReader
-        ? new ClickHouseObservabilitySignalReader(
-            options.clickhouseReader,
-            this.maxSeries,
-          )
-        : null;
   }
 
   isStorageAvailable(): boolean {
     return Boolean(this.database);
-  }
-
-  isSignalStorageAvailable(): boolean {
-    return this.readMode === 'clickhouse'
-      ? this.clickhouse !== null
-      : Boolean(this.database);
   }
 
   async ingestBenchmark(
@@ -378,7 +376,7 @@ export class ObservabilityRepository {
           ingestionId,
           receipt.bodyChecksum,
           responseChecksum,
-          response,
+          responseBody,
         ] as never[],
       );
     });
@@ -389,16 +387,6 @@ export class ObservabilityRepository {
   async listTraces(
     query: Omit<TraceQuery, 'from' | 'to'> & { from: Date; to: Date },
   ): Promise<TracePage> {
-    if (this.readMode === 'clickhouse') {
-      if (this.clickhouse) return this.clickhouse.listTraces(query);
-      return {
-        items: [],
-        prevCursor: null,
-        nextCursor: null,
-        options: { services: [], resourceKinds: [], resourceNames: [] },
-        storageStatus: 'blind_spot',
-      };
-    }
     if (!this.database)
       return {
         items: [],
@@ -439,17 +427,16 @@ export class ObservabilityRepository {
       resourceNames: stringArray(optionRow?.resource_names),
     };
 
-    const filterFingerprint = traceCursorFingerprint(query);
-    let direction: TraceCursorDirection = 'next';
-    let having = '';
+    let direction: Cursor['direction'] = 'next';
     if (query.cursor) {
-      const decoded = decodeTraceCursor(query.cursor, filterFingerprint);
+      const decoded = decodeTraceCursor(query.cursor);
       direction = decoded.direction;
-      params.push(traceCursorTimestamp(decoded.startedAt), decoded.traceId);
-      having =
+      params.push(decoded.startedAt, decoded.traceId);
+      conditions.push(
         direction === 'prev'
-          ? `(min(started_at), trace_id) > ($${params.length - 1}, $${params.length})`
-          : `(min(started_at), trace_id) < ($${params.length - 1}, $${params.length})`;
+          ? `(started_at, trace_id) > ($${params.length - 1}, $${params.length})`
+          : `(started_at, trace_id) < ($${params.length - 1}, $${params.length})`,
+      );
     }
 
     const order =
@@ -470,7 +457,7 @@ export class ObservabilityRepository {
         `max(correlation_id) AS correlation_id, max(request_id) AS request_id, ` +
         `(array_agg(run_id ORDER BY started_at DESC NULLS LAST))[1]::text AS run_id ` +
         `FROM "telemetry"."spans" WHERE ${conditions.join(' AND ')} ` +
-        `GROUP BY trace_id ${having ? `HAVING ${having}` : ''} ${order} ` +
+        `GROUP BY trace_id ${order} ` +
         `LIMIT $${params.length + 1}`,
       [...params, TRACE_PAGE_SIZE + 1],
     )) as Array<Record<string, unknown>>;
@@ -503,24 +490,22 @@ export class ObservabilityRepository {
         first &&
         ((direction === 'prev' && hasMore) ||
           (direction === 'next' && Boolean(query.cursor)))
-          ? encodeTraceCursor(
+          ? encodeCursor(
               {
-                startedAt: timestamp(first.started_at),
+                startedAt: String(first.started_at),
                 traceId: String(first.trace_id).trim(),
               },
               'prev',
-              filterFingerprint,
             )
           : null,
       nextCursor:
         last && (direction === 'prev' || hasMore)
-          ? encodeTraceCursor(
+          ? encodeCursor(
               {
-                startedAt: timestamp(last.started_at),
+                startedAt: String(last.started_at),
                 traceId: String(last.trace_id).trim(),
               },
               'next',
-              filterFingerprint,
             )
           : null,
       options,
@@ -529,9 +514,6 @@ export class ObservabilityRepository {
   }
 
   async getTrace(traceId: string): Promise<TraceDetailResult | null> {
-    if (this.readMode === 'clickhouse') {
-      return this.clickhouse?.getTrace(traceId) ?? null;
-    }
     if (!this.database) return null;
     const rows = (await this.readQuery(
       `SELECT trace_id, span_id, parent_span_id, service_name, ` +
@@ -592,21 +574,6 @@ export class ObservabilityRepository {
       stepSeconds: number;
     },
   ): Promise<MetricsResult> {
-    if (this.readMode === 'clickhouse') {
-      if (this.clickhouse) return this.clickhouse.listMetrics(query);
-      return {
-        data: [],
-        statistic: query.statistic,
-        stepSeconds: query.stepSeconds,
-        coverage: {
-          expectedBuckets: 0,
-          storedBuckets: 0,
-          missingBuckets: 0,
-          storageStatus: 'blind_spot',
-        },
-        options: { metrics: [], services: [], resourceKinds: [] },
-      };
-    }
     if (!this.database) {
       return {
         data: [],

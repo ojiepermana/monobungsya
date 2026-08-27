@@ -509,7 +509,6 @@ describe('logs service pagination and filters', () => {
 
     for (const page of ['0', '-3', 'abc', undefined]) {
       const result = await service.getAccessLogs({ page });
-      if (!('meta' in result)) throw new Error('expected PostgreSQL response');
       expect(result.meta.page).toBe(1);
     }
   });
@@ -522,8 +521,6 @@ describe('logs service pagination and filters', () => {
       level: ' error ',
     });
 
-    if (!('meta' in result)) throw new Error('expected PostgreSQL response');
-
     expect(result.filters.search).toBe('failed invoice');
     expect(result.filters.level).toBe('error');
   });
@@ -531,7 +528,6 @@ describe('logs service pagination and filters', () => {
   it('does not claim to flush queues owned by another process before reading', async () => {
     const service = new LogsService(repositoryWithTotal(0));
     const result = await service.getApplicationLogs({});
-    if (!('meta' in result)) throw new Error('expected PostgreSQL response');
     expect(result.meta.total).toBe(0);
   });
 

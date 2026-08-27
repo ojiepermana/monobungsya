@@ -309,24 +309,6 @@ function benchmarkDatabase(): DatabaseClient {
   } as unknown as DatabaseClient;
 }
 
-function benchmarkQueueOptions(
-  warmup: number,
-  iterations: number,
-  batchSize: number,
-): { maxItems: number; maxBytes: number } {
-  // The production queue is intentionally capped at 32 MiB. A benchmark
-  // group, however, must be able to drain its bounded synthetic workload
-  // before the next group starts; otherwise the byte cap measures fixture
-  // saturation instead of instrumentation overhead. Keep the benchmark
-  // queue bounded while reserving up to 1 KiB per item, with a hard ceiling.
-  const maxItems = Math.max(2_000, (warmup + iterations) * batchSize * 2);
-  const maxBytes = Math.min(
-    512 * 1_024 * 1_024,
-    Math.max(32 * 1_024 * 1_024, maxItems * 1_024),
-  );
-  return { maxItems, maxBytes };
-}
-
 async function drainRuntime(runtime: TelemetryRuntime): Promise<void> {
   for (let attempt = 0; attempt < 10_000; attempt += 1) {
     const result = await runtime.flush();
@@ -609,7 +591,6 @@ const batchSize = positiveInteger(argument('batch'), scenario.batchSize ?? 1);
 const startedAt = new Date().toISOString();
 const runnerCoreCount = cpus().length;
 const benchmarkSuccessSampleRate = benchmarkSampleRate();
-const benchmarkFlushIntervalMs = 60_000;
 const measurements: Record<string, BenchmarkMetricSnapshot> = {};
 const latencyOverheads: number[] = [];
 const onGroups: RawGroup[] = [];
@@ -617,17 +598,14 @@ const offGroups: RawGroup[] = [];
 let droppedTelemetryCount = 0;
 const throughputByConcurrency: Record<string, number> = {};
 for (const operation of scenario.operations) {
-  const queueOptions = benchmarkQueueOptions(warmup, iterations, batchSize);
   const runtime = new TelemetryRuntime({
     serviceName: 'benchmark-driver',
     serviceInstanceId: `benchmark-driver-${operation}`,
     enabled: true,
     signalStore: createPostgresObservabilitySignalStore({
       telemetryDatabase: benchmarkDatabase(),
-      ...queueOptions,
-      flushIntervalMs: benchmarkFlushIntervalMs,
+      maxItems: Math.max(2_000, (warmup + iterations) * batchSize * 2),
     }),
-    flushIntervalMs: benchmarkFlushIntervalMs,
     successSampleRate: benchmarkSuccessSampleRate,
   });
   const uninstrumentedRuntime = new TelemetryRuntime({
@@ -683,17 +661,14 @@ if (scenario.kind === 'throughput' && Bun.env.BENCHMARK_HTTP_URL?.trim()) {
     ),
   ).sort((left, right) => left - right);
   for (const concurrency of levels) {
-    const queueOptions = benchmarkQueueOptions(warmup, iterations, concurrency);
     const runtime = new TelemetryRuntime({
       serviceName: 'benchmark-driver',
       serviceInstanceId: `benchmark-throughput-${concurrency}`,
       enabled: true,
       signalStore: createPostgresObservabilitySignalStore({
         telemetryDatabase: benchmarkDatabase(),
-        ...queueOptions,
-        flushIntervalMs: benchmarkFlushIntervalMs,
+        maxItems: Math.max(2_000, (warmup + iterations) * concurrency * 2),
       }),
-      flushIntervalMs: benchmarkFlushIntervalMs,
       successSampleRate: benchmarkSuccessSampleRate,
     });
     const operation = inBenchmarkContext(

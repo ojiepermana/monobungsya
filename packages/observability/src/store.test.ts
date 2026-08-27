@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
   BufferedObservabilitySignalStore,
-  canonicalJson,
   type SignalBatch,
   SignalDeliveryError,
   type SignalTarget,
@@ -209,38 +208,6 @@ describe('BufferedObservabilitySignalStore', () => {
     await signalStore.shutdown();
   });
 
-  test('rejects signals older than their per-kind retention window', async () => {
-    const batches: SignalBatch[] = [];
-    const signalStore = store([
-      {
-        name: 'memory',
-        write: async (batch) => {
-          batches.push(batch);
-        },
-      },
-    ]);
-    const spanExpiredAt = new Date(
-      NOW.getTime() - 7 * 24 * 60 * 60 * 1_000 - 1,
-    ).toISOString();
-    const logExpiredAt = new Date(
-      NOW.getTime() - 30 * 24 * 60 * 60 * 1_000 - 1,
-    ).toISOString();
-
-    expect(
-      signalStore.append(
-        span({ startedAt: spanExpiredAt, finishedAt: spanExpiredAt }),
-      ),
-    ).toEqual({ status: 'dropped', reason: 'invalid_time' });
-    expect(
-      signalStore.append(
-        applicationLog({ occurredAt: logExpiredAt, createdAt: logExpiredAt }),
-      ),
-    ).toEqual({ status: 'dropped', reason: 'invalid_time' });
-    await expect(signalStore.flush()).resolves.toMatchObject({ written: 0 });
-    expect(batches).toEqual([]);
-    await signalStore.shutdown();
-  });
-
   test('keeps the priority reserve for error signals under item pressure', async () => {
     const target: SignalTarget = {
       name: 'memory',
@@ -334,29 +301,13 @@ describe('BufferedObservabilitySignalStore', () => {
     await signalStore.shutdown();
   });
 
-  test('measures Unicode payloads by UTF-8 bytes at the size boundary', async () => {
-    const signalStore = store([
-      {
-        name: 'memory',
-        write: async () => undefined,
-      },
-    ]);
-
-    expect(
-      signalStore.append(applicationLog({ message: '€'.repeat(1_300) })),
-    ).toEqual({ status: 'dropped', reason: 'oversize' });
-    await signalStore.shutdown();
-  });
-
   test('retries a transient target failure with one stable batch identity', async () => {
     const ids: string[] = [];
-    const payloads: string[] = [];
     let attempts = 0;
     const target: SignalTarget = {
       name: 'flaky',
       write: async (batch) => {
         ids.push(batch.id);
-        payloads.push(canonicalJson(batch.signals));
         attempts += 1;
         if (attempts < 3) {
           throw new SignalDeliveryError('network', { transient: true });
@@ -372,7 +323,6 @@ describe('BufferedObservabilitySignalStore', () => {
     });
     expect(attempts).toBe(3);
     expect(new Set(ids)).toEqual(new Set([ids[0] ?? '']));
-    expect(new Set(payloads)).toEqual(new Set([payloads[0] ?? '']));
     await signalStore.shutdown();
   });
 
@@ -409,135 +359,6 @@ describe('BufferedObservabilitySignalStore', () => {
       },
     });
     await signalStore.shutdown();
-  });
-
-  test('classifies transient and permanent delivery failures at the storage seam', async () => {
-    const scenarios: Array<{
-      name: string;
-      error: unknown;
-      expectedCode: string;
-      expectedAttempts: number;
-    }> = [
-      {
-        name: 'network error',
-        error: new Error('ECONNRESET: network unavailable'),
-        expectedCode: 'Error',
-        expectedAttempts: 4,
-      },
-      {
-        name: 'timeout error',
-        error: new Error('request timed out'),
-        expectedCode: 'Error',
-        expectedAttempts: 4,
-      },
-      {
-        name: 'HTTP 429',
-        error: { status: 429 },
-        expectedCode: 'http_429',
-        expectedAttempts: 4,
-      },
-      {
-        name: 'HTTP 503',
-        error: { status: 503 },
-        expectedCode: 'http_503',
-        expectedAttempts: 4,
-      },
-      {
-        name: 'authentication failure',
-        error: new SignalDeliveryError('clickhouse_unauthorized'),
-        expectedCode: 'clickhouse_unauthorized',
-        expectedAttempts: 1,
-      },
-      {
-        name: 'schema failure',
-        error: new SignalDeliveryError('clickhouse_schema_mismatch'),
-        expectedCode: 'clickhouse_schema_mismatch',
-        expectedAttempts: 1,
-      },
-    ];
-
-    for (const scenario of scenarios) {
-      let attempts = 0;
-      const signalStore = store([
-        {
-          name: scenario.name,
-          write: async () => {
-            attempts += 1;
-            throw scenario.error;
-          },
-        },
-      ]);
-      signalStore.append(span());
-
-      await expect(signalStore.flush()).resolves.toMatchObject({
-        written: 0,
-        dropped: 1,
-        failed: true,
-      });
-      expect(attempts, scenario.name).toBe(scenario.expectedAttempts);
-      expect(signalStore.diagnostics(), scenario.name).toMatchObject({
-        state: 'blind_spot',
-        failureCode: scenario.expectedCode,
-        targets: {
-          [scenario.name]: {
-            dropped: 1,
-            failureCode: scenario.expectedCode,
-          },
-        },
-      });
-      await signalStore.shutdown();
-    }
-  });
-
-  test('keeps failure diagnostics sanitized when a target throws sensitive text', async () => {
-    const signalStore = store([
-      {
-        name: 'sensitive-target',
-        write: async () => {
-          throw new Error('password=super-secret endpoint=https://db.internal');
-        },
-      },
-    ]);
-    signalStore.append(span());
-
-    await signalStore.flush();
-    const diagnostics = signalStore.diagnostics();
-    expect(diagnostics.failureCode).toBe('Error');
-    expect(JSON.stringify(diagnostics)).not.toContain('super-secret');
-    expect(JSON.stringify(diagnostics)).not.toContain('db.internal');
-    await signalStore.shutdown();
-  });
-
-  test('bounds shutdown and accounts for queued rows when a delivery remains blocked', async () => {
-    let release: (() => void) | undefined;
-    const blocked = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const signalStore = store(
-      [
-        {
-          name: 'blocked',
-          write: async () => {
-            await blocked;
-          },
-        },
-      ],
-      { maxInFlight: 1, batchMaxItems: 1 },
-    );
-    signalStore.append(span());
-    signalStore.append(span({ spanId: '1123456789abcdef' }));
-
-    const result = await signalStore.shutdown(1);
-    expect(result.timedOut).toBe(true);
-    expect(result.failed).toBe(true);
-    expect(result.dropped).toBe(1);
-    expect(signalStore.append(span())).toEqual({
-      status: 'dropped',
-      reason: 'shutting_down',
-    });
-
-    release?.();
-    await signalStore.flush();
   });
 
   test('keeps at most four delivery batches in flight', async () => {

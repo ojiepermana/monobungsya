@@ -1,11 +1,5 @@
 import { Elysia, t } from 'elysia';
 import type { DatabaseClient } from '#project/database';
-import { RateLimitError, toErrorResponse } from '#project/errors';
-import {
-  type ClickHouseSignalReader,
-  ClickHouseSignalReadQuotaError,
-  type ObservabilitySignalReadMode,
-} from '#project/observability';
 import {
   type IngestionVerificationOptions,
   verifyIngestionRequest,
@@ -32,44 +26,13 @@ import {
 } from './observability.schema';
 import { ObservabilityService } from './observability.service';
 
-const rateLimitResponse = t.Object({
-  error: t.Object({
-    code: t.Literal('RATE_LIMITED'),
-    message: t.String(),
-    reason: t.Optional(t.String()),
-    requestId: t.Optional(t.String()),
-  }),
-});
-
-interface RateLimitResponseBody {
-  error: {
-    code: 'RATE_LIMITED';
-    message: string;
-    reason?: string;
-    requestId?: string;
-  };
-}
-
 export interface ObservabilityRouteOptions {
-  clickhouseReader?: ClickHouseSignalReader | null;
   database?: DatabaseClient;
   ingestionKeys?: ReadonlyMap<string, string>;
   ingestionMaxBytes?: number;
   ingestionClockSkewSeconds?: number;
   queryTimeoutMs?: number;
   maxSeries?: number;
-  readMode?: ObservabilitySignalReadMode;
-}
-
-function quotaResponse(error: unknown, request: Request) {
-  if (!(error instanceof ClickHouseSignalReadQuotaError)) return null;
-  return {
-    body: toErrorResponse(
-      new RateLimitError(),
-      request.headers.get('x-request-id') ?? undefined,
-    ).body as RateLimitResponseBody,
-    retryAfterSeconds: error.retryAfterSeconds,
-  };
 }
 
 export function createObservabilityRoute(
@@ -77,10 +40,8 @@ export function createObservabilityRoute(
 ) {
   const service = new ObservabilityService(
     new ObservabilityRepository(options.database, {
-      clickhouseReader: options.clickhouseReader,
       queryTimeoutMs: options.queryTimeoutMs,
       maxSeries: options.maxSeries,
-      readMode: options.readMode,
     }),
   );
   const ingestion: IngestionVerificationOptions = {
@@ -108,19 +69,10 @@ export function createObservabilityRoute(
     )
     .get(
       '/internal/observability/traces',
-      async ({ query, request, set, status }) => {
-        try {
-          return await service.listTraces(query);
-        } catch (error) {
-          const quota = quotaResponse(error, request);
-          if (!quota) throw error;
-          set.headers['retry-after'] = String(quota.retryAfterSeconds);
-          return status(429, quota.body);
-        }
-      },
+      ({ query }) => service.listTraces(query),
       {
         query: tracesQuery,
-        response: { 200: tracesResponse, 429: rateLimitResponse },
+        response: { 200: tracesResponse },
         detail: {
           tags: ['Observability'],
           summary: 'List sampled runtime traces',
@@ -129,19 +81,10 @@ export function createObservabilityRoute(
     )
     .get(
       '/internal/observability/traces/:traceId',
-      async ({ params, request, set, status }) => {
-        try {
-          return await service.getTrace(params.traceId);
-        } catch (error) {
-          const quota = quotaResponse(error, request);
-          if (!quota) throw error;
-          set.headers['retry-after'] = String(quota.retryAfterSeconds);
-          return status(429, quota.body);
-        }
-      },
+      ({ params }) => service.getTrace(params.traceId),
       {
         params: traceParams,
-        response: { 200: traceDetailResponse, 429: rateLimitResponse },
+        response: { 200: traceDetailResponse },
         detail: {
           tags: ['Observability'],
           summary: 'Read a runtime trace tree',
@@ -150,19 +93,10 @@ export function createObservabilityRoute(
     )
     .get(
       '/internal/observability/metrics',
-      async ({ query, request, set, status }) => {
-        try {
-          return await service.listMetrics(query);
-        } catch (error) {
-          const quota = quotaResponse(error, request);
-          if (!quota) throw error;
-          set.headers['retry-after'] = String(quota.retryAfterSeconds);
-          return status(429, quota.body);
-        }
-      },
+      ({ query }) => service.listMetrics(query),
       {
         query: metricsQuery,
-        response: { 200: metricsResponse, 429: rateLimitResponse },
+        response: { 200: metricsResponse },
         detail: {
           tags: ['Observability'],
           summary: 'Read aggregated runtime metrics',

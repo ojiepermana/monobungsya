@@ -3,7 +3,6 @@ import {
   ServiceUnavailableError,
   ValidationError,
 } from '#project/errors';
-import { ClickHouseSignalReadQuotaError } from '#project/observability';
 import {
   type BenchmarkReport,
   METRIC_NAMES,
@@ -17,7 +16,6 @@ import {
   decodeTraceCursor,
   METRIC_STEPS,
   type ObservabilityRepository,
-  traceCursorFingerprint,
 } from './observability.repository';
 import type {
   AlertQuery,
@@ -31,7 +29,6 @@ import { METRIC_GROUPS } from './observability.types';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-const FUTURE_SKEW_MS = 5 * 60 * 1_000;
 const STORAGE_BLIND_SPOT = 'observability_storage_blind_spot';
 function parseTime(value: string | undefined, fallback: Date): Date {
   if (!value) return fallback;
@@ -49,15 +46,9 @@ function range(
   toValue: string | undefined,
   maxMs: number,
 ): { from: Date; to: Date } {
-  const now = new Date();
-  const to = parseTime(toValue, now);
-  const from = parseTime(fromValue, new Date(to.getTime() - DAY_MS));
-  if (
-    from >= to ||
-    to.getTime() - from.getTime() > maxMs ||
-    from.getTime() < now.getTime() - maxMs ||
-    to.getTime() > now.getTime() + FUTURE_SKEW_MS
-  ) {
+  const to = parseTime(toValue, new Date());
+  const from = parseTime(fromValue, new Date(to.getTime() - HOUR_MS));
+  if (from >= to || to.getTime() - from.getTime() > maxMs) {
     throw new ValidationError(
       'Observability time range is invalid or exceeds the maximum window',
     );
@@ -261,23 +252,27 @@ export class ObservabilityService {
   }
 
   async listTraces(query: TraceQuery) {
-    const times = range(query.from, query.to, 7 * DAY_MS);
-    const traceQuery = {
-      ...times,
-      cursor: query.cursor,
-      service: clean(query.service),
-      resourceKind: clean(query.resourceKind),
-      resourceName: clean(query.resourceName),
-      status: clean(query.status) as TraceQuery['status'],
-      correlationId: clean(query.correlationId),
-      requestId: clean(query.requestId),
-      runId: clean(query.runId),
-    };
-    if (traceQuery.cursor) {
-      decodeTraceCursor(traceQuery.cursor, traceCursorFingerprint(traceQuery));
+    if (query.cursor) {
+      try {
+        decodeTraceCursor(query.cursor);
+      } catch {
+        throw new ValidationError('The trace cursor is invalid');
+      }
     }
+    const times = range(query.from, query.to, DAY_MS);
     const page = await this.readWithBlindSpot(
-      () => this.repository.listTraces(traceQuery),
+      () =>
+        this.repository.listTraces({
+          ...times,
+          cursor: query.cursor,
+          service: clean(query.service),
+          resourceKind: clean(query.resourceKind),
+          resourceName: clean(query.resourceName),
+          status: clean(query.status) as TraceQuery['status'],
+          correlationId: clean(query.correlationId),
+          requestId: clean(query.requestId),
+          runId: clean(query.runId),
+        }),
       {
         items: [],
         prevCursor: null,
@@ -303,7 +298,7 @@ export class ObservabilityService {
   }
 
   async getTrace(traceId: string) {
-    this.requireSignalStorage();
+    this.requireStorage();
     const detail = await this.readDetail(() =>
       this.repository.getTrace(traceId),
     );
@@ -477,15 +472,6 @@ export class ObservabilityService {
     }
   }
 
-  private requireSignalStorage(): void {
-    if (!this.repository.isSignalStorageAvailable()) {
-      throw new ServiceUnavailableError(
-        'Telemetry storage is unavailable; observability is a blind spot',
-        STORAGE_BLIND_SPOT,
-      );
-    }
-  }
-
   private async readWithBlindSpot<T>(
     operation: () => Promise<T>,
     fallback: T,
@@ -493,12 +479,7 @@ export class ObservabilityService {
     try {
       return await operation();
     } catch (error) {
-      if (
-        error instanceof ValidationError ||
-        error instanceof ClickHouseSignalReadQuotaError
-      ) {
-        throw error;
-      }
+      if (error instanceof ValidationError) throw error;
       return fallback;
     }
   }
@@ -506,8 +487,7 @@ export class ObservabilityService {
   private async readDetail<T>(operation: () => Promise<T>): Promise<T> {
     try {
       return await operation();
-    } catch (error) {
-      if (error instanceof ClickHouseSignalReadQuotaError) throw error;
+    } catch {
       throw this.storageUnavailable();
     }
   }

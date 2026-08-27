@@ -6,11 +6,6 @@ import {
   observabilityAlertNotificationContract,
 } from '#project/jobs';
 import {
-  CLICKHOUSE_VERSION_MANIFEST,
-  type ClickHouseSignalReader,
-  type ObservabilitySignalReadMode,
-} from '#project/observability';
-import {
   type AlertState,
   type AlertTransition,
   evaluateAlertState,
@@ -57,121 +52,13 @@ interface MetricGroup {
   rows: MetricRow[];
 }
 
-interface MetricReadResult {
-  rows: MetricRow[];
-  available: boolean;
-}
-
-interface ClickHouseAvailabilityRow {
-  database_count: number | string | null;
-  disk_usage_percent: number | string | null;
-  schema_version_column_count: number | string | null;
-  server_version: string | null;
-  table_count: number | string | null;
-}
-
-export interface ClickHouseAvailabilityProbeResult {
-  available: boolean;
-  diskUsagePercent: number | null;
-  blocksBackfill: boolean;
-}
-
-export interface ObservabilityAlertEvaluatorOptions {
-  readMode?: ObservabilitySignalReadMode;
-  /**
-   * Reader admitted by the runtime promotion gate for normal metric reads.
-   */
-  clickHouseReader?: ClickHouseSignalReader | null;
-  /**
-   * Bounded health-probe reader allowed during shadow writes. It must never
-   * serve the configured public metric read mode.
-   */
-  clickHouseProbeReader?: ClickHouseSignalReader | null;
-}
-
-export const CLICKHOUSE_AVAILABILITY_PROBE_INTERVAL_MS = 30_000;
-
-const CLICKHOUSE_PROBE_RULE_VERSION = 'clickhouse-health-v1';
-const CLICKHOUSE_PROBE_MANIFEST_CHECKSUM = sha256(
-  'observability.clickhouse.availability-and-disk.v1',
-);
-const CLICKHOUSE_PROBE_RESOURCE: Omit<MetricGroup, 'rows'> = {
-  service: 'clickhouse',
-  resourceKind: 'storage.node',
-  resourceName: 'observability',
-  fingerprint: sha256('observability.clickhouse.storage.node'),
-};
-const CLICKHOUSE_AVAILABILITY_RULE: AlertRule = {
-  ruleId: 'observability.clickhouse.availability',
-  title: 'ClickHouse availability',
-  severity: 'critical',
-  metric: 'observability.clickhouse.availability',
-  threshold: 1,
-  resourceName: 'observability',
-  windowSeconds: 30,
-  requiredWindows: 2,
-};
-const CLICKHOUSE_DISK_RULES: readonly AlertRule[] = [
-  {
-    ruleId: 'observability.clickhouse.disk.warning',
-    title: 'ClickHouse disk usage warning',
-    severity: 'warning',
-    metric: 'observability.clickhouse.disk_usage_percent',
-    threshold: 70,
-    resourceName: 'observability',
-    windowSeconds: 30,
-    requiredWindows: 1,
-  },
-  {
-    ruleId: 'observability.clickhouse.disk.firing',
-    title: 'ClickHouse disk usage blocks backfill',
-    severity: 'critical',
-    metric: 'observability.clickhouse.disk_usage_percent',
-    threshold: 80,
-    resourceName: 'observability',
-    windowSeconds: 30,
-    requiredWindows: 1,
-  },
-  {
-    ruleId: 'observability.clickhouse.disk.critical',
-    title: 'ClickHouse disk usage critical',
-    severity: 'critical',
-    metric: 'observability.clickhouse.disk_usage_percent',
-    threshold: 90,
-    resourceName: 'observability',
-    windowSeconds: 30,
-    requiredWindows: 1,
-  },
-];
-const CLICKHOUSE_AVAILABILITY_QUERY =
-  'SELECT version() AS server_version, ' +
-  "(SELECT count() FROM system.databases WHERE name = 'observability') AS database_count, " +
-  "(SELECT count() FROM system.tables WHERE database = 'observability' AND name IN ('spans', 'metric_buckets', 'application_logs', 'access_logs')) AS table_count, " +
-  "(SELECT count() FROM system.columns WHERE database = 'observability' AND table IN ('spans', 'metric_buckets', 'application_logs', 'access_logs') AND name = 'schema_version') AS schema_version_column_count, " +
-  'max(if(total_space = 0, 0.0, (1.0 - free_space / total_space) * 100.0)) AS disk_usage_percent FROM system.disks';
-const CLICKHOUSE_METRIC_BUCKETS_QUERY =
-  'SELECT toString(bucket_start) AS bucket_start, service_name, resource_kind, resource_name, series_fingerprint, count, sum, histogram_boundaries, histogram_counts, labels ' +
-  'FROM (SELECT * FROM observability.metric_buckets ' +
-  "WHERE metric_name = {metric:String} AND bucket_start >= {from:DateTime64(6, 'UTC')} AND bucket_start < {to:DateTime64(6, 'UTC')} " +
-  'ORDER BY bucket_start ASC, series_fingerprint ASC, flush_sequence DESC ' +
-  'LIMIT 1 BY bucket_start, series_fingerprint) ORDER BY bucket_start ASC';
-
 export class ObservabilityAlertEvaluator {
   constructor(
     private readonly database: DatabaseClient,
     private readonly registry: JobRegistry,
     private readonly rulesPath: string,
     private readonly telemetry?: Telemetry,
-    options: ObservabilityAlertEvaluatorOptions = {},
-  ) {
-    this.readMode = options.readMode ?? 'postgres';
-    this.clickHouseReader = options.clickHouseReader ?? null;
-    this.clickHouseProbeReader = options.clickHouseProbeReader ?? null;
-  }
-
-  private readonly readMode: ObservabilitySignalReadMode;
-  private readonly clickHouseReader: ClickHouseSignalReader | null;
-  private readonly clickHouseProbeReader: ClickHouseSignalReader | null;
+  ) {}
 
   async evaluate(now = new Date()): Promise<number> {
     const run = () => this.evaluateInternal(now);
@@ -192,8 +79,8 @@ export class ObservabilityAlertEvaluator {
     let transitions = 0;
     for (const rule of manifest.rules) {
       const from = new Date(now.getTime() - rule.windowSeconds * 1000);
-      const metricRead = await this.readMetricRows(rule.metric, from, now);
-      const groups = groupRows(metricRead.rows, rule);
+      const rows = await this.readMetricRows(rule.metric, from, now);
+      const groups = groupRows(rows, rule);
       if (groups.length === 0) {
         groups.push({
           service: 'runtime',
@@ -205,11 +92,7 @@ export class ObservabilityAlertEvaluator {
       }
 
       for (const group of groups) {
-        const metricEvaluation = evaluateMetric(rule, group, now);
-        const evaluation = {
-          ...metricEvaluation,
-          hasData: metricRead.available && metricEvaluation.hasData,
-        };
+        const evaluation = evaluateMetric(rule, group, now);
         const previous = await this.readState(
           rule.ruleId,
           manifest.ruleVersion,
@@ -233,69 +116,11 @@ export class ObservabilityAlertEvaluator {
     return transitions;
   }
 
-  async probeClickHouse(
-    now = new Date(),
-  ): Promise<ClickHouseAvailabilityProbeResult> {
-    const probe = await this.readClickHouseAvailability(now);
-    const group: MetricGroup = { ...CLICKHOUSE_PROBE_RESOURCE, rows: [] };
-    const evaluatedAt = now.toISOString();
-
-    const availabilityState = await this.readState(
-      CLICKHOUSE_AVAILABILITY_RULE.ruleId,
-      CLICKHOUSE_PROBE_RULE_VERSION,
-      group.fingerprint,
-    );
-    await this.persist(
-      CLICKHOUSE_AVAILABILITY_RULE,
-      CLICKHOUSE_PROBE_RULE_VERSION,
-      CLICKHOUSE_PROBE_MANIFEST_CHECKSUM,
-      group,
-      evaluateClickHouseAvailability(
-        availabilityState,
-        probe.available,
-        evaluatedAt,
-      ),
-    );
-
-    for (const rule of CLICKHOUSE_DISK_RULES) {
-      const previous = await this.readState(
-        rule.ruleId,
-        CLICKHOUSE_PROBE_RULE_VERSION,
-        group.fingerprint,
-      );
-      const hasData = probe.available && probe.diskUsagePercent !== null;
-      await this.persist(
-        rule,
-        CLICKHOUSE_PROBE_RULE_VERSION,
-        CLICKHOUSE_PROBE_MANIFEST_CHECKSUM,
-        group,
-        evaluateAlertState(
-          previous,
-          {
-            breached:
-              hasData && probe.diskUsagePercent !== null
-                ? probe.diskUsagePercent >= rule.threshold
-                : false,
-            hasData,
-            evaluatedAt,
-            evidenceBucket: hasData ? evaluatedAt : null,
-          },
-          rule.requiredWindows,
-        ),
-      );
-    }
-
-    return probe;
-  }
-
   private async readMetricRows(
     metric: string,
     from: Date,
     to: Date,
-  ): Promise<MetricReadResult> {
-    if (this.readMode === 'clickhouse') {
-      return this.readClickHouseMetricRows(metric, from, to);
-    }
+  ): Promise<MetricRow[]> {
     const query = () =>
       this.database.unsafe(
         `SELECT bucket_start::text AS bucket_start, service_name, resource_kind, resource_name, series_fingerprint, count, sum, histogram_boundaries, histogram_counts, labels
@@ -304,7 +129,7 @@ export class ObservabilityAlertEvaluator {
          ORDER BY bucket_start ASC`,
         [metric, from, to] as never[],
       ) as Promise<MetricRow[]>;
-    const rows = await (this.telemetry
+    return this.telemetry
       ? this.telemetry.withSpan(
           {
             resourceKind: 'db.query',
@@ -313,105 +138,7 @@ export class ObservabilityAlertEvaluator {
           },
           query,
         )
-      : query());
-    return { rows, available: true };
-  }
-
-  private async readClickHouseMetricRows(
-    metric: string,
-    from: Date,
-    to: Date,
-  ): Promise<MetricReadResult> {
-    const reader = this.clickHouseReader;
-    if (!reader) return { rows: [], available: false };
-    const query = () =>
-      reader.queryRows<MetricRow>(CLICKHOUSE_METRIC_BUCKETS_QUERY, {
-        range: { start: from, end: to },
-        params: {
-          metric,
-          from: clickHouseTimestamp(from),
-          to: clickHouseTimestamp(to),
-        },
-        settings: { max_execution_time: 5 },
-      });
-    try {
-      const rows = await (this.telemetry
-        ? this.telemetry.withSpan(
-            {
-              resourceKind: 'db.query',
-              resourceName: 'observability.metric_buckets.read',
-              operation: 'select',
-            },
-            query,
-          )
-        : query());
-      return { rows, available: true };
-    } catch {
-      return { rows: [], available: false };
-    }
-  }
-
-  private async readClickHouseAvailability(
-    now: Date,
-  ): Promise<ClickHouseAvailabilityProbeResult> {
-    const reader = this.clickHouseProbeReader;
-    if (!reader) {
-      return {
-        available: false,
-        diskUsagePercent: null,
-        blocksBackfill: true,
-      };
-    }
-    const query = () =>
-      reader.queryRows<ClickHouseAvailabilityRow>(
-        CLICKHOUSE_AVAILABILITY_QUERY,
-        {
-          range: {
-            start: new Date(
-              now.getTime() - CLICKHOUSE_AVAILABILITY_PROBE_INTERVAL_MS,
-            ),
-            end: now,
-          },
-          settings: { max_execution_time: 5 },
-        },
-      );
-    try {
-      const rows = await (this.telemetry
-        ? this.telemetry.withSpan(
-            {
-              resourceKind: 'db.query',
-              resourceName: 'observability.clickhouse.availability',
-              operation: 'select',
-            },
-            query,
-          )
-        : query());
-      if (!rows[0]) {
-        return {
-          available: false,
-          diskUsagePercent: null,
-          blocksBackfill: true,
-        };
-      }
-      const diskUsagePercent = validDiskUsage(rows[0]?.disk_usage_percent);
-      const schemaReady =
-        rows[0]?.server_version === CLICKHOUSE_VERSION_MANIFEST.serverVersion &&
-        Number(rows[0]?.database_count) === 1 &&
-        Number(rows[0]?.table_count) === 4 &&
-        Number(rows[0]?.schema_version_column_count) === 4;
-      return {
-        available: schemaReady,
-        diskUsagePercent,
-        blocksBackfill:
-          !schemaReady || (diskUsagePercent !== null && diskUsagePercent >= 80),
-      };
-    } catch {
-      return {
-        available: false,
-        diskUsagePercent: null,
-        blocksBackfill: true,
-      };
-    }
+      : query();
   }
 
   private async readState(
@@ -751,77 +478,4 @@ function parseJson(value: unknown): unknown {
 
 function nullableText(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
-}
-
-function clickHouseTimestamp(value: Date): string {
-  return value.toISOString().replace('T', ' ').replace('Z', '');
-}
-
-function validDiskUsage(value: unknown): number | null {
-  const usage = Number(value);
-  return Number.isFinite(usage) && usage >= 0 && usage <= 100 ? usage : null;
-}
-
-function evaluateClickHouseAvailability(
-  previous: AlertState | null,
-  available: boolean,
-  evaluatedAt: string,
-): AlertTransition {
-  const current: AlertState = previous ?? {
-    status: 'pending',
-    consecutiveBreachWindows: 0,
-    consecutiveHealthyWindows: 0,
-    transitionSequence: 0,
-    firstBreachedAt: null,
-    lastEvaluatedAt: evaluatedAt,
-    evidenceBucket: null,
-    lastNotifiedAt: null,
-    resolvedAt: null,
-  };
-
-  if (!available) {
-    const consecutiveBreachWindows = current.consecutiveBreachWindows + 1;
-    const status = consecutiveBreachWindows >= 2 ? 'firing' : 'pending';
-    const changed = status !== current.status;
-    return {
-      ...current,
-      status,
-      consecutiveBreachWindows,
-      consecutiveHealthyWindows: 0,
-      transitionSequence: changed
-        ? current.transitionSequence + 1
-        : current.transitionSequence,
-      firstBreachedAt:
-        current.status === 'resolved' || current.status === 'unknown'
-          ? evaluatedAt
-          : (current.firstBreachedAt ?? evaluatedAt),
-      lastEvaluatedAt: evaluatedAt,
-      evidenceBucket: evaluatedAt,
-      resolvedAt: null,
-      changed,
-      shouldNotify: changed && status === 'firing',
-    };
-  }
-
-  const wasFiring = current.status === 'firing';
-  const consecutiveHealthyWindows = wasFiring
-    ? current.consecutiveHealthyWindows + 1
-    : 0;
-  const resolved = wasFiring && consecutiveHealthyWindows >= 3;
-  const status = resolved ? 'resolved' : wasFiring ? 'firing' : 'resolved';
-  const changed = status !== current.status;
-  return {
-    ...current,
-    status,
-    consecutiveBreachWindows: 0,
-    consecutiveHealthyWindows,
-    transitionSequence: changed
-      ? current.transitionSequence + 1
-      : current.transitionSequence,
-    lastEvaluatedAt: evaluatedAt,
-    evidenceBucket: evaluatedAt,
-    resolvedAt: resolved ? evaluatedAt : current.resolvedAt,
-    changed,
-    shouldNotify: resolved,
-  };
 }

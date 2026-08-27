@@ -11,7 +11,6 @@ import {
   type ApplicationLogsResponse,
   type AuditTrailsResponse,
   type LogsMeta,
-  type PostgresAccessLogsResponse,
   type UserRecord,
   type UsersResponse,
 } from '../../../services/api.service';
@@ -58,7 +57,7 @@ function auditResponse(
   };
 }
 
-function accessResponse(): PostgresAccessLogsResponse {
+function accessResponse(): AccessLogsResponse {
   return {
     data: [],
     meta: emptyMeta(),
@@ -130,9 +129,6 @@ interface UserDetailPageInternals {
   accessRows(): unknown[];
   applicationRows(): unknown[];
   activeMeta(): LogsMeta;
-  activeCursorPagination(): boolean;
-  activeNextCursor(): string | null;
-  pageLabel(): string;
   actions(): Array<{ action: string }>;
   editOpen(): boolean;
   editError(): string | null;
@@ -140,7 +136,6 @@ interface UserDetailPageInternals {
   actionError(): string | null;
   selectTab(tab: 'audit' | 'permissions' | 'access' | 'application'): void;
   goTo(page: number): void;
-  goToCursor(cursor: string | null): void;
   openEdit(): void;
   submitEdit(payload: unknown): void;
   askFor(action: { action: string }): void;
@@ -215,19 +210,14 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
     page.selectTab('access');
 
     expect(page.tab()).toBe('access');
-    expect(api.accessLogs).toHaveBeenCalledWith(
-      expect.objectContaining({
-        search: '',
-        event: '',
-        outcome: '',
-        traceId: '',
-        page: 1,
-        actorUserId: 'user-7',
-        from: expect.any(String),
-        to: expect.any(String),
-        cursor: undefined,
-      }),
-    );
+    expect(api.accessLogs).toHaveBeenCalledWith({
+      search: '',
+      event: '',
+      outcome: '',
+      traceId: '',
+      page: 1,
+      actorUserId: 'user-7',
+    });
     expect(api.auditTrails).not.toHaveBeenCalled();
   });
 
@@ -237,19 +227,14 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
 
     page.selectTab('application');
 
-    expect(api.applicationLogs).toHaveBeenCalledWith(
-      expect.objectContaining({
-        search: '',
-        level: '',
-        module: '',
-        event: '',
-        page: 1,
-        actorUserId: 'user-7',
-        from: expect.any(String),
-        to: expect.any(String),
-        cursor: undefined,
-      }),
-    );
+    expect(api.applicationLogs).toHaveBeenCalledWith({
+      search: '',
+      level: '',
+      module: '',
+      event: '',
+      page: 1,
+      actorUserId: 'user-7',
+    });
   });
 
   it('goTo requests the next page of whichever tab is currently active', () => {
@@ -260,19 +245,14 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
 
     page.goTo(2);
 
-    expect(api.accessLogs).toHaveBeenCalledWith(
-      expect.objectContaining({
-        search: '',
-        event: '',
-        outcome: '',
-        traceId: '',
-        page: 2,
-        actorUserId: 'user-7',
-        from: expect.any(String),
-        to: expect.any(String),
-        cursor: undefined,
-      }),
-    );
+    expect(api.accessLogs).toHaveBeenCalledWith({
+      search: '',
+      event: '',
+      outcome: '',
+      traceId: '',
+      page: 2,
+      actorUserId: 'user-7',
+    });
   });
 
   it('activeMeta reflects the meta of whichever tab is selected', () => {
@@ -288,34 +268,6 @@ describe('UserDetailPage log tabs (spec docs/specs/0007-user-management, AC-10)'
     page.selectTab('access');
 
     expect(page.activeMeta().total).toBe(9);
-  });
-
-  it('renders a signal cursor response without accessing a missing meta object', () => {
-    const signalResponse: AccessLogsResponse = {
-      data: [],
-      prevCursor: null,
-      nextCursor: 'access-next',
-      filters: { search: '', event: '', outcome: '', traceId: '' },
-      options: { events: [], outcomes: [] },
-      storageStatus: 'blind_spot',
-      blindSpotSince: '2026-08-25T00:00:00.000Z',
-    };
-    const { api, component } = createDetailPage({
-      accessLogs: vi.fn().mockReturnValue(of(signalResponse)),
-    });
-    const page = internal(component);
-
-    page.selectTab('access');
-
-    expect(page.activeCursorPagination()).toBe(true);
-    expect(page.pageLabel()).toBe('0 baris di halaman ini');
-    expect(page.activeNextCursor()).toBe('access-next');
-
-    page.goToCursor('access-next');
-
-    expect(api.accessLogs).toHaveBeenLastCalledWith(
-      expect.objectContaining({ cursor: 'access-next', page: 1 }),
-    );
   });
 });
 

@@ -1,9 +1,5 @@
 import { closeDatabaseClient, createDatabaseClient } from '#project/database';
 import { ActivityLog } from '#project/logger';
-import {
-  createRuntimeClickHouseSignalReader,
-  createRuntimeObservabilitySignalStore,
-} from '#project/observability';
 import { TelemetryRuntime } from '#project/telemetry';
 import { createApp } from './app';
 import { env } from './config/env';
@@ -22,20 +18,14 @@ const telemetryDatabase =
 const observabilityDatabase = env.ENABLE_INFRASTRUCTURE
   ? createDatabaseClient(env.OBSERVABILITY_DATABASE_URL)
   : undefined;
-const signalStore = await createRuntimeObservabilitySignalStore({
-  environment: env,
-  logsDatabase: logDatabase,
-  telemetryDatabase,
-  controlDatabase: observabilityDatabase,
-});
-const clickHouseSignalReader = await createRuntimeClickHouseSignalReader(env, {
-  controlDatabase: observabilityDatabase,
-});
 const telemetry = env.TELEMETRY_ENABLED
   ? new TelemetryRuntime({
       serviceName: env.serviceName,
       serviceInstanceId: env.serviceInstanceId,
-      signalStore,
+      database: telemetryDatabase,
+      queueCapacity: env.TELEMETRY_QUEUE_CAPACITY,
+      priorityCapacity: env.TELEMETRY_PRIORITY_CAPACITY,
+      batchSize: env.TELEMETRY_BATCH_SIZE,
       flushIntervalMs: env.TELEMETRY_FLUSH_INTERVAL_MS,
       slowThresholdMs: env.TELEMETRY_SLOW_THRESHOLD_MS,
       successSampleRate: env.TELEMETRY_SUCCESS_SAMPLE_RATE,
@@ -43,20 +33,16 @@ const telemetry = env.TELEMETRY_ENABLED
   : undefined;
 ActivityLog.configure(logDatabase, {
   bestEffort: env.BEST_EFFORT_LOGGING_ENABLED,
-  signalStore,
 });
 const app = createApp(env, {
-  clickhouseReader: clickHouseSignalReader.reader,
   database,
   telemetryDatabase: observabilityDatabase,
-  signalStore,
   telemetry,
   ingestionKeys: parseIngestionKeys(env.OBSERVABILITY_INGESTION_KEYS),
   ingestionMaxBytes: env.OBSERVABILITY_INGESTION_MAX_BYTES,
   ingestionClockSkewSeconds: env.OBSERVABILITY_INGESTION_CLOCK_SKEW_SECONDS,
   observabilityQueryTimeoutMs: env.OBSERVABILITY_QUERY_TIMEOUT_MS,
   observabilityMaxSeries: env.OBSERVABILITY_MAX_SERIES,
-  observabilityReadMode: env.OBSERVABILITY_SIGNAL_READ_MODE,
 });
 const server = app.listen(env.PORT);
 
@@ -73,7 +59,6 @@ async function shutdown(signal: string): Promise<void> {
   await server.stop();
   await ActivityLog.flush(env.LOG_FLUSH_TIMEOUT_MS);
   await telemetry?.shutdown(env.TELEMETRY_FLUSH_TIMEOUT_MS);
-  if (!telemetry) await signalStore?.shutdown(env.LOG_FLUSH_TIMEOUT_MS);
   if (logDatabase) await closeDatabaseClient(logDatabase);
   if (telemetryDatabase) await closeDatabaseClient(telemetryDatabase);
   if (observabilityDatabase) await closeDatabaseClient(observabilityDatabase);

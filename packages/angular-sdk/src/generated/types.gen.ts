@@ -842,7 +842,6 @@ export type GetApiV1JobsData = {
     path?: never;
     query?: {
         page?: string;
-        pageSize?: string;
         status?: 'queued' | 'running' | 'retry_wait' | 'completed' | 'failed';
         type?: string;
         sourceService?: string;
@@ -1033,7 +1032,6 @@ export type GetApiV1NotificationsData = {
     path?: never;
     query?: {
         page?: string;
-        pageSize?: string;
         category?: string;
         unreadOnly?: string;
     };
@@ -1246,31 +1244,11 @@ export type GetApiV1LogsAccessLogsData = {
         event?: string;
         outcome?: string;
         traceId?: string;
-        page?: string;
-        from?: string;
-        to?: string;
-        cursor?: string;
-        pageSize?: string;
         actorUserId?: string;
+        page?: string;
     };
     url: '/api/v1/logs/access-logs';
 };
-
-export type GetApiV1LogsAccessLogsErrors = {
-    /**
-     * The Signal query capacity is full. Retry after the number of seconds in the Retry-After response header.
-     */
-    429: {
-        error: {
-            code: string;
-            message: string;
-            reason?: string;
-            requestId?: string;
-        };
-    };
-};
-
-export type GetApiV1LogsAccessLogsError = GetApiV1LogsAccessLogsErrors[keyof GetApiV1LogsAccessLogsErrors];
 
 export type GetApiV1LogsAccessLogsResponses = {
     /**
@@ -1314,42 +1292,6 @@ export type GetApiV1LogsAccessLogsResponses = {
             events: Array<string>;
             outcomes: Array<string>;
         };
-    } | {
-        data: Array<{
-            event: string;
-            outcome: string;
-            routeName: string | unknown;
-            path: string | unknown;
-            method: string | unknown;
-            httpStatus: string | number | unknown;
-            requestId: string | unknown;
-            traceId: string | unknown;
-            traceSource: string | unknown;
-            clientRoute: string | unknown;
-            sessionId: string | unknown;
-            sessionSummary: {
-                state: string;
-                reason: string | unknown;
-                permissionCount: string | number;
-            } | unknown;
-            actorEmail: string | unknown;
-            failureReason: string | unknown;
-            accessedAt: string;
-        }>;
-        prevCursor: string | unknown;
-        nextCursor: string | unknown;
-        filters: {
-            search: string;
-            event: string;
-            outcome: string;
-            traceId: string;
-        };
-        options: {
-            events: Array<string>;
-            outcomes: Array<string>;
-        };
-        storageStatus: string;
-        blindSpotSince: string | unknown;
     };
 };
 
@@ -1363,31 +1305,11 @@ export type GetApiV1LogsApplicationLogsData = {
         level?: string;
         module?: string;
         event?: string;
-        page?: string;
-        from?: string;
-        to?: string;
-        cursor?: string;
-        pageSize?: string;
         actorUserId?: string;
+        page?: string;
     };
     url: '/api/v1/logs/application-logs';
 };
-
-export type GetApiV1LogsApplicationLogsErrors = {
-    /**
-     * The Signal query capacity is full. Retry after the number of seconds in the Retry-After response header.
-     */
-    429: {
-        error: {
-            code: string;
-            message: string;
-            reason?: string;
-            requestId?: string;
-        };
-    };
-};
-
-export type GetApiV1LogsApplicationLogsError = GetApiV1LogsApplicationLogsErrors[keyof GetApiV1LogsApplicationLogsErrors];
 
 export type GetApiV1LogsApplicationLogsResponses = {
     /**
@@ -1429,40 +1351,6 @@ export type GetApiV1LogsApplicationLogsResponses = {
             modules: Array<string>;
             events: Array<string>;
         };
-    } | {
-        data: Array<{
-            id: string;
-            level: string;
-            channel: string;
-            category: string;
-            event: string | unknown;
-            module: string | unknown;
-            message: string;
-            context: unknown;
-            exceptionClass: string | unknown;
-            exceptionMessage: string | unknown;
-            stackTrace: string | unknown;
-            actorUserId: string | unknown;
-            actorName: string | unknown;
-            actorEmail: string | unknown;
-            occurredAt: string;
-            createdAt: string;
-        }>;
-        prevCursor: string | unknown;
-        nextCursor: string | unknown;
-        filters: {
-            search: string;
-            level: string;
-            module: string;
-            event: string;
-        };
-        options: {
-            levels: Array<string>;
-            modules: Array<string>;
-            events: Array<string>;
-        };
-        storageStatus: string;
-        blindSpotSince: string | unknown;
     };
 };
 

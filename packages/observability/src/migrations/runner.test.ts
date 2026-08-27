@@ -175,7 +175,7 @@ describe('ClickHouse migration plan', () => {
     ).toThrow('unknown version');
   });
 
-  test('rejects history applied by an unpinned ClickHouse minor and patch version', () => {
+  test('rejects history applied by a different ClickHouse patch', () => {
     expect(() =>
       planClickHouseMigrations(
         migrations,
@@ -186,25 +186,6 @@ describe('ClickHouse migration plan', () => {
             name: 'create_database',
             checksum: sha256('CREATE DATABASE observability'),
             clickhouse_version: '26.8.1.1324',
-          },
-        ],
-        PINNED_CLICKHOUSE_VERSION,
-        FIRST_TARGET_ID,
-      ),
-    ).toThrow('ClickHouse migration binary drift at version 1');
-  });
-
-  test('rejects history applied by a different ClickHouse version', () => {
-    expect(() =>
-      planClickHouseMigrations(
-        migrations,
-        [
-          {
-            target_id: FIRST_TARGET_ID,
-            version: 1,
-            name: 'create_database',
-            checksum: sha256('CREATE DATABASE observability'),
-            clickhouse_version: '27.1.0.0',
           },
         ],
         PINNED_CLICKHOUSE_VERSION,

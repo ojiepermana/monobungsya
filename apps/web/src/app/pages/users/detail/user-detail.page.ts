@@ -6,7 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { BadgeComponent } from '@ojiepermana/angular/component/badge';
 import { ButtonComponent } from '@ojiepermana/angular/component/button';
 import {
@@ -50,15 +50,6 @@ import {
   type UpdateUserPayload,
   type UserRecord,
 } from '../../../services/api.service';
-import { PaginationComponent } from '../../../shared/pagination/pagination.component';
-import {
-  pageFromQuery,
-  syncPageQuery,
-} from '../../../shared/pagination/pagination-state';
-import {
-  defaultTimeWindow,
-  isExpiredCursorError,
-} from '../../observability/observability.utils';
 import { ReasonDialog } from '../reason-dialog';
 import { UserEditDialog } from '../user-edit-dialog';
 import {
@@ -76,17 +67,9 @@ const DATE_FORMAT = new Intl.DateTimeFormat('id-ID', {
   timeStyle: 'short',
 });
 
-const EMPTY_META: LogsMeta = { page: 1, perPage: 100, total: 0, totalPages: 0 };
+const EMPTY_META: LogsMeta = { page: 1, perPage: 25, total: 0, totalPages: 0 };
 
 type TabKey = 'audit' | 'permissions' | 'access' | 'application';
-
-function tabFromQuery(value: string | null): TabKey {
-  return value === 'permissions' ||
-    value === 'access' ||
-    value === 'application'
-    ? value
-    : 'audit';
-}
 
 /**
  * User detail (spec docs/specs/0007-user-management, AC-9 and AC-10): the
@@ -124,7 +107,6 @@ function tabFromQuery(value: string | null): TabKey {
     PageContentComponent,
     PageFooterComponent,
     PageHeaderComponent,
-    PaginationComponent,
     UserEditDialog,
     UserAccessPanel,
     UserTwoFactorPanel,
@@ -214,10 +196,6 @@ function tabFromQuery(value: string | null): TabKey {
             <button TabsTrigger value="application" (click)="selectTab('application')">Application Log</button>
           </TabsList>
 
-          @if (activeStorageWarning()) {
-            <p class="mt-4 border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100" role="status">Penyimpanan signal tidak tersedia. Tampilan ini adalah blind spot, bukan hasil kosong.</p>
-          }
-
           <TabsContent value="audit">
             @if (auditRows().length === 0) {
               <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada audit trail untuk user ini.</p>
@@ -257,7 +235,7 @@ function tabFromQuery(value: string | null): TabKey {
 
           <TabsContent value="access">
             @if (accessRows().length === 0) {
-              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">{{ activeStorageWarning() ? 'Access log untuk user ini tidak dapat dibaca.' : 'Belum ada access log untuk user ini.' }}</p>
+              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada access log untuk user ini.</p>
             } @else {
               <Table class="min-w-full bg-card text-xs">
                 <caption TableCaption class="sr-only">Access log user</caption>
@@ -285,7 +263,7 @@ function tabFromQuery(value: string | null): TabKey {
 
           <TabsContent value="application">
             @if (applicationRows().length === 0) {
-              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">{{ activeStorageWarning() ? 'Application log untuk user ini tidak dapat dibaca.' : 'Belum ada application log untuk user ini.' }}</p>
+              <p class="border border-border bg-card p-5 text-sm text-muted-foreground">Belum ada application log untuk user ini.</p>
             } @else {
               <Table class="min-w-full bg-card text-xs">
                 <caption TableCaption class="sr-only">Application log user</caption>
@@ -339,17 +317,10 @@ function tabFromQuery(value: string | null): TabKey {
       <PageFooter class="flex min-h-(--layout-topbar-height) flex-wrap items-center justify-between gap-3 px-3">
         <p class="text-sm text-muted-foreground">{{ pageLabel() }}</p>
         <div class="flex items-center gap-2">
-          @if (activeCursorPagination()) {
-            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Previous page" title="Previous page" [disabled]="logsLoading() || !activePrevCursor()" (click)="goToCursor(activePrevCursor())"><Icon name="chevron_left" [size]="14" aria-hidden="true" /></button>
-            <button Button variant="outline" size="xs" type="button" class="size-8 p-0" aria-label="Next page" title="Next page" [disabled]="logsLoading() || !activeNextCursor()" (click)="goToCursor(activeNextCursor())"><Icon name="chevron_right" [size]="14" aria-hidden="true" /></button>
-          } @else {
-            <app-pagination
-              [page]="activeMeta().page"
-              [totalPages]="activeMeta().totalPages"
-              [loading]="logsLoading()"
-              (pageChange)="goTo($event)"
-            />
-          }
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(1)"><Icon name="first_page" [size]="14" aria-hidden="true" />First</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page <= 1" (click)="goTo(activeMeta().page - 1)"><Icon name="chevron_left" [size]="14" aria-hidden="true" />Previous</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().page + 1)"><Icon name="chevron_right" [size]="14" aria-hidden="true" />Next</button>
+          <button Button variant="outline" size="xs" type="button" class="gap-1.5" [disabled]="logsLoading() || activeMeta().page >= activeMeta().totalPages" (click)="goTo(activeMeta().totalPages)"><Icon name="last_page" [size]="14" aria-hidden="true" />Last</button>
         </div>
       </PageFooter>
     </Page>
@@ -361,8 +332,6 @@ export class UserDetailPage {
 
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   protected readonly layout = inject(LayoutService);
 
   protected readonly loading = signal(true);
@@ -377,20 +346,6 @@ export class UserDetailPage {
   protected readonly auditMeta = signal<LogsMeta>(EMPTY_META);
   protected readonly accessMeta = signal<LogsMeta>(EMPTY_META);
   protected readonly applicationMeta = signal<LogsMeta>(EMPTY_META);
-  protected readonly accessCursorPagination = signal(false);
-  protected readonly applicationCursorPagination = signal(false);
-  protected readonly accessCursor = signal<string | null>(null);
-  protected readonly applicationCursor = signal<string | null>(null);
-  protected readonly accessPrevCursor = signal<string | null>(null);
-  protected readonly accessNextCursor = signal<string | null>(null);
-  protected readonly applicationPrevCursor = signal<string | null>(null);
-  protected readonly applicationNextCursor = signal<string | null>(null);
-  protected readonly accessStorageWarning = signal(false);
-  protected readonly applicationStorageWarning = signal(false);
-  protected readonly accessFrom = signal(defaultTimeWindow().from);
-  protected readonly accessTo = signal(defaultTimeWindow().to);
-  protected readonly applicationFrom = signal(defaultTimeWindow().from);
-  protected readonly applicationTo = signal(defaultTimeWindow().to);
 
   protected readonly editOpen = signal(false);
   protected readonly saving = signal(false);
@@ -420,60 +375,7 @@ export class UserDetailPage {
         return this.auditMeta();
     }
   });
-  protected readonly activeCursorPagination = computed(() => {
-    switch (this.tab()) {
-      case 'access':
-        return this.accessCursorPagination();
-      case 'application':
-        return this.applicationCursorPagination();
-      default:
-        return false;
-    }
-  });
-  protected readonly activePrevCursor = computed(() => {
-    switch (this.tab()) {
-      case 'access':
-        return this.accessPrevCursor();
-      case 'application':
-        return this.applicationPrevCursor();
-      default:
-        return null;
-    }
-  });
-  protected readonly activeNextCursor = computed(() => {
-    switch (this.tab()) {
-      case 'access':
-        return this.accessNextCursor();
-      case 'application':
-        return this.applicationNextCursor();
-      default:
-        return null;
-    }
-  });
-  protected readonly activeStorageWarning = computed(() => {
-    switch (this.tab()) {
-      case 'access':
-        return this.accessStorageWarning();
-      case 'application':
-        return this.applicationStorageWarning();
-      default:
-        return false;
-    }
-  });
-  protected readonly activeLogRowCount = computed(() => {
-    switch (this.tab()) {
-      case 'access':
-        return this.accessRows().length;
-      case 'application':
-        return this.applicationRows().length;
-      default:
-        return 0;
-    }
-  });
   protected readonly pageLabel = computed(() => {
-    if (this.activeCursorPagination()) {
-      return `${this.activeLogRowCount()} baris di halaman ini`;
-    }
     const meta = this.activeMeta();
     return `Page ${meta.page} of ${Math.max(meta.totalPages, 1)} · ${meta.total} baris`;
   });
@@ -489,58 +391,21 @@ export class UserDetailPage {
    * rather than running once in the constructor.
    */
   constructor() {
-    const query = this.route.snapshot.queryParamMap;
-    const initialTab = tabFromQuery(query.get('tab'));
-    const initialPage = pageFromQuery(query.get('page'));
-
     effect(() => {
       const id = this.id();
-      this.tab.set(initialTab);
-      this.resetSignalLogCursor('access');
-      this.resetSignalLogCursor('application');
+      this.tab.set('audit');
       this.loadProfile(id);
-      this.loadLogs(initialTab, initialPage, id);
+      this.loadLogs('audit', 1, id);
     });
   }
 
   protected selectTab(tab: TabKey): void {
     this.tab.set(tab);
-    this.syncTabQuery(tab);
-    if (tab === 'access' || tab === 'application') {
-      this.resetSignalLogCursor(tab);
-    }
     if (tab !== 'permissions') this.loadLogs(tab, 1, this.id());
   }
 
   protected goTo(page: number): void {
-    syncPageQuery(this.router, this.route, page);
     this.loadLogs(this.tab(), page, this.id());
-  }
-
-  protected goToCursor(cursor: string | null): void {
-    if (!cursor) return;
-    syncPageQuery(this.router, this.route, 1);
-    const tab = this.tab();
-    if (tab === 'access') {
-      this.accessCursor.set(cursor);
-    } else if (tab === 'application') {
-      this.applicationCursor.set(cursor);
-    } else {
-      return;
-    }
-    this.loadLogs(tab, 1, this.id());
-  }
-
-  private syncTabQuery(tab: TabKey): void {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      replaceUrl: true,
-      queryParams: {
-        tab: tab === 'audit' ? null : tab,
-        page: null,
-      },
-      queryParamsHandling: 'merge',
-    });
   }
 
   private loadProfile(id: string): void {
@@ -586,39 +451,14 @@ export class UserDetailPage {
           traceId: '',
           page,
           actorUserId,
-          from: this.accessFrom(),
-          to: this.accessTo(),
-          cursor: this.accessCursor() ?? undefined,
         })
         .subscribe({
           next: (response) => {
             this.accessRows.set(response.data);
-            if ('meta' in response) {
-              this.accessMeta.set(response.meta);
-              this.accessCursorPagination.set(false);
-              this.accessCursor.set(null);
-              this.accessPrevCursor.set(null);
-              this.accessNextCursor.set(null);
-              this.accessStorageWarning.set(false);
-            } else {
-              this.accessMeta.set(EMPTY_META);
-              this.accessCursorPagination.set(true);
-              this.accessPrevCursor.set(response.prevCursor);
-              this.accessNextCursor.set(response.nextCursor);
-              this.accessStorageWarning.set(
-                response.storageStatus === 'blind_spot',
-              );
-            }
+            this.accessMeta.set(response.meta);
             this.logsLoading.set(false);
           },
-          error: (error: unknown) => {
-            if (this.accessCursor() && isExpiredCursorError(error)) {
-              this.accessCursor.set(null);
-              this.loadLogs(tab, 1, actorUserId);
-              return;
-            }
-            this.logsLoading.set(false);
-          },
+          error: () => this.logsLoading.set(false),
         });
 
       return;
@@ -632,61 +472,15 @@ export class UserDetailPage {
         event: '',
         page,
         actorUserId,
-        from: this.applicationFrom(),
-        to: this.applicationTo(),
-        cursor: this.applicationCursor() ?? undefined,
       })
       .subscribe({
         next: (response) => {
           this.applicationRows.set(response.data);
-          if ('meta' in response) {
-            this.applicationMeta.set(response.meta);
-            this.applicationCursorPagination.set(false);
-            this.applicationCursor.set(null);
-            this.applicationPrevCursor.set(null);
-            this.applicationNextCursor.set(null);
-            this.applicationStorageWarning.set(false);
-          } else {
-            this.applicationMeta.set(EMPTY_META);
-            this.applicationCursorPagination.set(true);
-            this.applicationPrevCursor.set(response.prevCursor);
-            this.applicationNextCursor.set(response.nextCursor);
-            this.applicationStorageWarning.set(
-              response.storageStatus === 'blind_spot',
-            );
-          }
+          this.applicationMeta.set(response.meta);
           this.logsLoading.set(false);
         },
-        error: (error: unknown) => {
-          if (this.applicationCursor() && isExpiredCursorError(error)) {
-            this.applicationCursor.set(null);
-            this.loadLogs(tab, 1, actorUserId);
-            return;
-          }
-          this.logsLoading.set(false);
-        },
+        error: () => this.logsLoading.set(false),
       });
-  }
-
-  private resetSignalLogCursor(tab: 'access' | 'application'): void {
-    const range = defaultTimeWindow();
-    if (tab === 'access') {
-      this.accessCursor.set(null);
-      this.accessPrevCursor.set(null);
-      this.accessNextCursor.set(null);
-      this.accessCursorPagination.set(false);
-      this.accessStorageWarning.set(false);
-      this.accessFrom.set(range.from);
-      this.accessTo.set(range.to);
-      return;
-    }
-    this.applicationCursor.set(null);
-    this.applicationPrevCursor.set(null);
-    this.applicationNextCursor.set(null);
-    this.applicationCursorPagination.set(false);
-    this.applicationStorageWarning.set(false);
-    this.applicationFrom.set(range.from);
-    this.applicationTo.set(range.to);
   }
 
   protected openEdit(): void {

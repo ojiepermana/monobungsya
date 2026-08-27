@@ -79,31 +79,6 @@ export interface AccessLogsResult {
   options: { events: string[]; outcomes: string[] };
 }
 
-export interface SignalLogRange {
-  from: Date;
-  to: Date;
-  cursor?: string;
-  pageSize?: number;
-}
-
-export interface SignalAccessLogsQuery extends SignalLogRange {
-  search: string;
-  event: string;
-  outcome: string;
-  traceId: string;
-  actorUserId: string;
-}
-
-export interface SignalAccessLogsResult {
-  data: AccessLogItem[];
-  prevCursor: string | null;
-  nextCursor: string | null;
-  filters: AccessLogFilters;
-  options: { events: string[]; outcomes: string[] };
-  storageStatus: 'available' | 'blind_spot';
-  blindSpotSince: string | null;
-}
-
 export interface ApplicationLogFilters {
   search: string;
   level: string;
@@ -135,22 +110,4 @@ export interface ApplicationLogsResult {
   meta: LogsMeta;
   filters: ApplicationLogFilters;
   options: { levels: string[]; modules: string[]; events: string[] };
-}
-
-export interface SignalApplicationLogsQuery extends SignalLogRange {
-  search: string;
-  level: string;
-  module: string;
-  event: string;
-  actorUserId: string;
-}
-
-export interface SignalApplicationLogsResult {
-  data: ApplicationLogItem[];
-  prevCursor: string | null;
-  nextCursor: string | null;
-  filters: ApplicationLogFilters;
-  options: { levels: string[]; modules: string[]; events: string[] };
-  storageStatus: 'available' | 'blind_spot';
-  blindSpotSince: string | null;
 }

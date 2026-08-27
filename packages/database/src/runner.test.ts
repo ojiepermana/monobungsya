@@ -1,11 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseCliArguments } from './cli';
 import { parseCsv } from './csv';
@@ -13,7 +7,6 @@ import {
   assertChecksumMatches,
   discoverMigrations,
   discoverSeeds,
-  hasCatalogPrimaryKeyException,
 } from './runner';
 import {
   DATABASE_SCOPES,
@@ -63,50 +56,6 @@ describe('database tooling primitives', () => {
     expect(sha256Hex('database')).toBe(
       '3549b0028b75d981cdda2e573e9cb49dedc200185876df299f912b79f69dabd8',
     );
-  });
-
-  test('allows only the signal control tables to use their documented primary keys', () => {
-    expect(
-      hasCatalogPrimaryKeyException('telemetry', 'signal_schema_migrations'),
-    ).toBe(true);
-    expect(
-      hasCatalogPrimaryKeyException('telemetry', 'signal_migration_runs'),
-    ).toBe(true);
-    expect(
-      hasCatalogPrimaryKeyException(
-        'telemetry',
-        'signal_schema_migration_history_legacy',
-      ),
-    ).toBe(true);
-    expect(
-      hasCatalogPrimaryKeyException('telemetry', 'signal_schema_migration'),
-    ).toBe(false);
-    expect(hasCatalogPrimaryKeyException('logs', 'signal_migration_runs')).toBe(
-      false,
-    );
-  });
-
-  test('locks target scoped history before an empty rollback guard', () => {
-    const source = readFileSync(
-      join(
-        import.meta.dir,
-        '../migrations/logs/0044_telemetry_signal_schema_migration_targets.down.sql',
-      ),
-      'utf8',
-    );
-    const advisoryLock = source.indexOf(
-      "pg_advisory_xact_lock(\n  hashtext('project:observability:clickhouse-migrations:v1')",
-    );
-    const tableLock = source.indexOf(
-      'LOCK TABLE "telemetry"."signal_schema_migrations" IN ACCESS EXCLUSIVE MODE;',
-    );
-    const emptyGuard = source.indexOf(
-      'FROM "telemetry"."signal_schema_migrations"',
-    );
-
-    expect(advisoryLock).toBeGreaterThanOrEqual(0);
-    expect(tableLock).toBeGreaterThan(advisoryLock);
-    expect(emptyGuard).toBeGreaterThan(tableLock);
   });
 
   test('rejects edited applied migration and seed files', () => {

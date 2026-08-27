@@ -4,20 +4,16 @@ import { unlink } from 'node:fs/promises';
 const baselinePath = `/private/tmp/observability-benchmark-regression-baseline-${crypto.randomUUID()}.json`;
 const candidatePath = `/private/tmp/observability-benchmark-regression-candidate-${crypto.randomUUID()}.json`;
 
-async function runBenchmark(
-  outputPath: string,
-  baseline?: string,
-  options: { warmup?: number; iterations?: number; groups?: number } = {},
-) {
+async function runBenchmark(outputPath: string, baseline?: string) {
   const args = [
     'run',
     'scripts/observability-benchmark.ts',
     '--warmup',
-    String(options.warmup ?? 1),
+    '1',
     '--iterations',
-    String(options.iterations ?? 2),
+    '2',
     '--groups',
-    String(options.groups ?? 2),
+    '2',
     '--output',
     outputPath,
   ];
@@ -83,16 +79,5 @@ describe('observability benchmark artifact', () => {
     expect(report.overhead.latencyLimitPercent).toBe(5);
     expect(report.overhead.policy).toBe('diagnostic');
     expect(report.overhead.rssLimitPercent).toBe(10);
-  });
-
-  test('keeps a measured group below the benchmark queue byte cap', async () => {
-    await runBenchmark(candidatePath, undefined, {
-      warmup: 100,
-      iterations: 1_000,
-      groups: 2,
-    });
-    const report = await Bun.file(candidatePath).json();
-    expect(report.droppedTelemetryCount).toBe(0);
-    expect(report.failureReason ?? '').not.toContain('telemetry dropped data');
   });
 });

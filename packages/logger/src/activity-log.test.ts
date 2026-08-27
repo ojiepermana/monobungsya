@@ -62,7 +62,7 @@ describe('ActivityLog.writeLog', () => {
 
     expect(queries).toHaveLength(1);
     expect(queries[0]?.text).toContain('INSERT INTO "logs"."logging"');
-    expect(queries[0]?.values).toContainEqual({ invoiceId: 42 });
+    expect(queries[0]?.values).toContain('{"invoiceId":42}');
   });
 
   it('encodes a missing context as SQL NULL', async () => {

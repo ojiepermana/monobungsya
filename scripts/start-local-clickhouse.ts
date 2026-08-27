@@ -8,7 +8,6 @@ import {
   type ClickHouseClientOptions,
   createConfiguredObservabilitySignalStore,
   discoverClickHouseMigrations,
-  isCompatibleClickHouseVersion,
   OBSERVABILITY_SIGNAL_SCHEMA_VERSION,
   runClickHouseMigrations,
   SignalDeliveryError,
@@ -75,15 +74,9 @@ export function parseClickHouseVersion(output: string): string | null {
 
 export function assertPinnedClickHouseVersion(output: string): string {
   const version = parseClickHouseVersion(output);
-  if (
-    version === null ||
-    !isCompatibleClickHouseVersion(
-      version,
-      CLICKHOUSE_VERSION_MANIFEST.serverVersion,
-    )
-  ) {
+  if (version !== CLICKHOUSE_VERSION_MANIFEST.serverVersion) {
     throw new Error(
-      `ClickHouse version ${CLICKHOUSE_VERSION_MANIFEST.serverVersion} is required; found ${version ?? 'unknown'}`,
+      `Pinned ClickHouse ${CLICKHOUSE_VERSION_MANIFEST.serverVersion} is required; found ${version ?? 'unknown'}`,
     );
   }
   return version;

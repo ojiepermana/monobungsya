@@ -6,34 +6,25 @@ import type { DatabaseClient } from '#project/database';
 import {
   createErrorHandler,
   createLoggerPlugin,
-  createObservabilityStorageHealthRoute,
   createOpenApiPlugin,
   createTelemetryPlugin,
   requestIdPlugin,
 } from '#project/elysia';
 import { Logger } from '#project/logger';
-import type {
-  ClickHouseSignalReader,
-  ObservabilitySignalReadMode,
-  ObservabilitySignalStore,
-} from '#project/observability';
 import type { TelemetryRuntime } from '#project/telemetry';
 import { createLogsRoute } from './modules/logs/logs.route';
 import { createObservabilityRoute } from './modules/observability/observability.route';
 import { createAuthIdentityPlugin } from './shared/plugins/auth-identity.plugin';
 
 export interface LogsAppOptions {
-  clickhouseReader?: ClickHouseSignalReader | null;
   database?: DatabaseClient;
   telemetryDatabase?: DatabaseClient;
-  signalStore?: ObservabilitySignalStore;
   telemetry?: TelemetryRuntime;
   ingestionKeys?: ReadonlyMap<string, string>;
   ingestionMaxBytes?: number;
   ingestionClockSkewSeconds?: number;
   observabilityQueryTimeoutMs?: number;
   observabilityMaxSeries?: number;
-  observabilityReadMode?: ObservabilitySignalReadMode;
 }
 
 export function createApp(
@@ -79,49 +70,33 @@ export function createApp(
         (pathname) =>
           pathname === '/internal/observability/benchmark-ingestions'
             ? null
-            : pathname === '/internal/observability/storage-health'
-              ? null
-              : pathname === '/internal/observability/traces' ||
-                  pathname.startsWith('/internal/observability/traces/')
-                ? PERMISSIONS.observabilityTraceRead
-                : pathname === '/internal/observability/metrics'
-                  ? PERMISSIONS.observabilityMetricRead
-                  : pathname === '/internal/observability/benchmarks/runs' ||
-                      pathname.startsWith(
-                        '/internal/observability/benchmarks/runs/',
-                      ) ||
-                      pathname ===
-                        '/internal/observability/benchmarks/baselines'
-                    ? PERMISSIONS.observabilityBenchmarkRead
-                    : pathname === '/internal/observability/alerts' ||
-                        pathname.startsWith('/internal/observability/alerts/')
-                      ? PERMISSIONS.observabilityAlertRead
-                      : PERMISSIONS.logsLogRead,
+            : pathname === '/internal/observability/traces' ||
+                pathname.startsWith('/internal/observability/traces/')
+              ? PERMISSIONS.observabilityTraceRead
+              : pathname === '/internal/observability/metrics'
+                ? PERMISSIONS.observabilityMetricRead
+                : pathname === '/internal/observability/benchmarks/runs' ||
+                    pathname.startsWith(
+                      '/internal/observability/benchmarks/runs/',
+                    ) ||
+                    pathname === '/internal/observability/benchmarks/baselines'
+                  ? PERMISSIONS.observabilityBenchmarkRead
+                  : pathname === '/internal/observability/alerts' ||
+                      pathname.startsWith('/internal/observability/alerts/')
+                    ? PERMISSIONS.observabilityAlertRead
+                    : PERMISSIONS.logsLogRead,
         (pathname) =>
           pathname === '/internal/observability/benchmark-ingestions',
       ),
     )
     .use(
-      createObservabilityStorageHealthRoute({
-        signalStore: options.signalStore,
-        signingSecret: environment.INTERNAL_AUTH_SIGNING_SECRET,
-        clockSkewSeconds: environment.AUTH_CLOCK_SKEW_SECONDS,
-      }),
-    )
-    .use(
       createLogsRoute({
-        clickhouseReader: options.clickhouseReader,
         database: options.database,
-        readMode:
-          options.observabilityReadMode ??
-          environment.OBSERVABILITY_SIGNAL_READ_MODE,
-        signalStore: options.signalStore,
         telemetry: options.telemetry,
       }),
     )
     .use(
       createObservabilityRoute({
-        clickhouseReader: options.clickhouseReader,
         database: options.telemetryDatabase,
         ingestionKeys: options.ingestionKeys,
         ingestionMaxBytes: options.ingestionMaxBytes,
@@ -132,9 +107,6 @@ export function createApp(
         maxSeries:
           options.observabilityMaxSeries ??
           environment.OBSERVABILITY_MAX_SERIES,
-        readMode:
-          options.observabilityReadMode ??
-          environment.OBSERVABILITY_SIGNAL_READ_MODE,
       }),
     );
 }

@@ -41,13 +41,12 @@ export interface UsersFilters {
   search: string;
   status: UserStatusFilter;
   page: number;
-  pageSize?: number;
 }
 
 export interface UsersResponse {
   data: UserRecord[];
   meta: LogsMeta;
-  filters: Omit<UsersFilters, 'page' | 'pageSize'>;
+  filters: Omit<UsersFilters, 'page'>;
   options: { statuses: UserStatus[] };
 }
 
@@ -74,7 +73,6 @@ export interface AuditTrailFilters {
   module: string;
   action: string;
   page: number;
-  pageSize?: number;
 }
 
 /** Narrows a log list to one actor, for the user detail page tabs. */
@@ -98,7 +96,7 @@ export interface AuditTrailItem {
 export interface AuditTrailsResponse {
   data: AuditTrailItem[];
   meta: LogsMeta;
-  filters: Omit<AuditTrailFilters, 'page' | 'pageSize'>;
+  filters: Omit<AuditTrailFilters, 'page'>;
   options: {
     modules: string[];
     actions: string[];
@@ -111,10 +109,6 @@ export interface AccessLogFilters {
   outcome: string;
   traceId: string;
   page: number;
-  pageSize?: number;
-  from?: string;
-  to?: string;
-  cursor?: string;
 }
 
 export interface SessionSummary {
@@ -210,35 +204,15 @@ export interface AccessLogItem {
   accessedAt: string;
 }
 
-export interface PostgresAccessLogsResponse {
+export interface AccessLogsResponse {
   data: AccessLogItem[];
   meta: LogsMeta;
-  filters: Omit<
-    AccessLogFilters,
-    'page' | 'pageSize' | 'from' | 'to' | 'cursor'
-  >;
+  filters: Omit<AccessLogFilters, 'page'>;
   options: {
     events: string[];
     outcomes: string[];
   };
 }
-
-export interface SignalAccessLogsResponse {
-  data: AccessLogItem[];
-  prevCursor: string | null;
-  nextCursor: string | null;
-  filters: Omit<AccessLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
-  options: {
-    events: string[];
-    outcomes: string[];
-  };
-  storageStatus: 'available' | 'blind_spot';
-  blindSpotSince: string | null;
-}
-
-export type AccessLogsResponse =
-  | PostgresAccessLogsResponse
-  | SignalAccessLogsResponse;
 
 export interface ApplicationLogFilters {
   search: string;
@@ -246,10 +220,6 @@ export interface ApplicationLogFilters {
   module: string;
   event: string;
   page: number;
-  pageSize?: number;
-  from?: string;
-  to?: string;
-  cursor?: string;
 }
 
 export interface ApplicationLogItem {
@@ -271,37 +241,16 @@ export interface ApplicationLogItem {
   createdAt: string;
 }
 
-export interface PostgresApplicationLogsResponse {
+export interface ApplicationLogsResponse {
   data: ApplicationLogItem[];
   meta: LogsMeta;
-  filters: Omit<
-    ApplicationLogFilters,
-    'page' | 'pageSize' | 'from' | 'to' | 'cursor'
-  >;
+  filters: Omit<ApplicationLogFilters, 'page'>;
   options: {
     levels: string[];
     modules: string[];
     events: string[];
   };
 }
-
-export interface SignalApplicationLogsResponse {
-  data: ApplicationLogItem[];
-  prevCursor: string | null;
-  nextCursor: string | null;
-  filters: Omit<ApplicationLogFilters, 'page' | 'from' | 'to' | 'cursor'>;
-  options: {
-    levels: string[];
-    modules: string[];
-    events: string[];
-  };
-  storageStatus: 'available' | 'blind_spot';
-  blindSpotSince: string | null;
-}
-
-export type ApplicationLogsResponse =
-  | PostgresApplicationLogsResponse
-  | SignalApplicationLogsResponse;
 
 export type NotificationCategory =
   | 'security'
@@ -377,7 +326,6 @@ export interface JobsResponse {
   meta: LogsMeta;
   filters: {
     page: number;
-    pageSize?: number;
     status: string;
     type: string;
     sourceService: string;
@@ -621,14 +569,12 @@ export class ApiService {
 
   notifications(filters: {
     page: number;
-    pageSize?: number;
     category: string;
     unreadOnly: boolean;
   }): Observable<NotificationsResponse> {
     return this.http.get<NotificationsResponse>('/api/v1/notifications', {
       params: {
         page: filters.page,
-        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
         category: filters.category,
         unreadOnly: filters.unreadOnly,
       },
@@ -672,15 +618,10 @@ export class ApiService {
     );
   }
 
-  jobs(filters: {
-    page: number;
-    pageSize?: number;
-    status: string;
-  }): Observable<JobsResponse> {
+  jobs(filters: { page: number; status: string }): Observable<JobsResponse> {
     return this.http.get<JobsResponse>('/api/v1/jobs', {
       params: {
         page: filters.page,
-        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
         ...(filters.status ? { status: filters.status } : {}),
       },
     });
@@ -706,7 +647,6 @@ export class ApiService {
             search: filters.search,
             status: filters.status,
             page: String(filters.page),
-            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
           },
           throwOnError: true,
         }),
@@ -789,7 +729,6 @@ export class ApiService {
             module: filters.module,
             action: filters.action,
             page: String(filters.page),
-            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
             actorUserId: filters.actorUserId,
           },
           throwOnError: true,
@@ -801,41 +740,40 @@ export class ApiService {
   accessLogs(
     filters: AccessLogFilters & ActorScope,
   ): Observable<AccessLogsResponse> {
-    return this.http.get<AccessLogsResponse>('/api/v1/logs/access-logs', {
-      params: {
-        ...(filters.search ? { search: filters.search } : {}),
-        ...(filters.event ? { event: filters.event } : {}),
-        ...(filters.outcome ? { outcome: filters.outcome } : {}),
-        ...(filters.traceId ? { traceId: filters.traceId } : {}),
-        page: filters.page,
-        ...(filters.from ? { from: filters.from } : {}),
-        ...(filters.to ? { to: filters.to } : {}),
-        ...(filters.cursor ? { cursor: filters.cursor } : {}),
-        ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
-        ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
-      },
-    });
+    return defer(() =>
+      sdkRequest<AccessLogsResponse>(() =>
+        sdk.getApiV1LogsAccessLogs({
+          query: {
+            search: filters.search,
+            event: filters.event,
+            outcome: filters.outcome,
+            traceId: filters.traceId,
+            page: String(filters.page),
+            actorUserId: filters.actorUserId,
+          },
+          throwOnError: true,
+        }),
+      ),
+    );
   }
 
   applicationLogs(
     filters: ApplicationLogFilters & ActorScope,
   ): Observable<ApplicationLogsResponse> {
-    return this.http.get<ApplicationLogsResponse>(
-      '/api/v1/logs/application-logs',
-      {
-        params: {
-          ...(filters.search ? { search: filters.search } : {}),
-          ...(filters.level ? { level: filters.level } : {}),
-          ...(filters.module ? { module: filters.module } : {}),
-          ...(filters.event ? { event: filters.event } : {}),
-          page: filters.page,
-          ...(filters.from ? { from: filters.from } : {}),
-          ...(filters.to ? { to: filters.to } : {}),
-          ...(filters.cursor ? { cursor: filters.cursor } : {}),
-          ...(filters.pageSize ? { pageSize: filters.pageSize } : {}),
-          ...(filters.actorUserId ? { actorUserId: filters.actorUserId } : {}),
-        },
-      },
+    return defer(() =>
+      sdkRequest<ApplicationLogsResponse>(() =>
+        sdk.getApiV1LogsApplicationLogs({
+          query: {
+            search: filters.search,
+            level: filters.level,
+            module: filters.module,
+            event: filters.event,
+            page: String(filters.page),
+            actorUserId: filters.actorUserId,
+          },
+          throwOnError: true,
+        }),
+      ),
     );
   }
 
@@ -970,7 +908,6 @@ export class ApiService {
     search: string;
     namespace: string;
     page: number;
-    pageSize?: number;
   }): Observable<PermissionsResponse> {
     return defer(() =>
       sdkRequest<PermissionsResponse>(() =>
@@ -979,7 +916,6 @@ export class ApiService {
             search: filters.search,
             namespace: filters.namespace,
             page: String(filters.page),
-            ...(filters.pageSize ? { pageSize: String(filters.pageSize) } : {}),
           },
           throwOnError: true,
         }),

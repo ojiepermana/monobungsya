@@ -84,6 +84,7 @@ describe('ClickHouseSignalReader', () => {
             max_result_bytes: 16_777_216,
             max_result_rows: 10_000,
             max_threads: 4,
+            overflow_mode: 'throw',
             readonly: 1,
             result_overflow_mode: 'throw',
           },

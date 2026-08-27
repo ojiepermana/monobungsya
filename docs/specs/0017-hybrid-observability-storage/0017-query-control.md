@@ -24,6 +24,7 @@ Tabel berikut tetap di PostgreSQL:
 | `telemetry.alert_states` | Alert state machine | Unique rule version serta series fingerprint |
 | `telemetry.ingestion_receipts` | Replay serta idempotency receipt | Unique key ID dan nonce, retention lima menit |
 | `telemetry.signal_schema_migrations` | ClickHouse DDL history | Ordered version dan immutable checksum |
+| `telemetry.signal_migration_runs` | Backfill checkpoint serta parity evidence | Resumable range state dan immutable completed evidence |
 
 ### `telemetry.signal_schema_migrations`
 
@@ -41,6 +42,31 @@ applied_at            timestamp required UTC
 
 History global sebelum target scoped dipertahankan sebagai `telemetry.signal_schema_migration_history_legacy`, immutable dan read only. Runner tidak pernah menganggap row legacy sebagai bukti migration pada target baru. Pada upgrade pertama, runner menjalankan kembali DDL idempotent serta postcondition untuk membangun history target scoped yang baru. Dengan demikian node yang dibangun ulang mendapat semua migration walaupun PostgreSQL masih menyimpan audit node lama.
 
+### `telemetry.signal_migration_runs`
+
+```text
+run_id                uuid primary key
+signal_kind           varchar(30) required
+schema_version        integer required
+source_from           timestamp required UTC
+source_to             timestamp required UTC
+source_cursor         jsonb nullable
+source_count          bigint required default 0
+target_count          bigint required default 0
+sample_modulus        integer required default 1000
+source_checksum       char(64) nullable
+target_checksum       char(64) nullable
+status                pending | running | paused | succeeded | failed
+error_code            varchar(100) nullable
+started_at            timestamp nullable UTC
+updated_at            timestamp required UTC
+finished_at           timestamp nullable UTC
+```
+
+Range selalu satu UTC day dan `source_from < source_to`. Hanya satu nonterminal run boleh ada untuk signal kind, schema version, dan source range yang sama. Resume memakai `source_cursor` yang sudah committed. Status `succeeded` immutable. Error text bebas tidak disimpan, hanya stable safe code.
+
+`source_cursor` adalah versioned object yang membawa event time serta stable ID terakhir sesuai entity. Ia juga membawa source query fingerprint agar resume dengan range, schema, atau ordering berbeda ditolak.
+
 ## Cross store consistency
 
 * Audit Trail ditulis di PostgreSQL bersama business mutation ketika contract memerlukannya. Audit tidak pernah menunggu atau bergantung pada ClickHouse.
@@ -48,7 +74,6 @@ History global sebelum target scoped dipertahankan sebagai `telemetry.signal_sch
 * Benchmark projection ditulis atomically di PostgreSQL. `run_id` pada Span hanya logical link dan boleh tidak ada karena sampling, retention, atau Blind Spot.
 * Alert evaluation membaca satu immutable time window dari ClickHouse, lalu menulis state serta notification job dalam satu PostgreSQL transaction. Retry memakai evaluation time, rule version, series fingerprint, dan transition sequence agar tidak membuat notification kedua.
 * Cross store query dilakukan application side melalui IDs. SQL federation dan distributed transaction dilarang.
-* Tidak ada read mode. Setiap Signal read memakai reader ClickHouse, dan setiap Control read memakai PostgreSQL. Repository logs service tidak memiliki cabang storage untuk Signal.
 
 ## Signal read model
 
@@ -92,9 +117,9 @@ filterFingerprint
 
 Next query mengikuti sort order canonical. Previous query membalik comparison serta database order, mengambil satu page, lalu mengembalikan row dalam canonical display order. Membuka page ketiga lalu Previous dua kali harus menghasilkan page pertama yang identik.
 
-Application Log serta Access Log memakai page size default 100 dan dibatasi maksimal 100. Trace memakai page size 50. Response membawa jumlah row page melalui panjang `data`, bukan exact total. `prevCursor` null pada page pertama dan `nextCursor` null ketika tidak ada row lanjutan.
+Application Log serta Access Log memakai page size 25. Trace memakai page size 50. Response membawa jumlah row page melalui panjang `data`, bukan exact total. `prevCursor` null pada page pertama dan `nextCursor` null ketika tidak ada row lanjutan.
 
-Audit Trail tidak memakai Signal cursor dan mempertahankan exact total, total pages, serta offset query PostgreSQL. Page size default seluruh endpoint log adalah 100 dan dibatasi maksimal 100.
+Audit Trail tidak memakai Signal cursor dan mempertahankan page size 25, exact total, total pages, serta offset query PostgreSQL.
 
 ## Query budgets
 
@@ -172,7 +197,7 @@ Disk rules:
 * Firing pada usage 80 persen.
 * Critical pada usage 90 persen.
 
-Disk 90 persen menghentikan nonpriority Signal intake jika diperlukan untuk menjaga node, mempertahankan diagnostic, dan membuka Blind Spot.
+Disk 80 persen atau lebih juga memblokir backfill. Disk 90 persen menghentikan nonpriority Signal intake jika diperlukan untuk menjaga node, mempertahankan diagnostic, dan membuka Blind Spot.
 
 ## Authorization and data safety
 
@@ -184,8 +209,6 @@ Application serta Access Log tetap dapat membawa actor, email, IP, session, dan 
 
 ## Rationale
 
-Signal dan Control dibaca bersama pada operator journey, tetapi tidak memiliki durability contract yang sama. Menjaga Control di PostgreSQL membuat ClickHouse outage masih dapat menghasilkan state firing, unknown, schema history, dan notification. Application side correlation dipilih di atas cross database join karena relation bersifat optional serta time bounded.
+Signal dan Control dibaca bersama pada operator journey, tetapi tidak memiliki durability contract yang sama. Menjaga Control di PostgreSQL membuat ClickHouse outage masih dapat menghasilkan state firing, unknown, migration checkpoint, dan notification. Application side correlation dipilih di atas cross database join karena relation bersifat optional serta time bounded.
 
 Cursor menang atas offset untuk growing Signal karena biayanya stabil dan tidak membutuhkan exact count. PostgreSQL Audit Trail tetap offset based karena ia adalah Control dengan behavior UI yang sudah ada dan volume serta exactness contract berbeda.
-
-Cabang read per storage dihapus bersama mode. Selama dua cabang hidup, setiap perilaku baca punya dua implementasi yang harus diuji dan default `postgres` dapat aktif di produksi tanpa disadari. Satu jalur baca menghilangkan seluruh kelas kesalahan itu, dengan konsekuensi bahwa ClickHouse yang tidak dapat dibaca berarti Blind Spot dan bukan hasil dari storage lain.

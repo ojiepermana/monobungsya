@@ -116,7 +116,7 @@ describe('PostgresSignalBackfillControl', () => {
     ]);
     expect(fake.queries[3]?.params).toEqual([
       '01812345-6789-7abc-8def-0123456789ab',
-      { id: 'cursor-1', at: 1 },
+      '{"at":1,"id":"cursor-1"}',
       25,
     ]);
     expect(fake.queries[3]?.sql).toContain('source_cursor = $2::jsonb');

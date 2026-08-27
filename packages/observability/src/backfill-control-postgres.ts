@@ -8,6 +8,7 @@ import type {
   SignalMigrationRun,
   SignalMigrationRunStatus,
 } from './backfill';
+import { canonicalJson } from './store';
 import type { SignalKind } from './types';
 
 const RUN_COLUMNS = [
@@ -238,7 +239,9 @@ export class PostgresSignalBackfillControl implements SignalBackfillControl {
       `,
       [
         runId,
-        checkpoint.sourceCursor === null ? null : checkpoint.sourceCursor,
+        checkpoint.sourceCursor === null
+          ? null
+          : canonicalJson(checkpoint.sourceCursor),
         checkpoint.sourceCount,
       ],
     );

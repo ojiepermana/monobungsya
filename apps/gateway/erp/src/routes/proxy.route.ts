@@ -71,12 +71,9 @@ import {
   jobsListResponse,
 } from '../../../../services/jobs/src/modules/jobs/jobs.schema';
 import {
-  accessLogsQuery,
   accessLogsResponse,
-  applicationLogsQuery,
   applicationLogsResponse,
   auditTrailsResponse,
-  rateLimitResponse,
 } from '../../../../services/logs/src/modules/logs/logs.schema';
 import {
   alertDetailQuery,
@@ -1364,8 +1361,15 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
-        response: { 200: accessLogsResponse, 429: rateLimitResponse },
-        query: accessLogsQuery,
+        response: { 200: accessLogsResponse },
+        query: t.Object({
+          search: t.Optional(t.String()),
+          event: t.Optional(t.String()),
+          outcome: t.Optional(t.String()),
+          traceId: t.Optional(t.String()),
+          actorUserId: t.Optional(t.String({ format: 'uuid' })),
+          page: t.Optional(t.String()),
+        }),
         detail: {
           tags: ['Logs'],
           summary: 'List access logs (requires logs:log:read)',
@@ -1387,8 +1391,15 @@ export function createProxyRoute(
           permissionCache,
         ),
       {
-        response: { 200: applicationLogsResponse, 429: rateLimitResponse },
-        query: applicationLogsQuery,
+        response: { 200: applicationLogsResponse },
+        query: t.Object({
+          search: t.Optional(t.String()),
+          level: t.Optional(t.String()),
+          module: t.Optional(t.String()),
+          event: t.Optional(t.String()),
+          actorUserId: t.Optional(t.String({ format: 'uuid' })),
+          page: t.Optional(t.String()),
+        }),
         detail: {
           tags: ['Logs'],
           summary: 'List application logs (requires logs:log:read)',
