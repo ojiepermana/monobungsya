@@ -392,13 +392,7 @@ export interface RuntimeTraceSpan {
 
 export interface RuntimeTracesResponse {
   data: RuntimeTraceSummary[];
-  prevCursor: string | null;
   nextCursor: string | null;
-  options: {
-    services: string[];
-    resourceKinds: string[];
-    resourceNames: string[];
-  };
   completeness: 'complete' | 'partial';
   storageStatus: 'available' | 'blind_spot';
 }
@@ -431,11 +425,6 @@ export interface RuntimeMetricsResponse {
     storedBuckets: number | string;
     missingBuckets: number | string;
     storageStatus: 'available' | 'blind_spot';
-  };
-  options: {
-    metrics: string[];
-    services: string[];
-    resourceKinds: string[];
   };
 }
 
@@ -490,13 +479,7 @@ export interface BenchmarkRunDetail extends BenchmarkRunSummary {
 
 export interface BenchmarkRunsResponse {
   data: BenchmarkRunSummary[];
-  prevCursor: string | null;
   nextCursor: string | null;
-  options: {
-    scenarioIds: string[];
-    statuses: string[];
-    bunVersions: string[];
-  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -514,13 +497,6 @@ export interface BenchmarkBaselinesResponse {
     active: boolean;
     promotedAt: string;
   }>;
-  prevCursor: string | null;
-  nextCursor: string | null;
-  options: {
-    scenarioIds: string[];
-    environments: string[];
-    fixtureVersions: string[];
-  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -541,19 +517,8 @@ export interface RuntimeAlertsResponse {
     evidenceBucket: string | null;
     lastNotifiedAt: string | null;
     resolvedAt: string | null;
-    title?: string;
-    severity?: 'warning' | 'critical';
-    metric?: string;
-    threshold?: number;
-    windowSeconds?: number;
-    ruleChecksum?: string;
   }>;
-  prevCursor: string | null;
   nextCursor: string | null;
-  options: {
-    ruleIds: string[];
-    services: string[];
-  };
   storageStatus: 'available' | 'blind_spot';
 }
 
@@ -785,9 +750,6 @@ export class ApiService {
       resourceKind?: string;
       resourceName?: string;
       status?: 'ok' | 'error' | 'unset';
-      correlationId?: string;
-      requestId?: string;
-      runId?: string;
       cursor?: string;
     } = {},
   ): Observable<RuntimeTracesResponse> {
@@ -871,7 +833,6 @@ export class ApiService {
       scenarioVersion?: string;
       fixtureVersion?: string;
       environment?: string;
-      cursor?: string;
     } = {},
   ): Observable<BenchmarkBaselinesResponse> {
     return defer(() =>

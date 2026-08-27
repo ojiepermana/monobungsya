@@ -1,10 +1,6 @@
 import type { NavigationItem } from '@ojiepermana/angular/navigation';
 import type { AuthPermission } from '../auth/auth.service';
-import {
-  hasAnyRequiredPermission,
-  hasResolvedPermission,
-  PERMISSIONS,
-} from '../auth/permissions';
+import { hasResolvedPermission, PERMISSIONS } from '../auth/permissions';
 
 export const APP_BRAND_ICON = 'apps' as const;
 
@@ -93,67 +89,15 @@ export function appNavigationFor(
 
   const observabilityItems: NavigationItem[] = [];
   if (
-    hasAnyRequiredPermission(permissions, [
-      PERMISSIONS.observabilityTraceRead,
-      PERMISSIONS.observabilityMetricRead,
-      PERMISSIONS.observabilityBenchmarkRead,
-      PERMISSIONS.observabilityAlertRead,
-    ])
+    hasResolvedPermission(permissions, PERMISSIONS.observabilityTelemetryRead)
   ) {
     observabilityItems.push({
-      id: 'observability-overview',
+      id: 'observability',
       type: 'item',
-      title: 'Overview',
+      title: 'Observability',
       icon: 'monitor_heart',
       link: '/observability',
       exactMatch: true,
-    });
-  }
-  if (hasResolvedPermission(permissions, PERMISSIONS.observabilityTraceRead)) {
-    observabilityItems.push({
-      id: 'observability-traces',
-      type: 'item',
-      title: 'Traces',
-      icon: 'account_tree',
-      link: '/observability/traces',
-    });
-  }
-  if (hasResolvedPermission(permissions, PERMISSIONS.observabilityMetricRead)) {
-    observabilityItems.push({
-      id: 'observability-metrics',
-      type: 'item',
-      title: 'Metrics',
-      icon: 'insights',
-      link: '/observability/metrics',
-    });
-  }
-  if (
-    hasResolvedPermission(permissions, PERMISSIONS.observabilityBenchmarkRead)
-  ) {
-    observabilityItems.push(
-      {
-        id: 'observability-benchmarks',
-        type: 'item',
-        title: 'Benchmarks',
-        icon: 'speed',
-        link: '/observability/benchmarks',
-      },
-      {
-        id: 'observability-baselines',
-        type: 'item',
-        title: 'Baselines',
-        icon: 'verified',
-        link: '/observability/baselines',
-      },
-    );
-  }
-  if (hasResolvedPermission(permissions, PERMISSIONS.observabilityAlertRead)) {
-    observabilityItems.push({
-      id: 'observability-alerts',
-      type: 'item',
-      title: 'Alerts',
-      icon: 'notification_important',
-      link: '/observability/alerts',
     });
   }
 

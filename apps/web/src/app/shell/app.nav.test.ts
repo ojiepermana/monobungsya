@@ -62,49 +62,6 @@ describe('application navigation authorization', () => {
 
     expect(ids).not.toContain('dashboard');
   });
-
-  it('shows only the signal destinations granted to the signed in user', () => {
-    const ids = navigationIds(
-      appNavigationFor([PERMISSIONS.observabilityTraceRead]),
-    );
-
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        'observability-overview',
-        'observability-traces',
-      ]),
-    );
-    expect(ids).not.toContain('observability-metrics');
-    expect(ids).not.toContain('observability-benchmarks');
-    expect(ids).not.toContain('observability-baselines');
-    expect(ids).not.toContain('observability-alerts');
-  });
-
-  it('keeps benchmark baselines in the benchmark permission boundary', () => {
-    const ids = navigationIds(
-      appNavigationFor([PERMISSIONS.observabilityBenchmarkRead]),
-    );
-
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        'observability-overview',
-        'observability-benchmarks',
-        'observability-baselines',
-      ]),
-    );
-    expect(ids).not.toContain('observability-alerts');
-  });
-
-  it('only activates observability Overview on its exact route', () => {
-    const overview = appNavigationFor([PERMISSIONS.observabilityMetricRead])
-      .flatMap((item) => item.children ?? [])
-      .find((item) => item.id === 'observability-overview');
-
-    expect(overview).toMatchObject({
-      link: '/observability',
-      exactMatch: true,
-    });
-  });
 });
 
 function navigationIds(items: readonly NavigationItem[]): string[] {
