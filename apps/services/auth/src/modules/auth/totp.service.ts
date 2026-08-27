@@ -132,7 +132,7 @@ export class TotpService {
     challengeToken: string | undefined,
     code: string | undefined,
     recoveryCode: string | undefined,
-    ipAddress: string,
+    ipAddress: string | undefined,
     sessionTokenHash: string,
     securityContext?: AuthSecurityContext,
   ): Promise<{ user: AuthUser; session: SessionRecord }> {
@@ -142,10 +142,9 @@ export class TotpService {
       ? await this.repository.findChallenge(challengeTokenHash, 'login')
       : null;
 
-    const allowedIp = await this.repository.allowAttempt(
-      'totp_ip',
-      hashSecret(ipAddress),
-    );
+    const allowedIp = ipAddress
+      ? await this.repository.allowAttempt('totp_ip', hashSecret(ipAddress))
+      : true;
     const allowedUser = challenge
       ? await this.repository.allowAttempt(
           'totp_user',
